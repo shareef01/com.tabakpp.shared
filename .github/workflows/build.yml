@@ -40,6 +40,11 @@ jobs:
       - name: Build Shared Framework
         run: ./gradlew :shared:assembleSharedKitReleaseXCFramework
 
+      - name: Debug Path
+        run: |
+          ls -R
+          pwd
+
       - name: Generate Xcode Project
         run: |
           cd iosApp
