@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tabak++ | Minimal Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        accent: '#D4FF5C',
+                        accentFg: '#0C0C00',
+                        bgBase: '#020202',
+                        bgPanel: '#0D0D0E',
+                        bgCard: '#161618',
+                        textMain: '#FFFFFF',
+                        textMuted: '#888880',
+                        textDim: '#444442',
+                        danger: '#F87171',
+                        success: '#4ADE80',
+                        borderSubtle: 'rgba(255, 255, 255, 0.13)',
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --bg-base: #020202;
+            --bg-panel: #0D0D0E;
+            --bg-card: #161618;
+            --text-main: #FFFFFF;
+            --text-muted: #888880;
+            --text-dim: #444442;
+            --border-subtle: rgba(255, 255, 255, 0.13);
+            --accent: #D4FF5C;
+            --accent-fg: #0C0C00;
+            --danger: #F87171;
+        }
+
+        .light-mode {
+            --bg-base: #F5F5F7;
+            --bg-panel: #FFFFFF;
+            --bg-card: #E8E8EB;
+            --text-main: #1A1A1C;
+            --text-muted: #6B6B6B;
+            --text-dim: #9E9E9E;
+            --border-subtle: rgba(0, 0, 0, 0.1);
+            --accent: #2563EB;
+            --accent-fg: #FFFFFF;
+            --danger: #D32F2F;
+        }
+
+        body { background-color: var(--bg-base); color: var(--text-main); font-family: 'Inter', sans-serif; overflow-x: hidden; transition: background-color 0.3s ease, color 0.3s ease; }
+
+        .bg-bgBase { background-color: var(--bg-base); }
+        .bg-bgPanel { background-color: var(--bg-panel); }
+        .bg-bgCard { background-color: var(--bg-card); }
+        .text-textMain { color: var(--text-main); }
+        .text-textMuted { color: var(--text-muted); }
+        .text-textDim { color: var(--text-dim); }
+        .border-borderSubtle { border-color: var(--border-subtle); }
+
+        .glow-accent { filter: drop-shadow(0 0 8px var(--accent)); }
+        .blur-bg { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #444; border-radius: 10px; }
+
+        .burn-bar { position: relative; height: 12px; border-radius: 6px; overflow: hidden; background: rgba(128, 128, 128, 0.1); border: 1px solid var(--border-subtle); }
+        .burn-progress { height: 100%; display: flex; transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .ember { width: 6px; height: 100%; background: linear-gradient(to right, #FF3D00, #FFB74D); box-shadow: 0 0 10px #FF3D00; z-index: 10; }
+        .tobacco { flex-grow: 1; background: linear-gradient(to right, #F5F5F5, #FFFFFF); }
+        .roach { width: 40px; height: 100%; background: #E6A33E; }
+        .roach-joint { background: #424242; }
+
+        .tab-btn { transition: all 0.3s ease; color: var(--text-muted); opacity: 0.6; }
+        .tab-btn.active { color: var(--accent); opacity: 1; transform: scale(1.1); }
+
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .theme-toggle { width: 48px; height: 24px; border-radius: 12px; position: relative; cursor: pointer; background-color: var(--accent); }
+        .theme-toggle-knob { width: 16px; height: 16px; border-radius: 50%; background-color: var(--accent-fg); position: absolute; top: 4px; left: 4px; transition: all 0.3s ease; }
+        .light-mode .theme-toggle-knob { left: 28px; }
+
+        .modal-backdrop { background-color: rgba(0,0,0,0.8); backdrop-filter: blur(8px); }
+        input, select { background: rgba(255,255,255,0.03) !important; border: 1px solid var(--border-subtle) !important; }
+        input:focus, select:focus { border-color: var(--accent) !important; outline: none; }
+
+        .card-btn { background: var(--bg-base); border: 1px solid var(--border-subtle); transition: all 0.2s; }
+        .card-btn:hover { background: rgba(255,255,255,0.05); }
+        .card-btn-plus { background: rgba(212, 255, 92, 0.1); color: var(--accent); border-color: rgba(212, 255, 92, 0.2); }
+        .card-btn-plus:hover { background: rgba(212, 255, 92, 0.2); }
+
+        .spinner { border: 2px solid rgba(212, 255, 92, 0.1); border-top: 2px solid var(--accent); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="custom-scroll">
+    <!-- Auth Overlay -->
+    <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-bgBase p-6">
+        <div class="w-full max-w-md space-y-8 fade-in">
+            <div class="text-center space-y-4">
+                <div class="inline-block p-4 rounded-full bg-accent/10 mb-4">
+                    <span class="text-[var(--accent)] font-mono text-4xl font-black">++</span>
+                </div>
+                <h1 class="text-3xl font-mono font-bold tracking-tighter text-textMain uppercase">Welcome back.</h1>
+                <p class="text-textMuted">Sign in to sync your journey.</p>
+            </div>
+
+            <div class="bg-bgCard border border-borderSubtle rounded-[32px] p-8 space-y-6">
+                <div id="auth-message" class="hidden p-4 rounded-xl text-sm font-semibold"></div>
+
+                <div class="space-y-4">
+                    <input id="email" type="email" placeholder="Email" class="w-full rounded-2xl px-5 py-4 transition-all text-textMain">
+                    <input id="password" type="password" placeholder="Password" class="w-full rounded-2xl px-5 py-4 transition-all text-textMain">
+                </div>
+
+                <button onclick="handleLogin()" id="btn-login" class="w-full bg-[var(--accent)] text-[var(--accent-fg)] font-extrabold py-4 rounded-2xl active:scale-95 transition-transform flex items-center justify-center gap-2">
+                    <span id="login-text">Sign In</span>
+                    <div id="login-spinner" class="spinner hidden"></div>
+                </button>
+
+                <div class="relative flex items-center justify-center py-2">
+                    <div class="border-t border-borderSubtle w-full"></div>
+                    <span class="bg-bgCard px-4 text-textMuted text-xs font-mono">OR</span>
+                </div>
+
+                <button onclick="handleGoogleSignIn()" class="w-full bg-white text-blue-600 flex items-center justify-center gap-3 font-bold py-4 rounded-2xl active:scale-95 transition-transform">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="Google">
+                    Sign in with Google
+                </button>
+
+                <button onclick="continueAsGuest()" class="w-full text-textMuted text-sm underline hover:text-[var(--accent)] transition-colors">Continue without an account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-app" class="min-h-screen pb-32 hidden">
+        <!-- Sticky Header -->
+        <header class="sticky top-0 z-40 bg-bgPanel/80 blur-bg border-b border-borderSubtle p-4 md:px-12">
+            <div class="max-w-4xl mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+                        <span class="text-[var(--accent)] font-mono text-sm font-black">++</span>
+                    </div>
+                    <span class="text-xl font-mono font-extrabold tracking-tighter uppercase">tabak++</span>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span id="header-date" class="text-[10px] font-mono text-textMuted uppercase tracking-widest">thursday • MAY 28</span>
+                    <div class="flex items-center gap-2">
+                         <span id="remaining-badge" class="bg-accent/5 border border-accent/20 px-3 py-1 rounded-full text-[10px] font-mono font-black text-[var(--accent)]">-- LEFT</span>
+                         <button onclick="handleSignOut()" class="p-2 text-textMuted hover:text-danger"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- View Containers -->
+        <main class="max-w-4xl mx-auto p-6 md:p-12 space-y-12 fade-in">
+            <!-- Tracker View -->
+            <section id="view-tracker" class="space-y-8">
+                <div class="text-center space-y-4">
+                    <h2 id="view-title" class="text-sm font-mono text-textMuted tracking-[0.3em]">TODAY'S PROGRESS</h2>
+                    <div class="w-full max-w-[200px] mx-auto h-2 bg-textMain/5 rounded-full overflow-hidden border border-borderSubtle">
+                        <div id="global-progress-bar" class="h-full bg-[var(--accent)] transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div id="tracker-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Cards will be injected here -->
+                </div>
+
+                <button onclick="document.getElementById('modal-add').classList.remove('hidden')" class="w-full border-2 border-dashed border-borderSubtle rounded-[32px] py-8 text-textMuted hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all font-mono font-bold uppercase text-xs">
+                    + Add New Tracker
+                </button>
+            </section>
+
+            <!-- History View -->
+            <section id="view-history" class="hidden space-y-8">
+                <div class="bg-bgCard border border-borderSubtle rounded-[32px] p-8 space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-mono text-xs text-textMuted uppercase tracking-widest">TREND ANALYSIS</p>
+                            <p id="chart-title" class="font-black text-xl text-[var(--accent)]">history</p>
+                        </div>
+                        <div class="relative">
+                            <button id="chart-menu-btn" class="p-2 bg-accent/10 rounded-full text-[var(--accent)]">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a1 1 0 00-2 0v12a1 1 0 102 0V4zM9 4a1 1 0 00-2 0v12a1 1 0 102 0V4zM13 4a1 1 0 00-2 0v12a1 1 0 102 0V4zM17 4a1 1 0 00-2 0v12a1 1 0 102 0V4z" /></svg>
+                            </button>
+                            <div id="chart-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-bgPanel border border-borderSubtle rounded-2xl shadow-2xl z-50 p-2 space-y-1">
+                                <!-- Tracker options will be injected here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="h-64 w-full">
+                        <canvas id="historyChart"></canvas>
+                    </div>
+                    <div id="chart-stats" class="flex items-center gap-4 text-xs font-mono text-textMuted">
+                        <div class="w-2 h-2 rounded-full bg-[var(--accent)]/40"></div>
+                        <span id="chart-avg-label">avg: -- | goal: --</span>
+                    </div>
+                </div>
+                <h2 class="text-sm font-mono text-textMuted tracking-[0.3em] text-center uppercase">History Logs</h2>
+                <div id="history-list" class="space-y-4">
+                    <!-- History logs injected here -->
+                </div>
+            </section>
+
+            <!-- Settings View -->
+            <section id="view-settings" class="hidden space-y-8">
+                 <h2 class="text-sm font-mono text-textMuted tracking-[0.3em] text-center">PREFERENCES</h2>
+                 <div class="bg-bgCard border border-borderSubtle rounded-[32px] p-8 space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-bold text-lg">Display Name</p>
+                            <p id="user-display-name-settings" class="text-textMuted text-sm">User</p>
+                        </div>
+                        <button onclick="handleUpdateName()" class="text-[var(--accent)] font-mono text-xs font-bold uppercase hover:underline">Edit</button>
+                    </div>
+                    <div class="border-t border-borderSubtle"></div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-bold text-lg">App Theme</p>
+                            <p id="theme-status" class="text-textMuted text-sm">Dark mode is default</p>
+                        </div>
+                        <div onclick="toggleTheme()" class="theme-toggle">
+                            <div class="theme-toggle-knob"></div>
+                        </div>
+                    </div>
+                    <div class="border-t border-borderSubtle"></div>
+                    <div class="flex items-center justify-between text-danger">
+                        <div>
+                            <p class="font-bold text-lg">Account</p>
+                            <p class="text-xs opacity-60">Sign out of all devices</p>
+                        </div>
+                        <button onclick="handleSignOut()" class="font-mono text-xs font-bold uppercase hover:underline">Sign Out</button>
+                    </div>
+                 </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-bgPanel/90 blur-bg border border-borderSubtle p-4 rounded-[40px] flex items-center justify-around shadow-2xl">
+        <button onclick="showView('tracker')" class="tab-btn active p-3" id="tab-tracker">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+        </button>
+        <button onclick="showView('history')" class="tab-btn p-3" id="tab-history">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+        </button>
+        <button onclick="showView('settings')" class="tab-btn p-3" id="tab-settings">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        </button>
+    </nav>
+
+    <!-- Modals -->
+    <div id="modal-add" class="fixed inset-0 z-[60] flex items-center justify-center modal-backdrop p-6 hidden">
+        <div class="bg-bgPanel border border-borderSubtle rounded-[32px] p-8 w-full max-w-sm space-y-6 shadow-2xl">
+            <h3 class="text-2xl font-bold font-mono">Add Counter</h3>
+            <div class="space-y-4">
+                <input id="add-name" type="text" placeholder="Name" class="w-full rounded-2xl px-5 py-4 text-textMain">
+                <input id="add-limit" type="number" placeholder="Daily Limit" class="w-full rounded-2xl px-5 py-4 text-textMain">
+                <select id="add-type" class="w-full rounded-2xl px-5 py-4 text-textMain appearance-none">
+                    <option value="CIGARETTE">Cigarette</option>
+                    <option value="JOINT_KING">King Size</option>
+                    <option value="JOINT_QUEEN">Queen Size</option>
+                    <option value="SIMPLE">Simple Counter</option>
+                </select>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="document.getElementById('modal-add').classList.add('hidden')" class="flex-1 border border-borderSubtle py-4 rounded-2xl font-bold text-textMuted">Cancel</button>
+                <button onclick="handleAddCounter()" class="flex-1 bg-accent text-accentFg py-4 rounded-2xl font-bold">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase App SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously, updateProfile } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, query, orderBy, onSnapshot, updateDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCiAz3coiXQyozfym3T0xFmq9jYtBa6pJY",
+            authDomain: "tabakpp-ff036.firebaseapp.com",
+            projectId: "tabakpp-ff036",
+            storageBucket: "tabakpp-ff036.firebasestorage.app",
+            messagingSenderId: "651175477527",
+            appId: "1:651175477527:web:865d7529f79883da9b3752"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let configs = [];
+        let todayLog = null;
+        let allLogs = [];
+        let chartInstance = null;
+        let selectedChartCounterId = 'cigarettes';
+        let selectedChartTimeframe = 'DAY';
+
+        // 1. UI View Management
+        window.showView = (view) => {
+            ['tracker', 'history', 'settings'].forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                const tab = document.getElementById(`tab-${v}`);
+                if (el) el.classList.add('hidden');
+                if (tab) {
+                    tab.classList.remove('active', 'text-accent');
+                    tab.classList.add('text-textMuted');
+                }
+            });
+            document.getElementById(`view-${view}`).classList.remove('hidden');
+            document.getElementById(`tab-${view}`).classList.add('active', 'text-accent');
+            document.getElementById(`tab-${view}`).classList.remove('text-textMuted');
+
+            if (view === 'history') updateChart();
+        };
+
+        // 2. Theme Management
+        window.toggleTheme = () => {
+            const body = document.body;
+            const isLight = body.classList.toggle('light-mode');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            updateThemeUI();
+            if (chartInstance) updateChart();
+        };
+
+        const updateThemeUI = () => {
+            const isLight = document.body.classList.contains('light-mode');
+            const status = document.getElementById('theme-status');
+            if (status) status.innerText = isLight ? "Light mode active" : "Dark mode is default";
+        };
+
+        // Init theme
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.add('light-mode');
+            updateThemeUI();
+        }
+
+        const getTodayStr = () => new Date().toISOString().split('T')[0];
+
+        // 3. Auth Listener
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+
+                const name = user.displayName || (user.isAnonymous ? "Guest Mode" : user.email.split('@')[0]);
+                document.getElementById('user-display-name-settings').innerText = name;
+                initAppData();
+            } else {
+                currentUser = null;
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('main-app').classList.add('hidden');
+            }
+        });
+
+        // 4. Data Initialization & Sync
+        const initAppData = () => {
+            const todayStr = getTodayStr();
+            const userDocRef = doc(db, "users", currentUser.uid);
+
+            // Listen for Configs
+            onSnapshot(userDocRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    configs = snapshot.data().counters || [];
+                } else {
+                    configs = [{ id: "cigarettes", name: "Cigarettes", limit: 20, type: "CIGARETTE" }];
+                    setDoc(userDocRef, { counters: configs }, { merge: true });
+                }
+                updateChartDropdown();
+                renderTracker();
+                if (!document.getElementById('view-history').classList.contains('hidden')) updateChart();
+            });
+
+            // Listen for Logs
+            const logsRef = collection(db, "users", currentUser.uid, "logs");
+            onSnapshot(query(logsRef, orderBy("logDate", "desc")), (snapshot) => {
+                allLogs = snapshot.docs.map(d => d.data());
+                todayLog = allLogs.find(l => l.logDate === todayStr);
+
+                if (!todayLog) {
+                    const counts = {};
+                    configs.forEach(c => counts[c.id] = 0);
+                    todayLog = { userId: currentUser.uid, logDate: todayStr, counts };
+                    setDoc(doc(logsRef, todayStr), todayLog);
+                }
+
+                renderTracker();
+                renderHistory();
+                updateHeader();
+                if (!document.getElementById('view-history').classList.contains('hidden')) updateChart();
+            });
+        };
+
+        // 5. Rendering Components
+        const renderTracker = () => {
+            const grid = document.getElementById('tracker-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            configs.forEach(config => {
+                const count = (todayLog?.counts || {})[config.id] || 0;
+                const isLimitReached = count >= config.limit;
+                const progress = Math.min(count / Math.max(config.limit, 1), 1);
+
+                const card = document.createElement('div');
+                card.className = `bg-bgCard border border-borderSubtle rounded-[32px] p-8 flex flex-col items-center space-y-8 fade-in shadow-lg`;
+
+                const displayName = config.name || {
+                    'CIGARETTE': 'cigarettes',
+                    'JOINT_KING': 'king size',
+                    'JOINT_QUEEN': 'queen size',
+                    'SIMPLE': 'counter'
+                }[config.type] || 'counter';
+
+                const visualHtml = config.type === 'SIMPLE' ? `
+                    <div class="relative w-24 h-24 flex items-center justify-center">
+                        <svg class="w-full h-full -rotate-90">
+                            <circle cx="48" cy="48" r="40" stroke="rgba(128,128,128,0.1)" stroke-width="8" fill="none" />
+                            <circle cx="48" cy="48" r="40" stroke="${isLimitReached ? 'var(--danger)' : 'var(--accent)'}" stroke-width="8" fill="none" stroke-dasharray="251.2" stroke-dashoffset="${251.2 * (1 - progress)}" stroke-linecap="round" />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center font-mono font-black text-2xl">${count}</div>
+                    </div>
+                ` : `
+                    <div class="burn-bar w-full max-w-[240px]">
+                        <div class="burn-progress" style="width: 100%">
+                            <div style="flex-basis: ${progress * 100}%"></div>
+                            ${count > 0 ? '<div class="ember"></div>' : ''}
+                            <div class="tobacco" style="opacity: ${isLimitReached ? 0 : 1}"></div>
+                            <div class="roach ${config.type.includes('JOINT') ? 'roach-joint' : ''}"></div>
+                        </div>
+                        ${isLimitReached ? '<div class="absolute inset-0 bg-danger/70"></div>' : ''}
+                    </div>
+                    <div class="font-mono font-black text-6xl py-4">${count}</div>
+                `;
+
+                card.innerHTML = `
+                    <div class="text-center">
+                        <p class="text-[10px] font-mono font-black tracking-widest uppercase ${isLimitReached ? 'text-danger' : 'text-accent'}">${displayName}</p>
+                    </div>
+                    ${visualHtml}
+                    <div class="flex items-center gap-6">
+                        <button onclick="changeCount('${config.id}', -1)" class="w-12 h-12 rounded-full card-btn flex items-center justify-center text-textMuted">-</button>
+                        <button onclick="changeCount('${config.id}', 1)" class="w-12 h-12 rounded-full card-btn card-btn-plus flex items-center justify-center text-xl font-bold">+</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        };
+
+        const renderHistory = () => {
+            const list = document.getElementById('history-list');
+            if (!list) return;
+            list.innerHTML = '';
+
+            allLogs.forEach(log => {
+                const bundle = document.createElement('div');
+                bundle.className = `bg-bgCard border border-borderSubtle rounded-3xl p-6 space-y-4 cursor-pointer hover:bg-white/5 transition-colors`;
+                const total = Object.values(log.counts || {}).reduce((a, b) => a + b, 0);
+
+                bundle.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-mono font-bold text-textMain">${log.logDate === getTodayStr() ? 'today' : log.logDate}</p>
+                            <p class="text-[10px] font-mono text-textMuted uppercase">${total} total events</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-textDim" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                    </div>
+                `;
+                list.appendChild(bundle);
+            });
+        };
+
+        const updateHeader = () => {
+            const today = new Date();
+            document.getElementById('header-date').innerText = `${today.toLocaleDateString('en-US', { weekday: 'long' })} • ${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`.toLowerCase();
+
+            const totalCount = configs.reduce((s, c) => s + (todayLog?.counts[c.id] || 0), 0);
+            const totalLimit = configs.reduce((s, c) => s + c.limit, 0);
+            const rem = totalLimit - totalCount;
+
+            const badge = document.getElementById('remaining-badge');
+            badge.innerText = isNaN(rem) ? "-- LEFT" : (rem >= 0 ? `${rem} LEFT` : `${Math.abs(rem)} OVER`);
+            badge.className = `px-3 py-1 rounded-full text-[10px] font-mono font-black border transition-colors ${rem < 0 ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-accent/5 border-accent/20 text-accent'}`;
+
+            document.getElementById('global-progress-bar').style.width = `${Math.min(totalCount / Math.max(totalLimit, 1), 1) * 100}%`;
+        };
+
+        // 6. Chart Logic
+        const updateChart = () => {
+            const canvas = document.getElementById('historyChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const style = getComputedStyle(document.body);
+            const accentColor = style.getPropertyValue('--accent').trim();
+            const textMuted = style.getPropertyValue('--text-muted').trim();
+
+            const selectedConfig = configs.find(c => c.id === selectedChartCounterId) || configs[0];
+            const limit = selectedConfig?.limit || 20;
+
+            let labels = [];
+            let data = [];
+
+            if (selectedChartTimeframe === 'DAY') {
+                const recentLogs = [...allLogs].sort((a,b) => a.logDate.localeCompare(b.logDate)).slice(-7);
+                labels = recentLogs.map(l => {
+                    const d = new Date(l.logDate);
+                    return d.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase();
+                });
+                data = recentLogs.map(l => (l.counts || {})[selectedChartCounterId] || 0);
+            } else {
+                // Mock Weekly Logic (mirrors app's behavior of simplified grouping)
+                labels = ['w4', 'w3', 'w2', 'w1', 'today'];
+                data = [0, 0, 0, 0, (todayLog?.counts || {})[selectedChartCounterId] || 0];
+            }
+
+            const avg = data.length > 0 ? (data.reduce((a,b) => a+b, 0) / data.length).toFixed(0) : 0;
+            document.getElementById('chart-avg-label').innerText = `avg: ${avg} | goal: ${limit}`;
+            document.getElementById('chart-title').innerText = `${selectedConfig?.name?.toLowerCase() || 'history'} (${selectedChartTimeframe.toLowerCase()})`;
+
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        borderColor: accentColor,
+                        borderWidth: 3,
+                        pointBackgroundColor: accentColor,
+                        pointBorderColor: style.getPropertyValue('--bg-card').trim(),
+                        pointBorderWidth: 4,
+                        pointRadius: 6,
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: (context) => {
+                            const {ctx, chartArea} = context.chart;
+                            if (!chartArea) return null;
+                            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                            gradient.addColorStop(0, accentColor + '40');
+                            gradient.addColorStop(1, 'transparent');
+                            return gradient;
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(128,128,128,0.05)' }, ticks: { color: textMuted, font: { family: 'JetBrains Mono' } } },
+                        x: { grid: { display: false }, ticks: { color: textMuted, font: { family: 'JetBrains Mono' } } }
+                    }
+                }
+            });
+        };
+
+        const updateChartDropdown = () => {
+            const dropdown = document.getElementById('chart-dropdown');
+            if (!dropdown) return;
+            const content = `
+                <div class="px-3 py-2 text-[9px] font-mono text-textMuted uppercase tracking-widest font-black">Trackers</div>
+                ${configs.map(c => `
+                    <button onclick="setChartTracker('${c.id}')" class="w-full text-left px-4 py-2 text-xs rounded-xl hover:bg-accent/10 hover:text-accent font-mono ${selectedChartCounterId === c.id ? 'text-accent font-bold' : 'text-textMain'}">
+                        ${(c.name || c.type).toLowerCase()}
+                    </button>
+                `).join('')}
+                <div class="border-t border-borderSubtle my-1"></div>
+                <div class="px-3 py-2 text-[9px] font-mono text-textMuted uppercase tracking-widest font-black">Timeframe</div>
+                <button onclick="setChartTimeframe('DAY')" class="w-full text-left px-4 py-2 text-xs rounded-xl hover:bg-accent/10 hover:text-accent font-mono ${selectedChartTimeframe === 'DAY' ? 'text-accent font-bold' : 'text-textMain'}">Daily</button>
+                <button onclick="setChartTimeframe('WEEK')" class="w-full text-left px-4 py-2 text-xs rounded-xl hover:bg-accent/10 hover:text-accent font-mono ${selectedChartTimeframe === 'WEEK' ? 'text-accent font-bold' : 'text-textMain'}">Weekly</button>
+            `;
+            dropdown.innerHTML = content;
+        };
+
+        window.setChartTracker = (id) => {
+            selectedChartCounterId = id;
+            updateChart();
+            updateChartDropdown();
+            document.getElementById('chart-dropdown').classList.add('hidden');
+        };
+
+        window.setChartTimeframe = (tf) => {
+            selectedChartTimeframe = tf;
+            updateChart();
+            updateChartDropdown();
+            document.getElementById('chart-dropdown').classList.add('hidden');
+        };
+
+        document.getElementById('chart-menu-btn').onclick = (e) => {
+            e.stopPropagation();
+            document.getElementById('chart-dropdown').classList.toggle('hidden');
+        };
+        window.addEventListener('click', () => document.getElementById('chart-dropdown')?.classList.add('hidden'));
+
+        // 7. Actions
+        window.changeCount = (cid, delta) => {
+            if (!todayLog || !currentUser) return;
+            const current = (todayLog.counts || {})[cid] || 0;
+            const newVal = Math.max(0, current + delta);
+            if (newVal === current) return;
+
+            const newCounts = { ...(todayLog.counts || {}), [cid]: newVal };
+            updateDoc(doc(db, "users", currentUser.uid, "logs", todayLog.logDate), { counts: newCounts });
+        };
+
+        window.handleAddCounter = async () => {
+            if (!currentUser) return;
+            const name = document.getElementById('add-name').value;
+            const limit = parseInt(document.getElementById('add-limit').value) || 20;
+            const type = document.getElementById('add-type').value;
+            const id = Math.random().toString(36).substr(2, 9);
+
+            const newConfigs = [...configs, { id, name, limit, type }];
+            await updateDoc(doc(db, "users", currentUser.uid), { counters: newConfigs });
+            document.getElementById('modal-add').classList.add('hidden');
+        };
+
+        window.handleUpdateName = async () => {
+            const newName = prompt("Enter new display name:", currentUser.displayName || "");
+            if (newName && newName !== currentUser.displayName) {
+                await updateProfile(auth.currentUser, { displayName: newName });
+                document.getElementById('user-display-name-settings').innerText = newName;
+            }
+        };
+
+        window.handleLogin = () => {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('password').value;
+            if (!e || !p) return showAuthError("Please fill all fields");
+
+            setLoading(true);
+            signInWithEmailAndPassword(auth, e, p)
+                .catch(err => showAuthError(err.message))
+                .finally(() => setLoading(false));
+        };
+
+        window.handleGoogleSignIn = () => {
+            const provider = new GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            signInWithPopup(auth, provider).catch(err => showAuthError(err.message));
+        };
+
+        window.continueAsGuest = () => {
+            signInAnonymously(auth).catch(err => showAuthError(err.message));
+        };
+
+        window.handleSignOut = () => signOut(auth);
+
+        const showAuthError = (msg) => {
+            const el = document.getElementById('auth-message');
+            el.innerText = msg;
+            el.classList.remove('hidden');
+            el.className = "p-4 rounded-xl text-sm font-semibold bg-danger/10 text-danger";
+        };
+
+        const setLoading = (isLoading) => {
+            document.getElementById('login-text').classList.toggle('hidden', isLoading);
+            document.getElementById('login-spinner').classList.toggle('hidden', !isLoading);
+            document.getElementById('btn-login').disabled = isLoading;
+        };
+    </script>
+</body>
+</html>

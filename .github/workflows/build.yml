@@ -1,0 +1,68 @@
+name: Multiplatform Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Build with Gradle
+        run: ./gradlew :app:assembleDebug
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+          cache: gradle
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Build Shared Framework
+        run: ./gradlew :shared:assembleSharedKitReleaseXCFramework
+
+      - name: Generate Xcode Project
+        run: |
+          cd iosApp
+          xcodegen generate
+
+      - name: Build iOS App
+        run: |
+          xcodebuild -project iosApp/iosApp.xcodeproj \
+                     -scheme iosApp \
+                     -configuration Release \
+                     -sdk iphoneos \
+                     -derivedDataPath build \
+                     CODE_SIGNING_ALLOWED=NO \
+                     CODE_SIGNING_REQUIRED=NO
+
+      - name: Create IPA (The AltStore Way)
+        run: |
+          mkdir -p Payload
+          cp -r iosApp/build/Build/Products/Release-iphoneos/iosApp.app Payload/
+          zip -r tabak_ios.ipa Payload
+      
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tabak-ios-ipa
+          path: tabak_ios.ipa

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Minimalist Smoke (3 vertical lines) -->
+    <path
+        android:fillColor="@color/ic_launcher_smoke"
+        android:pathData="M50,28h2v8h-2z M54,28h2v8h-2z M58,28h2v8h-2z" />
+
+    <!-- Minimalist Cigarette Bar -->
+    <!-- Adaptive Tip (left) -->
+    <path
+        android:fillColor="@color/ic_launcher_accent"
+        android:pathData="M34,42h8v12h-8c-1.1,0 -2,-0.9 -2,-2v-8c0,-1.1 0.9,-2 2,-2z" />
+
+    <!-- Constant Dark Body -->
+    <path
+        android:fillColor="@color/ic_launcher_cigarette_body"
+        android:pathData="M42,42h24v12h-24z" />
+
+    <!-- Orange Filter (Constant) -->
+    <path
+        android:fillColor="#D97706"
+        android:pathData="M66,42h8c1.1,0 2,0.9 2,2v8c0,1.1 -0.9,2 -2,2h-8z" />
+
+</vector>

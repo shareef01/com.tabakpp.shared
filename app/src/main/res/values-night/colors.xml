@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="ic_launcher_accent">#F87171</color>
+    <color name="ic_launcher_cigarette_body">#1A1A1C</color>
+    <color name="ic_launcher_smoke">#444442</color>
+</resources>
