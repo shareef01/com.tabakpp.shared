@@ -24,4 +24,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "tabakpp"
 include(":app")
-include(":shared")

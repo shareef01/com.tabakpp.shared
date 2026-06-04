@@ -91,7 +91,7 @@ fun AuthScreen(viewModel: MainViewModel) {
                             { form = AuthForm.FORGOT }, { form = AuthForm.SIGNUP },
                             onGoogle = {
                                 val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                                    .requestIdToken("651175477527-qn8ntoef1ja4664fq8uf0fuvtbg9d5kf.apps.googleusercontent.com")
+                                    .requestIdToken("YOUR_GOOGLE_CLIENT_ID")
                                     .requestEmail()
                                     .build()
                                 val client = GoogleSignIn.getClient(context, gso)
