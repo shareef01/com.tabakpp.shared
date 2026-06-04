@@ -41,7 +41,9 @@ jobs:
         run: brew install xcodegen
 
       - name: Build Shared Framework
-        run: ./gradlew :shared:assembleSharedKitReleaseXCFramework
+        run: |
+          ./gradlew clean
+          ./gradlew :shared:assembleSharedKitReleaseXCFramework --no-configuration-cache
 
       - name: Debug Path
         run: |
