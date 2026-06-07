@@ -1,6 +1,7 @@
 package com.tabakpp.app.ui
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.text.font.*
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
@@ -48,37 +50,54 @@ fun HistoryScreen(vm: MainViewModel) {
     val expandedDates = remember { mutableStateMapOf<String, Boolean>() }
 
     LazyColumn(Modifier.fillMaxSize().background(BgBase).padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        contentPadding = PaddingValues(top = 20.dp, bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)) {
         
         item { Spacer(Modifier.statusBarsPadding().height(84.dp)) }
 
         item { 
-            StockChart(logs, configs, selectedCounterId, timeframe, 
-                onSelectCounter = { selectedCounterId = it },
-                onSelectTimeframe = { timeframe = it }
-            )
+            AnimatedVisibility(
+                visible = logs.isNotEmpty(),
+                enter = fadeIn() + expandVertically()
+            ) {
+                StockChart(logs, configs, selectedCounterId, timeframe, 
+                    onSelectCounter = { selectedCounterId = it },
+                    onSelectTimeframe = { timeframe = it }
+                )
+            }
             Spacer(Modifier.height(16.dp)) 
         }
 
         item {
-            InsightsRow(logs, configs, costPerUnit)
+            AnimatedVisibility(
+                visible = logs.isNotEmpty(),
+                enter = fadeIn(animationSpec = tween(600, delayMillis = 200))
+            ) {
+                InsightsRow(logs, configs, costPerUnit)
+            }
             Spacer(Modifier.height(16.dp))
         }
         
         items(logs, key = { it.logDate }) { log ->
-            val isExpanded = expandedDates[log.logDate] ?: false
-            DateBundle(
-                log = log,
-                configs = configs,
-                isToday = log.logDate == vm.todayString,
-                isExpanded = isExpanded,
-                onToggle = { expandedDates[log.logDate] = !isExpanded },
-                onEdit = { cid -> editTarget = log to cid },
-                onDelete = { cid -> deleteTarget = log to cid }
-            )
+            var visible by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { visible = true }
+            
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 2 }
+            ) {
+                val isExpanded = expandedDates[log.logDate] ?: false
+                DateBundle(
+                    log = log,
+                    configs = configs,
+                    isToday = log.logDate == vm.todayString,
+                    isExpanded = isExpanded,
+                    onToggle = { expandedDates[log.logDate] = !isExpanded },
+                    onEdit = { cid -> editTarget = log to cid },
+                    onDelete = { cid -> deleteTarget = log to cid }
+                )
+            }
         }
-        item { Spacer(Modifier.height(80.dp)) }
     }
 
     editTarget?.let { (log, cid) ->
@@ -93,7 +112,7 @@ fun HistoryScreen(vm: MainViewModel) {
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
             containerColor = BgCard,
-            title = { Text("Reset Entry?", color = TextMain) },
+            title = { Text("Reset Entry?", color = TextMain, fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to reset ${config?.displayName ?: cid} for ${log.logDate}?", color = TextMuted) },
             confirmButton = {
                 TextButton({ vm.deleteCounterFromLog(log.logDate, cid); deleteTarget = null }) {
@@ -125,15 +144,15 @@ private fun InsightsRow(logs: List<DailyLog>, configs: List<CounterConfig>, cost
             color = Color(0xFFF59E0B)
         )
         InsightCard(
-            label = "Economic Impact",
+            label = "Spent",
             value = String.format(Locale.getDefault(), "$%.2f", totalCost),
-            suffix = "spent",
+            suffix = "total",
             icon = Icons.Default.AccountBalanceWallet,
             modifier = Modifier.weight(1f),
             color = Color(0xFF10B981)
         )
         InsightCard(
-            label = "Health Cost",
+            label = "Health",
             value = "${lifeLost / 60}h ${lifeLost % 60}m",
             suffix = "lost",
             icon = Icons.Default.Favorite,
@@ -152,12 +171,12 @@ private fun InsightCard(label: String, value: String, suffix: String, icon: andr
         border = BorderStroke(1.dp, BorderSubtle)
     ) {
         Column(Modifier.padding(16.dp)) {
-            Icon(icon, null, tint = color.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+            Icon(icon, null, tint = color.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
             Spacer(Modifier.height(8.dp))
-            Text(value, fontWeight = FontWeight.Black, fontSize = 16.sp, color = TextMain)
-            Text(suffix, fontSize = 10.sp, color = TextMuted, fontFamily = FontFamily.Monospace)
+            Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = TextMain)
+            Text(suffix, fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(4.dp))
-            Text(label.lowercase(), fontSize = 8.sp, color = TextDim, fontWeight = FontWeight.Bold)
+            Text(label.uppercase(), fontSize = 8.sp, color = TextDim, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
         }
     }
 }
@@ -181,24 +200,24 @@ private fun DateBundle(
     val totalActivity = remember(log.counts) { log.counts.values.sum() }
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onToggle() },
+        modifier = Modifier.fillMaxWidth().clickable { onToggle() }.animateContentSize(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(if (isToday) Accent.copy(alpha = .03f) else BgCard),
         border = BorderStroke(1.dp, if (isToday) Accent.copy(alpha = 0.1f) else BorderSubtle)) {
         
-        Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+        Column(Modifier.padding(horizontal = 20.dp, vertical = 18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(dateDisplay, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextMain)
-                    Text("$totalActivity total events", fontSize = 10.sp, color = TextMuted, fontFamily = FontFamily.Monospace)
+                    Text(dateDisplay, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = TextMain)
+                    Text("$totalActivity total events", fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                 }
                 Icon(
                     if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    null, tint = TextDim, modifier = Modifier.size(20.dp)
+                    null, tint = TextDim, modifier = Modifier.size(24.dp)
                 )
             }
 
-            AnimatedVisibility(visible = isExpanded) {
+            if (isExpanded) {
                 Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     HorizontalDivider(color = BorderSubtle.copy(alpha = 0.5f))
                     log.counts.forEach { (cid, count) ->
@@ -214,11 +233,11 @@ private fun DateBundle(
 @Composable
 private fun HistoryRowItem(name: String, count: Int, onEdit: () -> Unit, onDelete: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Text(name.lowercase(), fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = TextMain, modifier = Modifier.weight(1f))
-        Text("$count", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black, fontSize = 18.sp, color = Accent)
+        Text(name.lowercase(), fontSize = 14.sp, color = TextMain, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
+        Text("$count", fontWeight = FontWeight.Black, fontSize = 20.sp, color = Accent)
         Spacer(Modifier.width(16.dp))
-        IconButton(onEdit, Modifier.size(28.dp)) { Icon(Icons.Default.Edit, null, tint = TextDim, modifier = Modifier.size(14.dp)) }
-        IconButton(onDelete, Modifier.size(28.dp)) { Icon(Icons.Default.Delete, null, tint = DangerColor.copy(alpha = 0.3f), modifier = Modifier.size(14.dp)) }
+        IconButton(onEdit, Modifier.size(32.dp)) { Icon(Icons.Default.Edit, null, tint = TextDim, modifier = Modifier.size(16.dp)) }
+        IconButton(onDelete, Modifier.size(32.dp)) { Icon(Icons.Default.Delete, null, tint = DangerColor.copy(alpha = 0.4f), modifier = Modifier.size(16.dp)) }
     }
 }
 
@@ -261,10 +280,19 @@ private fun StockChart(
     val maxVal = remember(chartData) { (chartData.maxOfOrNull { it.value } ?: 1).coerceAtLeast(limit).coerceAtLeast(1) }
     val avgVal = remember(chartData) { if (chartData.isEmpty()) 0f else chartData.map { it.value }.average().toFloat() }
     
-    val accent = Accent
-    val bgCard = BgCard
-    val danger = DangerColor
-    val textDim = TextDim
+    // Animation for the path
+    val pathProgress = remember { Animatable(0f) }
+    LaunchedEffect(chartData, selectedId, timeframe) {
+        pathProgress.snapTo(0f)
+        pathProgress.animateTo(1f, animationSpec = tween(1000, easing = FastOutSlowInEasing))
+    }
+
+    // Capture colors for Canvas
+    val accentColor = Accent
+    val bgCardColor = BgCard
+    val dangerColor = DangerColor
+    val textDimColor = TextDim
+    val textMutedColor = TextMuted
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -275,27 +303,27 @@ private fun StockChart(
         Column(Modifier.padding(24.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text("TREND ANALYSIS", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted, letterSpacing = 2.sp)
-                    Text("${selectedConfig?.displayName?.lowercase() ?: "history"} (${timeframe.name.lowercase()})", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Accent)
+                    Text("TREND ANALYSIS", fontSize = 10.sp, color = TextMuted, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
+                    Text("${selectedConfig?.displayName?.lowercase() ?: "history"} (${timeframe.name.lowercase()})", fontWeight = FontWeight.Black, fontSize = 18.sp, color = Accent)
                 }
                 
                 Box {
-                    IconButton(onClick = { showMenu = true }, modifier = Modifier.size(32.dp).background(Accent.copy(alpha = 0.05f), CircleShape)) {
-                        Icon(Icons.Default.Tune, "Settings", tint = Accent, modifier = Modifier.size(16.dp))
+                    IconButton(onClick = { showMenu = true }, modifier = Modifier.size(36.dp).background(Accent.copy(alpha = 0.08f), CircleShape)) {
+                        Icon(Icons.Default.Tune, "Settings", tint = Accent, modifier = Modifier.size(18.dp))
                     }
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, modifier = Modifier.background(BgPanel).border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))) {
-                        Text("TRACKER", fontSize = 9.sp, color = TextMuted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontWeight = FontWeight.Bold)
+                        Text("TRACKER", fontSize = 10.sp, color = TextMuted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontWeight = FontWeight.Black)
                         configs.forEach { config ->
                             DropdownMenuItem(
-                                text = { Text(config.displayName.lowercase(), fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = if (config.id == selectedId) Accent else TextMain) },
+                                text = { Text(config.displayName.lowercase(), fontSize = 14.sp, color = if (config.id == selectedId) Accent else TextMain, fontWeight = if (config.id == selectedId) FontWeight.Bold else FontWeight.Normal) },
                                 onClick = { onSelectCounter(config.id); showMenu = false }
                             )
                         }
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = BorderSubtle)
-                        Text("TIMEFRAME", fontSize = 9.sp, color = TextMuted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontWeight = FontWeight.Bold)
+                        Text("TIMEFRAME", fontSize = 10.sp, color = TextMuted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontWeight = FontWeight.Black)
                         ChartTimeframe.entries.forEach { tf ->
                             DropdownMenuItem(
-                                text = { Text(tf.name.lowercase(), fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = if (timeframe == tf) Accent else TextMain) },
+                                text = { Text(tf.name.lowercase(), fontSize = 14.sp, color = if (timeframe == tf) Accent else TextMain, fontWeight = if (timeframe == tf) FontWeight.Bold else FontWeight.Normal) },
                                 onClick = { onSelectTimeframe(tf); showMenu = false }
                             )
                         }
@@ -305,7 +333,7 @@ private fun StockChart(
             
             Spacer(Modifier.height(32.dp))
             
-            Canvas(modifier = Modifier.fillMaxWidth().height(120.dp)) {
+            Canvas(modifier = Modifier.fillMaxWidth().height(140.dp)) {
                 val width = size.width
                 val height = size.height
                 val numPoints = chartData.size
@@ -318,17 +346,17 @@ private fun StockChart(
                 // 1. Draw Limit Line
                 val limitY = getY(if (timeframe == ChartTimeframe.WEEK) limit * 7 else limit)
                 drawLine(
-                    color = textDim.copy(alpha = 0.3f),
+                    color = textDimColor.copy(alpha = 0.4f),
                     start = Offset(0f, limitY),
                     end = Offset(width, limitY),
                     strokeWidth = 1.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f))
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 10f))
                 )
 
                 // 2. Draw Average Line
                 val avgY = getY(avgVal.roundToInt())
                 drawLine(
-                    color = accent.copy(alpha = 0.15f),
+                    color = accentColor.copy(alpha = 0.2f),
                     start = Offset(0f, avgY),
                     end = Offset(width, avgY),
                     strokeWidth = 2.dp.toPx()
@@ -349,20 +377,25 @@ private fun StockChart(
                     }
                 }
 
-                val fillPath = Path().apply {
-                    addPath(path)
-                    lineTo(points.last().x, height)
-                    lineTo(points.first().x, height)
-                    close()
+                // Animate Path using clip
+                clipRect(right = width * pathProgress.value) {
+                    val fillPath = Path().apply {
+                        addPath(path)
+                        lineTo(points.last().x, height)
+                        lineTo(points.first().x, height)
+                        close()
+                    }
+                    drawPath(fillPath, brush = Brush.verticalGradient(listOf(accentColor.copy(alpha = 0.3f), Color.Transparent)))
+                    drawPath(path, color = accentColor, style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round))
                 }
-                drawPath(fillPath, brush = Brush.verticalGradient(listOf(accent.copy(alpha = 0.25f), Color.Transparent)))
-                drawPath(path, color = accent, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
 
-                points.forEachIndexed { idx, point ->
-                    val pointLimit = if (timeframe == ChartTimeframe.WEEK) limit * 7 else limit
-                    val overLimit = chartData[idx].value > pointLimit
-                    drawCircle(color = bgCard, radius = 5.dp.toPx(), center = point)
-                    drawCircle(color = if (overLimit) danger else accent, radius = 3.dp.toPx(), center = point)
+                if (pathProgress.value > 0.99f) {
+                    points.forEachIndexed { idx, point ->
+                        val pointLimit = if (timeframe == ChartTimeframe.WEEK) limit * 7 else limit
+                        val overLimit = chartData[idx].value > pointLimit
+                        drawCircle(color = bgCardColor, radius = 6.dp.toPx(), center = point)
+                        drawCircle(color = if (overLimit) dangerColor else accentColor, radius = 4.dp.toPx(), center = point)
+                    }
                 }
             }
 
@@ -370,17 +403,17 @@ private fun StockChart(
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 chartData.forEach { point ->
-                    Text(text = point.label, fontFamily = FontFamily.Monospace, fontSize = 8.sp, color = TextDim, fontWeight = FontWeight.Bold)
+                    Text(text = point.label, fontSize = 10.sp, color = textDimColor, fontWeight = FontWeight.Bold)
                 }
             }
 
             Spacer(Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(6.dp).background(accent.copy(alpha = 0.2f), CircleShape))
+                Box(Modifier.size(8.dp).background(accentColor.copy(alpha = 0.3f), CircleShape))
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = "avg: ${avgVal.roundToInt()} | goal: ${if (timeframe == ChartTimeframe.WEEK) limit * 7 else limit}",
-                    fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextMuted, fontWeight = FontWeight.Bold
+                    fontSize = 11.sp, color = textMutedColor, fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -393,14 +426,14 @@ private fun EditDialog(log: DailyLog, name: String, cid: String, onDismiss: () -
     Dialog(onDismiss) {
         Card(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(BgPanel), border = BorderStroke(1.dp, BorderMid)) {
             Column(Modifier.padding(28.dp)) {
-                Text("Edit ${name.lowercase()}", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = TextMain)
-                Text(log.logDate, fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = TextMuted, modifier = Modifier.padding(top = 4.dp, bottom = 24.dp))
+                Text("Edit ${name.lowercase()}", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = TextMain)
+                Text(log.logDate, fontSize = 14.sp, color = TextMuted, modifier = Modifier.padding(top = 4.dp, bottom = 24.dp), fontWeight = FontWeight.Medium)
                 OutlinedTextField(value, { value = it.filter { c -> c.isDigit() } }, label = { Text("Update Count") }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Accent, unfocusedBorderColor = BorderSubtle, cursorColor = Accent, focusedTextColor = TextMain, unfocusedTextColor = TextMain, focusedContainerColor = BgBase, unfocusedContainerColor = BgBase, focusedLabelColor = Accent, unfocusedLabelColor = TextMuted))
                 Row(Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onDismiss, Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) { Text("Cancel") }
-                    Button({ onSave(value.toIntOrNull() ?: 0) }, Modifier.weight(1f), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = AccentFg)) { Text("Save", fontWeight = FontWeight.Bold) }
+                    OutlinedButton(onDismiss, Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Text("Cancel", fontWeight = FontWeight.Bold) }
+                    Button({ onSave(value.toIntOrNull() ?: 0) }, Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = AccentFg)) { Text("Save", fontWeight = FontWeight.Bold) }
                 }
             }
         }

@@ -45,6 +45,9 @@ class Repository @Inject constructor(
             tabakDao.getAllEvents(userId)
         ) { logs, events ->
             logs.map { logEntity ->
+                // Start with any legacy counts from the DailyLog (this would need the DailyLogEntity to store them)
+                // OR: We migrate them once and then only use events. 
+                // Let's rely on the migration logic in loadData.
                 val counts = events.filter { it.logDate == logEntity.logDate }
                     .groupBy { it.counterId }
                     .mapValues { it.value.size }
@@ -97,6 +100,30 @@ class Repository @Inject constructor(
             val remoteConfigs = logsRepo.getCounterConfigs(uid)
             remoteConfigs.forEach { tabakDao.insertCounterConfig(it.toEntity()) }
         } catch (_: Exception) {}
+    }
+
+    suspend fun migrateLogs(remoteLogs: List<DailyLog>) {
+        val uid = auth.currentUser?.uid ?: return
+        remoteLogs.forEach { log ->
+            // 1. Ensure log entry exists in Room
+            tabakDao.insertDailyLog(DailyLogEntity(uid, log.logDate))
+            
+            // 2. Check if we have events for this day
+            val localEvents = tabakDao.getAllEvents(uid).first().filter { it.logDate == log.logDate }
+            if (localEvents.isEmpty() && log.counts.values.sum() > 0) {
+                // If Room is empty for this day but remote has counts, migrate them
+                log.counts.forEach { (cid, count) ->
+                    repeat(count) {
+                        tabakDao.insertEvent(LogEventEntity(
+                            userId = uid,
+                            counterId = cid,
+                            logDate = log.logDate,
+                            timestamp = 0 // Marker for migrated data
+                        ))
+                    }
+                }
+            }
+        }
     }
 
     suspend fun saveDailyLimit(limit: Int) {

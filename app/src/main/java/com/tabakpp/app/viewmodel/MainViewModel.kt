@@ -113,9 +113,8 @@ class MainViewModel @Inject constructor(
         _isLoading.value = true
         try {
             repository.syncRemoteConfigs()
-            // We can also trigger a full logs sync here
             val remoteLogs = repository.loadLogs()
-            remoteLogs.forEach { repository.upsertLog(it) }
+            repository.migrateLogs(remoteLogs)
         } catch (e: Exception) {
             _message.value = UiMessage.Error("Sync error: ${e.localizedMessage}")
         } finally {

@@ -55,10 +55,7 @@ fun TrackerScreen(vm: MainViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 item { Spacer(Modifier.statusBarsPadding().height(84.dp)) }
-                
-                // NEW GLOBAL CIGARETTE PROGRESS HEADER
                 item { GlobalCigaretteHeader(totalCount, totalLimit) }
-
                 items(configs, key = { it.id }) { config ->
                     CounterCard(config, log?.counts?.get(config.id) ?: 0, vm, isCompact = false)
                 }
@@ -72,10 +69,7 @@ fun TrackerScreen(vm: MainViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item(span = { GridItemSpan(2) }) { Spacer(Modifier.statusBarsPadding().height(84.dp)) }
-                
-                // NEW GLOBAL CIGARETTE PROGRESS HEADER (Full Width in Grid)
                 item(span = { GridItemSpan(2) }) { GlobalCigaretteHeader(totalCount, totalLimit) }
-
                 items(configs, key = { it.id }) { config ->
                     CounterCard(config, log?.counts?.get(config.id) ?: 0, vm, isCompact = true)
                 }
@@ -93,37 +87,30 @@ private fun GlobalCigaretteHeader(totalCount: Int, totalLimit: Int) {
 
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp, top = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = dayName, fontFamily = FontFamily.Monospace, fontSize = 14.sp, color = TextMuted, letterSpacing = 2.sp)
+            Text(text = dayName, fontSize = 16.sp, color = TextMuted, fontWeight = FontWeight.Medium)
             Box(Modifier.padding(horizontal = 12.dp).size(4.dp).background(Accent.copy(alpha = 0.3f), CircleShape))
-            Text(text = dateStr, fontFamily = FontFamily.Monospace, fontSize = 14.sp, color = TextMain, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(text = dateStr, fontSize = 16.sp, color = TextMain, fontWeight = FontWeight.ExtraBold)
         }
         
         Spacer(Modifier.height(20.dp))
 
-        // GLOBAL "SMOKE" BAR (Represents sum of all trackers)
         Box(
             modifier = Modifier
-                .height(8.dp)
-                .width(200.dp)
+                .height(10.dp)
+                .width(220.dp)
                 .clip(CircleShape)
                 .background(TextMain.copy(alpha = 0.05f))
                 .border(0.5.dp, BorderSubtle, CircleShape),
             contentAlignment = Alignment.CenterStart
         ) {
             if (totalCount >= totalLimit) {
-                // Entire bar turns red once goal is met
                 Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(DangerColor.copy(alpha = 0.7f), DangerColor))))
             } else {
                 Row(modifier = Modifier.fillMaxSize()) {
-                    // Burned part
                     Spacer(Modifier.weight(animatedProgress.coerceAtLeast(0.0001f)))
-                    
-                    // Fire/Ember (Small glowing head)
                     if (totalCount > 0) {
                         Box(modifier = Modifier.fillMaxHeight().width(4.dp).background(Brush.horizontalGradient(listOf(Color(0xFFFF3D00), Color(0xFFFFB74D)))))
                     }
-                    
-                    // Remaining "Unburned" life for the day
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
@@ -135,7 +122,7 @@ private fun GlobalCigaretteHeader(totalCount: Int, totalLimit: Int) {
         }
         
         Spacer(Modifier.height(12.dp))
-        Text("TOTAL JOURNEY PROGRESS", fontFamily = FontFamily.Monospace, fontSize = 9.sp, color = TextDim, letterSpacing = 4.sp, fontWeight = FontWeight.Black)
+        Text("DAILY PROGRESS", fontSize = 10.sp, color = TextDim, letterSpacing = 2.sp, fontWeight = FontWeight.Black)
     }
 }
 
@@ -159,7 +146,7 @@ private fun CounterCard(config: CounterConfig, count: Int, vm: MainViewModel, is
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(text = config.displayName.lowercase(), fontFamily = FontFamily.Monospace, fontSize = if (isCompact) 11.sp else 13.sp, color = if (isLimitReached) DangerColor else Accent, fontWeight = FontWeight.Bold, letterSpacing = if (isCompact) 1.sp else 2.sp, maxLines = 1)
+            Text(text = config.displayName, fontSize = if (isCompact) 14.sp else 16.sp, color = if (isLimitReached) DangerColor else Accent, fontWeight = FontWeight.ExtraBold, maxLines = 1)
             Spacer(Modifier.height(if (isCompact) 20.dp else 40.dp))
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -171,7 +158,7 @@ private fun CounterCard(config: CounterConfig, count: Int, vm: MainViewModel, is
                     }
                     Spacer(Modifier.height(if (isCompact) 20.dp else 48.dp))
                     AnimatedContent(targetState = count, transitionSpec = { (fadeIn() + scaleIn()).togetherWith(fadeOut() + scaleOut()) }, label = "count") { c ->
-                        Text(text = c.toString(), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.ExtraBold, fontSize = if (isCompact) 36.sp else 84.sp, color = TextMain, lineHeight = if (isCompact) 36.sp else 84.sp)
+                        Text(text = c.toString(), fontWeight = FontWeight.Black, fontSize = if (isCompact) 42.sp else 96.sp, color = TextMain, lineHeight = if (isCompact) 42.sp else 96.sp)
                     }
                 }
             }
@@ -184,7 +171,7 @@ private fun CounterCard(config: CounterConfig, count: Int, vm: MainViewModel, is
                 Spacer(Modifier.width(if (isCompact) 16.dp else 40.dp))
                 SmallCounterBtn(Icons.Default.Add, isPrimary = true, isCompact = isCompact) { 
                     vm.increment(config.id)
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) // Subtle click
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) 
                 }
             }
         }
@@ -206,9 +193,9 @@ private fun ModernRingVisual(count: Int, limit: Int, animatedProgress: Float, si
 
 @Composable
 private fun SmallCounterBtn(icon: androidx.compose.ui.graphics.vector.ImageVector, isPrimary: Boolean = false, isCompact: Boolean, onClick: () -> Unit) {
-    val size = if (isCompact) 44.dp else 64.dp
-    val iconSize = if (isCompact) 20.dp else 32.dp
-    Box(Modifier.size(size).clip(CircleShape).background(if (isPrimary) Accent.copy(alpha = 0.12f) else TextMain.copy(alpha = 0.05f)).clickable { onClick() }, contentAlignment = Alignment.Center) {
+    val size = if (isCompact) 48.dp else 72.dp
+    val iconSize = if (isCompact) 24.dp else 36.dp
+    Box(Modifier.size(size).clip(CircleShape).background(if (isPrimary) Accent.copy(alpha = 0.15f) else TextMain.copy(alpha = 0.05f)).clickable { onClick() }, contentAlignment = Alignment.Center) {
         Icon(icon, null, tint = if (isPrimary) Accent else TextMuted, modifier = Modifier.size(iconSize))
     }
 }
@@ -249,8 +236,8 @@ private fun BurnableVisual(
                                 0.6f, 1f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "alpha"
                             )
                             Box(contentAlignment = Alignment.Center) {
-                                Box(modifier = Modifier.fillMaxHeight().width(if (isCompact) 5.dp else 10.dp).background(Brush.horizontalGradient(emberColors)).graphicsLayer(alpha = alpha))
-                                Box(modifier = Modifier.size(if (isCompact) 16.dp else 24.dp).blur(if (isCompact) 6.dp else 12.dp).background(glowColor.copy(alpha = 0.5f * alpha), CircleShape))
+                                Box(modifier = Modifier.fillMaxHeight().width(if (isCompact) 6.dp else 12.dp).background(Brush.horizontalGradient(emberColors)).graphicsLayer(alpha = alpha))
+                                Box(modifier = Modifier.size(if (isCompact) 18.dp else 28.dp).blur(if (isCompact) 8.dp else 14.dp).background(glowColor.copy(alpha = 0.5f * alpha), CircleShape))
                             }
                         }
                         val rightWeight = (1f - progress).coerceAtLeast(0.0001f)
@@ -259,10 +246,9 @@ private fun BurnableVisual(
                 }
             }
             Box(
-                modifier = Modifier.fillMaxHeight().width(if (isCompact) 20.dp else 44.dp).background(if (isLimitReached) DangerColor else roachColor),
+                modifier = Modifier.fillMaxHeight().width(if (isCompact) 24.dp else 48.dp).background(if (isLimitReached) DangerColor else roachColor),
                 contentAlignment = Alignment.Center
             ) {
-                // Roach area
             }
         }
     }
@@ -279,7 +265,7 @@ private fun JointVisual(count: Int, limit: Int, animatedBurnProgress: Float, isK
         emberColors = listOf(Color(0xFF9C27B0), Color(0xFFE91E63)),
         glowColor = Color(0xFFBA68C8),
         width = if (isCompact) (if (isKing) 110.dp else 90.dp) else (if (isKing) 240.dp else 180.dp),
-        height = if (isCompact) (if (isKing) 14.dp else 10.dp) else (if (isKing) 24.dp else 16.dp),
+        height = if (isCompact) (if (isKing) 16.dp else 12.dp) else (if (isKing) 28.dp else 18.dp),
         roachColor = Color(0xFF424242)
     )
 }
@@ -295,8 +281,7 @@ private fun CigaretteVisual(count: Int, limit: Int, animatedBurnProgress: Float,
         emberColors = listOf(Color(0xFFFF3D00), Color(0xFFFFB74D)),
         glowColor = Color(0xFFFF3D00),
         width = if (isCompact) 100.dp else 220.dp,
-        height = if (isCompact) 12.dp else 20.dp,
+        height = if (isCompact) 14.dp else 22.dp,
         roachColor = Color(0xFFE6A33E).copy(alpha = 0.9f)
     )
 }
-
