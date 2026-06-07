@@ -1,7 +1,7 @@
-package com.tabakpp.shared.domain
+package com.tabakpp.app.domain
 
-import com.tabakpp.shared.data.CounterConfig
-import com.tabakpp.shared.data.DailyLog
+import com.tabakpp.app.data.model.CounterConfig
+import com.tabakpp.app.data.model.DailyLog
 import kotlinx.datetime.*
 
 object SmokingCalculator {

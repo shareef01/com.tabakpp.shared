@@ -1,4 +1,4 @@
-package com.tabakpp.shared.data
+package com.tabakpp.app.data.model
 
 import kotlinx.serialization.Serializable
 
@@ -6,12 +6,8 @@ import kotlinx.serialization.Serializable
 data class DailyLog(
     val userId: String = "",
     val logDate: String = "",
-    val counts: Map<String, Int> = mapOf("cigarettes" to 0)
-) {
-    // Secondary constructor for some deserialization frameworks if needed
-    constructor() : this("", "", mapOf("cigarettes" to 0))
-    val cigarettes: Int get() = counts["cigarettes"] ?: 0
-}
+    val counts: Map<String, Int> = mapOf("cigarettes" to 0),
+)
 
 @Serializable
 data class CounterConfig(

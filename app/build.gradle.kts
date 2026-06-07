@@ -63,10 +63,6 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.play.services.auth)
-    
-    implementation(libs.firebase.kmp.auth)
-    implementation(libs.firebase.kmp.firestore)
-    implementation(libs.firebase.kmp.common)
 
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)

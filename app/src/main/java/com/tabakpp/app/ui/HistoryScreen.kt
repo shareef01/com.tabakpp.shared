@@ -20,8 +20,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.*
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
-import com.tabakpp.shared.data.CounterConfig
-import com.tabakpp.shared.data.DailyLog
+import com.tabakpp.app.data.model.CounterConfig
+import com.tabakpp.app.data.model.DailyLog
 import com.tabakpp.app.ui.theme.*
 import com.tabakpp.app.viewmodel.MainViewModel
 import java.time.LocalDate

@@ -28,9 +28,9 @@ import androidx.compose.ui.unit.*
 import com.tabakpp.app.data.DashboardLayout
 import com.tabakpp.app.ui.theme.*
 import com.tabakpp.app.viewmodel.MainViewModel
-import com.tabakpp.shared.data.CounterConfig
-import com.tabakpp.shared.data.CounterType
-import com.tabakpp.shared.domain.SmokingCalculator
+import com.tabakpp.app.data.model.CounterConfig
+import com.tabakpp.app.data.model.CounterType
+import com.tabakpp.app.domain.SmokingCalculator
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 

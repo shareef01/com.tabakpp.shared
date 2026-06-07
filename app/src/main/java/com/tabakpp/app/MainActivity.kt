@@ -42,8 +42,8 @@ import com.tabakpp.app.ui.theme.*
 import com.tabakpp.app.viewmodel.AuthState
 import com.tabakpp.app.viewmodel.MainViewModel
 import com.tabakpp.app.viewmodel.UiMessage
-import com.tabakpp.shared.data.DailyLog
-import com.tabakpp.shared.domain.SmokingCalculator
+import com.tabakpp.app.data.model.DailyLog
+import com.tabakpp.app.domain.SmokingCalculator
 import kotlin.math.roundToInt
 
 enum class Tab(val icon: ImageVector, val label: String) {

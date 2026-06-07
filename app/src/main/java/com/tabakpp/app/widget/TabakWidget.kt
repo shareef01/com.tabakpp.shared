@@ -22,8 +22,8 @@ import androidx.glance.unit.ColorProvider
 import com.tabakpp.app.MainActivity
 import com.tabakpp.app.data.Repository
 import com.tabakpp.app.data.SettingsRepository
-import com.tabakpp.shared.data.CounterConfig
-import com.tabakpp.shared.data.DailyLog
+import com.tabakpp.app.data.model.CounterConfig
+import com.tabakpp.app.data.model.DailyLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext

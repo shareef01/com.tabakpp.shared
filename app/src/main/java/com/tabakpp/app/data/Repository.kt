@@ -4,24 +4,17 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
-import com.tabakpp.shared.data.AuthRepository
-import com.tabakpp.shared.data.CounterConfig
-import com.tabakpp.shared.data.CounterType
-import com.tabakpp.shared.data.DailyLog
-import com.tabakpp.shared.data.LogsRepository
+import com.tabakpp.app.data.model.CounterConfig
+import com.tabakpp.app.data.model.CounterType
+import com.tabakpp.app.data.model.DailyLog
 import kotlinx.coroutines.tasks.await
 
 object Repository {
     private val authRepo = AuthRepository()
     private val logsRepo = LogsRepository()
     
-    private val auth = FirebaseAuth.getInstance()
-    private val db = FirebaseFirestore.getInstance().apply {
-        // Explicitly ensure persistence is enabled for local caching
-        firestoreSettings = com.google.firebase.firestore.firestoreSettings {
-            isPersistenceEnabled = true
-        }
-    }
+    private val auth get() = FirebaseAuth.getInstance()
+    private val db get() = FirebaseFirestore.getInstance()
 
     suspend fun signIn(email: String, password: String) {
         authRepo.signIn(email, password)
@@ -43,7 +36,7 @@ object Repository {
         }
     }
 
-    suspend fun signOut() = authRepo.signOut()
+    fun signOut() = auth.signOut()
 
     suspend fun resetPassword(email: String) {
         authRepo.resetPassword(email)
@@ -66,7 +59,7 @@ object Repository {
         // 1. Delete user data from Firestore
         db.collection("users").document(uid).delete().await()
         // 2. Delete the user from Auth
-        authRepo.deleteAccount(uid)
+        authRepo.deleteAccount()
     }
 
     fun getCurrentUser() = auth.currentUser
@@ -88,11 +81,6 @@ object Repository {
     suspend fun saveDailyLimit(limit: Int) {
         val uid = auth.currentUser?.uid ?: return
         logsRepo.saveDailyLimit(uid, limit)
-    }
-
-    suspend fun getDailyLimit(): Int {
-        val uid = auth.currentUser?.uid ?: return 20
-        return logsRepo.getDailyLimit(uid)
     }
 
     suspend fun saveCounterConfigs(configs: List<CounterConfig>) {
