@@ -24,6 +24,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
+import androidx.compose.ui.res.stringResource
+import com.tabakpp.app.R
 import com.tabakpp.app.data.*
 import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.CounterType
@@ -77,7 +79,7 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
         Spacer(Modifier.statusBarsPadding().height(84.dp))
         if (msg !is UiMessage.None) MessageBanner(msg)
 
-        SCard("Counters") {
+        SCard(stringResource(R.string.tracker_label) + "s") {
             configs.forEach { config ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 8.dp)) {
                     Column(Modifier.weight(1f)) {

@@ -56,7 +56,7 @@ class TabakWidget : GlanceAppWidget() {
         val settingsRepo = entryPoint.settingsRepository()
 
         val selectedId = try { settingsRepo.widgetCounterId.first() } catch (e: Exception) { "cigarettes" }
-        val configs = try { repo.getCounterConfigs() } catch (e: Exception) { emptyList() }
+        val configs = try { repo.  getCounterConfigs() } catch (e: Exception) { emptyList() }
         val activeConfig = configs.find { it.id == selectedId } ?: configs.firstOrNull() ?: CounterConfig("cigarettes", "Cigarettes")
 
         val count = try {

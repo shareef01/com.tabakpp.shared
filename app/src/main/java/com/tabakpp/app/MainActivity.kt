@@ -32,6 +32,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -50,10 +51,10 @@ import com.tabakpp.app.util.NotificationHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlin.math.roundToInt
 
-enum class Tab(val icon: ImageVector, val label: String) {
-    TRACKER(Icons.Default.Home, "Today"),
-    HISTORY(Icons.Default.DateRange, "History"),
-    SETTINGS(Icons.Default.Settings, "Settings")
+enum class Tab(val icon: ImageVector, val labelRes: Int) {
+    TRACKER(Icons.Default.Home, R.string.tracker_label),
+    HISTORY(Icons.Default.DateRange, R.string.history_label),
+    SETTINGS(Icons.Default.Settings, R.string.settings_label)
 }
 
 @AndroidEntryPoint
@@ -129,6 +130,7 @@ fun MainApp(viewModel: MainViewModel) {
                 windowInsets = WindowInsets.navigationBars
             ) {
                 Tab.entries.forEach { tab ->
+                    val label = stringResource(tab.labelRes)
                     NavigationBarItem(
                         selected = currentTab == tab,
                         onClick = {
@@ -138,13 +140,13 @@ fun MainApp(viewModel: MainViewModel) {
                         icon = {
                             Icon(
                                 tab.icon,
-                                contentDescription = tab.label,
+                                contentDescription = label,
                                 tint = if (currentTab == tab) Accent else TextMuted
                             )
                         },
                         label = {
                             Text(
-                                tab.label.lowercase(),
+                                label.lowercase(),
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 10.sp,
                                 fontWeight = if (currentTab == tab) FontWeight.Bold else FontWeight.Normal,
@@ -190,7 +192,7 @@ fun MainApp(viewModel: MainViewModel) {
                 ) {
                     Column(Modifier.graphicsLayer { alpha = headerAlpha }) {
                         Text(
-                            text = "tabak++",
+                            text = stringResource(R.string.app_name),
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Black,
                             fontSize = 28.sp,
@@ -198,7 +200,7 @@ fun MainApp(viewModel: MainViewModel) {
                             letterSpacing = (-1).sp
                         )
                         Text(
-                            text = currentTab.label.lowercase(),
+                            text = stringResource(currentTab.labelRes).lowercase(),
                             fontFamily = FontFamily.Monospace,
                             fontSize = 11.sp,
                             color = Accent,

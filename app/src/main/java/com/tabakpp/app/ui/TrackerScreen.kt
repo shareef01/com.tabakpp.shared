@@ -41,10 +41,8 @@ fun TrackerScreen(vm: MainViewModel) {
     val log by vm.todayLog.collectAsState()
     val configs by vm.counterConfigs.collectAsState()
     val layout by vm.dashboardLayout.collectAsState()
-
-    // Calculate Global Progress
-    val totalCount = remember(log, configs) { SmokingCalculator.getTotalCount(log, configs) }
-    val totalLimit = remember(configs) { SmokingCalculator.getTotalLimit(configs) }
+    val totalCount by vm.totalDailyCount.collectAsState()
+    val totalLimit by vm.totalDailyLimit.collectAsState()
 
     Box(Modifier.fillMaxSize().background(BgBase)) {
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(TextMain.copy(alpha = 0.05f), BgBase))))
@@ -144,7 +142,9 @@ private fun GlobalCigaretteHeader(totalCount: Int, totalLimit: Int) {
 @Composable
 private fun CounterCard(config: CounterConfig, count: Int, vm: MainViewModel, isCompact: Boolean) {
     val isLimitReached = count >= config.limit
-    val progress = remember(count, config.limit) { (count / config.limit.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f) }
+    val progress by remember(count, config.limit) { 
+        derivedStateOf { (count / config.limit.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f) } 
+    }
     val animatedProgress by animateFloatAsState(targetValue = progress, animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy), label = "progress")
     val haptic = LocalHapticFeedback.current
 

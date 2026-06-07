@@ -4,10 +4,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
-import com.tabakpp.app.data.local.TabakDao
-import com.tabakpp.app.data.local.CounterConfigEntity
-import com.tabakpp.app.data.local.DailyLogEntity
-import com.tabakpp.app.data.local.LogEventEntity
+import com.tabakpp.app.data.local.*
 import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.CounterType
 import com.tabakpp.app.data.model.DailyLog
@@ -26,18 +23,14 @@ class Repository @Inject constructor(
     private val db: FirebaseFirestore,
     private val settingsRepo: SettingsRepository
 ) {
-    // Flows from Room
     val counterConfigs = tabakDao.getAllCounterConfigs()
         .map { entities -> 
             if (entities.isEmpty()) {
-                val default = CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE)
-                // We shouldn't do side effects in a map block ideally, 
-                // but let's ensure it's there for foreign keys.
-                listOf(default)
+                listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE))
             } else {
                 entities.map { it.toDomain() }
             }
-        }
+        }.distinctUntilChanged()
     
     suspend fun ensureDefaultCounter() {
         val local = tabakDao.getAllCounterConfigs().first()
@@ -46,71 +39,63 @@ class Repository @Inject constructor(
         }
     }
     
-    fun getLogs(userId: String) = tabakDao.getLogsForUser(userId)
-        .map { entities -> entities.map { it.toDomain() } }
+    fun getLogsFlow(userId: String): Flow<List<DailyLog>> {
+        return combine(
+            tabakDao.getLogsForUser(userId),
+            tabakDao.getAllEvents(userId)
+        ) { logs, events ->
+            logs.map { logEntity ->
+                val counts = events.filter { it.logDate == logEntity.logDate }
+                    .groupBy { it.counterId }
+                    .mapValues { it.value.size }
+                DailyLog(logEntity.userId, logEntity.logDate, counts)
+            }
+        }.distinctUntilChanged()
+    }
 
-    // Helper functions for entity mapping
     private fun CounterConfigEntity.toDomain() = CounterConfig(id, name, limit, type)
     private fun CounterConfig.toEntity() = CounterConfigEntity(id, name, limit, type, true)
-    private fun DailyLogEntity.toDomain() = DailyLog(userId, logDate)
 
     suspend fun signIn(email: String, password: String) = authRepo.signIn(email, password)
-
     suspend fun signInWithGoogle(idToken: String) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         auth.signInWithCredential(credential).await()
     }
-
     suspend fun signInAnonymously() = authRepo.signInAnonymously()
-
     suspend fun signUp(email: String, password: String, name: String) {
         authRepo.signUp(email, password)
         if (name.isNotEmpty()) updateDisplayName(name)
     }
-
     fun signOut() = auth.signOut()
-
     suspend fun resetPassword(email: String) = authRepo.resetPassword(email)
-
-    suspend fun updatePassword(pwd: String) {
-        auth.currentUser?.updatePassword(pwd)?.await()
-    }
-
+    suspend fun updatePassword(pwd: String) = auth.currentUser?.updatePassword(pwd)?.await()
     suspend fun updateDisplayName(name: String) {
         val profileUpdates = UserProfileChangeRequest.Builder().setDisplayName(name).build()
         auth.currentUser?.updateProfile(profileUpdates)?.await()
     }
-
     suspend fun deleteAccount() {
         val user = auth.currentUser ?: return
-        val uid = user.uid
-        db.collection("users").document(uid).delete().await()
+        db.collection("users").document(user.uid).delete().await()
         authRepo.deleteAccount()
     }
-
     fun getCurrentUser() = auth.currentUser
 
-    // Local-First implementation
     suspend fun loadLogs(): List<DailyLog> {
         val uid = auth.currentUser?.uid ?: return emptyList()
-        // Try fetching from Room first? Or just use Firebase's persistence for now.
-        // For "Local-First", we should return Room flow.
         return logsRepo.loadLogs(uid)
     }
 
     suspend fun upsertLog(log: DailyLog) {
         val uid = auth.currentUser?.uid ?: return
         logsRepo.upsertLog(uid, log)
+        tabakDao.insertDailyLog(DailyLogEntity(uid, log.logDate))
     }
 
-    // Sync logic
     suspend fun syncRemoteConfigs() {
         val uid = auth.currentUser?.uid ?: return
         try {
             val remoteConfigs = logsRepo.getCounterConfigs(uid)
-            remoteConfigs.forEach { config ->
-                tabakDao.insertCounterConfig(config.toEntity())
-            }
+            remoteConfigs.forEach { tabakDao.insertCounterConfig(it.toEntity()) }
         } catch (_: Exception) {}
     }
 
@@ -130,27 +115,26 @@ class Repository @Inject constructor(
         } catch (_: Exception) {}
     }
 
-    suspend fun getCounterConfigs(): List<CounterConfig> {
-        val uid = auth.currentUser?.uid ?: return listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE))
-        val local = tabakDao.getAllCounterConfigs().first()
-        if (local.isNotEmpty()) return local.map { it.toDomain() }
-        
-        val remote = logsRepo.getCounterConfigs(uid)
-        remote.forEach { tabakDao.insertCounterConfig(it.toEntity()) }
-        return remote
-    }
-
-    // New Tracking with Timestamps
     suspend fun logIncrement(counterId: String) {
         val uid = auth.currentUser?.uid ?: return
         val todayStr = LocalDate.now().toString()
-        val event = LogEventEntity(
-            userId = uid,
-            counterId = counterId,
-            logDate = todayStr,
-            timestamp = System.currentTimeMillis()
-        )
-        tabakDao.insertEvent(event)
-        // In Phase 2/5 we'll add background sync for these events
+        tabakDao.insertDailyLog(DailyLogEntity(uid, todayStr))
+        tabakDao.insertEvent(LogEventEntity(userId = uid, counterId = counterId, logDate = todayStr, timestamp = System.currentTimeMillis()))
+    }
+
+    suspend fun logDecrement(counterId: String) {
+        val uid = auth.currentUser?.uid ?: return
+        val todayStr = LocalDate.now().toString()
+        tabakDao.deleteLatestEvent(uid, todayStr, counterId)
+    }
+
+    suspend fun getCounterConfigs(): List<CounterConfig> {
+        val local = tabakDao.getAllCounterConfigs().first()
+        if (local.isNotEmpty()) return local.map { it.toDomain() }
+        
+        val uid = auth.currentUser?.uid ?: return listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE))
+        val remote = logsRepo.getCounterConfigs(uid)
+        remote.forEach { tabakDao.insertCounterConfig(it.toEntity()) }
+        return remote
     }
 }

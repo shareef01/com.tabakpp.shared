@@ -1,3 +1,13 @@
 <resources>
     <string name="app_name">tabak++</string>
+    <string name="tracker_label">Today</string>
+    <string name="history_label">History</string>
+    <string name="settings_label">Settings</string>
+    <string name="add_counter">Add Counter</string>
+    <string name="edit_counter">Edit Counter</string>
+    <string name="delete_account">Delete Account</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="confirm_action">Confirm Action</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
 </resources>

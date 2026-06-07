@@ -26,6 +26,9 @@ interface TabakDao {
     @Query("SELECT counterId, COUNT(*) as count FROM log_events WHERE userId = :userId AND logDate = :logDate GROUP BY counterId")
     fun getCountsForDay(userId: String, logDate: String): Flow<List<CounterCount>>
 
+    @Query("SELECT * FROM log_events WHERE userId = :userId")
+    fun getAllEvents(userId: String): Flow<List<LogEventEntity>>
+
     @Insert
     suspend fun insertEvent(event: LogEventEntity)
 

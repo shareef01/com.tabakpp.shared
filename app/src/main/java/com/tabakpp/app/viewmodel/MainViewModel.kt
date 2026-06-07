@@ -33,17 +33,22 @@ class MainViewModel @Inject constructor(
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
-    private val _logs = MutableStateFlow<List<DailyLog>>(emptyList())
-    val logs: StateFlow<List<DailyLog>> = _logs.asStateFlow()
-
-    val counterConfigs: StateFlow<List<CounterConfig>> = repository.counterConfigs
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _message = MutableStateFlow<UiMessage>(UiMessage.None)
     val message: StateFlow<UiMessage> = _message.asStateFlow()
+
+    val counterConfigs: StateFlow<List<CounterConfig>> = repository.counterConfigs
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val logs: StateFlow<List<DailyLog>> = authState.flatMapLatest { state ->
+        if (state is AuthState.Authenticated) {
+            repository.getLogsFlow(state.userId)
+        } else {
+            flowOf(emptyList())
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val isDarkMode: StateFlow<Boolean> = settingsRepo.isDarkMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
@@ -57,17 +62,22 @@ class MainViewModel @Inject constructor(
     val dashboardLayout: StateFlow<DashboardLayout> = settingsRepo.dashboardLayout
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardLayout.LARGE)
 
-    val hasLaunchedBefore: StateFlow<Boolean> = settingsRepo.hasLaunchedBefore
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
-
     val costPerUnit: StateFlow<Float> = settingsRepo.costPerUnit
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
 
     val todayString: String get() = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
-    val todayLog: StateFlow<DailyLog?> = _logs.map { list ->
+    val todayLog: StateFlow<DailyLog?> = logs.map { list ->
         list.find { it.logDate == todayString }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val totalDailyCount = combine(todayLog, counterConfigs) { log, configs ->
+        SmokingCalculator.getTotalCount(log, configs)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val totalDailyLimit = counterConfigs.map { configs ->
+        SmokingCalculator.getTotalLimit(configs)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1)
 
     init {
         viewModelScope.launch { repository.ensureDefaultCounter() }
@@ -100,18 +110,16 @@ class MainViewModel @Inject constructor(
 
     fun loadData() = viewModelScope.launch {
         repository.getCurrentUser() ?: return@launch
+        _isLoading.value = true
         try {
             repository.syncRemoteConfigs()
-            val data = repository.loadLogs().toMutableList()
-            if (data.none { it.logDate == todayString }) {
-                val user = repository.getCurrentUser()!!
-                val today = DailyLog(userId = user.uid, logDate = todayString)
-                data.add(0, today)
-                repository.upsertLog(today)
-            }
-            _logs.value = data
+            // We can also trigger a full logs sync here
+            val remoteLogs = repository.loadLogs()
+            remoteLogs.forEach { repository.upsertLog(it) }
         } catch (e: Exception) {
             _message.value = UiMessage.Error("Sync error: ${e.localizedMessage}")
+        } finally {
+            _isLoading.value = false
         }
     }
 
@@ -134,68 +142,34 @@ class MainViewModel @Inject constructor(
         if (id == "cigarettes") return@launch
         val updatedConfigs = counterConfigs.value.filter { it.id != id }
         repository.saveCounterConfigs(updatedConfigs)
-        
-        _logs.update { logs ->
-            logs.map { log ->
-                if (log.counts.containsKey(id)) {
-                    val newCounts = log.counts.toMutableMap().apply { remove(id) }
-                    val updatedLog = log.copy(counts = newCounts)
-                    viewModelScope.launch { repository.upsertLog(updatedLog) }
-                    updatedLog
-                } else log
-            }
-        }
         TabakWidget().updateAll(getApplication())
     }
 
-    fun increment(counterId: String) = changeToday(counterId, 1)
-    fun decrement(counterId: String) = changeToday(counterId, -1)
-
-    private fun changeToday(counterId: String, delta: Int) {
-        _logs.update { list ->
-            val mutableList = list.toMutableList()
-            val i = mutableList.indexOfFirst { it.logDate == todayString }
-            if (i >= 0) {
-                val currentCounts = mutableList[i].counts.toMutableMap()
-                val currentVal = currentCounts[counterId] ?: 0
-                val newVal = (currentVal + delta).coerceAtLeast(0)
-                
-                if (newVal != currentVal) {
-                    currentCounts[counterId] = newVal
-                    val updated = mutableList[i].copy(counts = currentCounts)
-                    mutableList[i] = updated
-                    
-                    viewModelScope.launch {
-                        try {
-                            repository.upsertLog(updated)
-                            repository.logIncrement(counterId)
-                            TabakWidget().updateAll(getApplication())
-                        } catch (e: Exception) {
-                            _message.value = UiMessage.Error("Sync failed: ${e.localizedMessage}")
-                        }
-                    }
-                }
-            }
-            mutableList
-        }
+    fun increment(counterId: String) = viewModelScope.launch {
+        repository.logIncrement(counterId)
+        TabakWidget().updateAll(getApplication())
     }
 
-    fun editLog(date: String, counterId: String, count: Int) {
-        _logs.update { list ->
-            val mutableList = list.toMutableList()
-            val i = mutableList.indexOfFirst { it.logDate == date }
-            if (i >= 0) {
-                val currentCounts = mutableList[i].counts.toMutableMap()
-                currentCounts[counterId] = count.coerceAtLeast(0)
-                val updated = mutableList[i].copy(counts = currentCounts)
-                mutableList[i] = updated
-                viewModelScope.launch {
-                    try { repository.upsertLog(updated); TabakWidget().updateAll(getApplication()) }
-                    catch (_: Exception) {}
-                }
+    fun decrement(counterId: String) = viewModelScope.launch {
+        repository.logDecrement(counterId)
+        TabakWidget().updateAll(getApplication())
+    }
+
+    fun editLog(date: String, counterId: String, count: Int) = viewModelScope.launch {
+        val user = repository.getCurrentUser() ?: return@launch
+        try {
+            // For historical editing, we update Firestore and then we can sync back to Room 
+            // or just rely on the next full sync. 
+            // For now, let's just update Firestore.
+            val logs = repository.loadLogs().toMutableList()
+            val index = logs.indexOfFirst { it.logDate == date }
+            if (index >= 0) {
+                val updatedCounts = logs[index].counts.toMutableMap().apply { this[counterId] = count }
+                val updatedLog = logs[index].copy(counts = updatedCounts)
+                repository.upsertLog(updatedLog)
+                loadData()
             }
-            mutableList
-        }
+        } catch (_: Exception) {}
     }
 
     fun deleteCounterFromLog(date: String, counterId: String) = editLog(date, counterId, 0)
@@ -274,7 +248,6 @@ class MainViewModel @Inject constructor(
     fun signOut() = viewModelScope.launch {
         repository.signOut()
         _authState.value = AuthState.Unauthenticated
-        _logs.value = emptyList() 
     }
     
     fun deleteAccount() = viewModelScope.launch {
@@ -299,10 +272,4 @@ class MainViewModel @Inject constructor(
 
     fun updatePassword(p: String) = viewModelScope.launch { repository.updatePassword(p) }
     fun resetPassword(e: String) = viewModelScope.launch { repository.resetPassword(e) }
-
-    fun getYesterdayCount(): Int = SmokingCalculator.getYesterdayCount(_logs.value)
-    
-    fun getWeekAvg(): Float = SmokingCalculator.getWeekAverage(_logs.value)
-    
-    fun getWeekTotal(): Int = SmokingCalculator.getWeekTotal(_logs.value)
 }

@@ -41,33 +41,20 @@ object SmokingCalculator {
         return logs.find { it.logDate == yesterday }?.counts?.get(counterId) ?: -1
     }
 
-    // Money and Health Insights
     fun calculateSavings(logs: List<DailyLog>, costPerUnit: Float): Float {
-        val totalCount = logs.sumOf { it.counts.values.sum() }
-        // This is a bit complex without "planned vs actual". 
-        // Let's assume savings = (sum of limits - sum of actual) * costPerUnit
-        // But limits change. For now, let's just return actual cost.
-        return totalCount * costPerUnit
+        return logs.sumOf { it.counts.values.sum() } * costPerUnit
     }
 
     fun calculateLifeLostMinutes(logs: List<DailyLog>): Int {
-        val totalCigarettes = logs.sumOf { it.counts["cigarettes"] ?: 0 }
-        return totalCigarettes * 11 // Average 11 mins per cigarette
+        return logs.sumOf { it.counts["cigarettes"] ?: 0 } * 11 // Average 11 mins per cigarette
     }
 
     fun calculateStreak(logs: List<DailyLog>, configs: List<CounterConfig>): Int {
         if (logs.isEmpty()) return 0
-        var streak = 0
-        val sortedLogs = logs.sortedByDescending { it.logDate }
-        val totalLimit = getTotalLimit(configs)
         
-        for (log in sortedLogs) {
-            if (getTotalCount(log, configs) <= totalLimit) {
-                streak++
-            } else {
-                break
-            }
-        }
-        return streak
+        val totalLimit = getTotalLimit(configs)
+        return logs.sortedByDescending { it.logDate }
+            .takeWhile { getTotalCount(it, configs) <= totalLimit }
+            .size
     }
 }
