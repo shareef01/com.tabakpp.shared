@@ -7,10 +7,13 @@ import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.CounterType
 import com.tabakpp.app.data.model.DailyLog
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class LogsRepository {
-    private val db = FirebaseFirestore.getInstance()
-
+@Singleton
+class LogsRepository @Inject constructor(
+    private val db: FirebaseFirestore
+) {
     suspend fun loadLogs(uid: String): List<DailyLog> {
         return try {
             val snapshot = db.collection("users").document(uid)
@@ -69,7 +72,6 @@ class LogsRepository {
         }
     }
 
-    // Helper class for deserializing the user document
     private data class UserData(
         val counters: List<CounterConfig> = emptyList()
     )

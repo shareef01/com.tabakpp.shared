@@ -24,6 +24,10 @@ import com.tabakpp.app.data.Repository
 import com.tabakpp.app.data.SettingsRepository
 import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.DailyLog
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -35,18 +39,28 @@ object TabakWidgetKeys {
     val limitKey = intPreferencesKey("daily_limit")
 }
 
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface WidgetEntryPoint {
+    fun repository(): Repository
+    fun settingsRepository(): SettingsRepository
+}
+
 class TabakWidget : GlanceAppWidget() {
     
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val settingsRepo = SettingsRepository(context)
+        val entryPoint = EntryPointAccessors.fromApplication(context, WidgetEntryPoint::class.java)
+        val repo = entryPoint.repository()
+        val settingsRepo = entryPoint.settingsRepository()
+
         val selectedId = try { settingsRepo.widgetCounterId.first() } catch (e: Exception) { "cigarettes" }
-        val configs = try { Repository.getCounterConfigs() } catch (e: Exception) { emptyList() }
+        val configs = try { repo.getCounterConfigs() } catch (e: Exception) { emptyList() }
         val activeConfig = configs.find { it.id == selectedId } ?: configs.firstOrNull() ?: CounterConfig("cigarettes", "Cigarettes")
 
         val count = try {
-            val logs = Repository.loadLogs()
+            val logs = repo.loadLogs()
             val todayStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
             logs.find { it.logDate == todayStr }?.counts?.get(activeConfig.id) ?: 0
         } catch (e: Exception) { 0 }
@@ -96,10 +110,13 @@ class IncrementAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val updatedCount = withContext(Dispatchers.IO) {
             try {
-                val settingsRepo = SettingsRepository(context)
+                val entryPoint = EntryPointAccessors.fromApplication(context, WidgetEntryPoint::class.java)
+                val repo = entryPoint.repository()
+                val settingsRepo = entryPoint.settingsRepository()
+
                 val selectedId = settingsRepo.widgetCounterId.first()
-                val user = Repository.getCurrentUser() ?: return@withContext null
-                val logs = Repository.loadLogs()
+                val user = repo.getCurrentUser() ?: return@withContext null
+                val logs = repo.loadLogs()
                 val todayStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
                 val todayLog = logs.find { it.logDate == todayStr } ?: DailyLog(userId = user.uid, logDate = todayStr)
                 
@@ -108,7 +125,8 @@ class IncrementAction : ActionCallback {
                 currentCounts[selectedId] = newVal
                 val updated = todayLog.copy(counts = currentCounts)
                 
-                Repository.upsertLog(updated)
+                repo.upsertLog(updated)
+                repo.logIncrement(selectedId)
                 newVal
             } catch (e: Exception) { null }
         }

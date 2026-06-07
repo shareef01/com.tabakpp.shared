@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.*
 import androidx.compose.ui.unit.*
 import com.tabakpp.app.data.DashboardLayout
@@ -144,6 +146,7 @@ private fun CounterCard(config: CounterConfig, count: Int, vm: MainViewModel, is
     val isLimitReached = count >= config.limit
     val progress = remember(count, config.limit) { (count / config.limit.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f) }
     val animatedProgress by animateFloatAsState(targetValue = progress, animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy), label = "progress")
+    val haptic = LocalHapticFeedback.current
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -174,9 +177,15 @@ private fun CounterCard(config: CounterConfig, count: Int, vm: MainViewModel, is
             }
             Spacer(Modifier.height(if (isCompact) 20.dp else 40.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                SmallCounterBtn(Icons.Default.Remove, isCompact = isCompact) { vm.decrement(config.id) }
+                SmallCounterBtn(Icons.Default.Remove, isCompact = isCompact) { 
+                    vm.decrement(config.id)
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                }
                 Spacer(Modifier.width(if (isCompact) 16.dp else 40.dp))
-                SmallCounterBtn(Icons.Default.Add, isPrimary = true, isCompact = isCompact) { vm.increment(config.id) }
+                SmallCounterBtn(Icons.Default.Add, isPrimary = true, isCompact = isCompact) { 
+                    vm.increment(config.id)
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) // Subtle click
+                }
             }
         }
     }

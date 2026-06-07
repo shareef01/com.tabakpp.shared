@@ -10,6 +10,7 @@ import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.CounterType
 import com.tabakpp.app.data.model.DailyLog
 import com.tabakpp.app.domain.SmokingCalculator
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -20,9 +21,14 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import javax.inject.Inject
 
-class MainViewModel(application: Application) : AndroidViewModel(application) {
-    private val settingsRepo = SettingsRepository(application)
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    application: Application,
+    private val repository: Repository,
+    private val settingsRepo: SettingsRepository
+) : AndroidViewModel(application) {
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -54,6 +60,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val hasLaunchedBefore: StateFlow<Boolean> = settingsRepo.hasLaunchedBefore
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val costPerUnit: StateFlow<Float> = settingsRepo.costPerUnit
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
+
     val todayString: String get() = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
     val todayLog: StateFlow<DailyLog?> = _logs.map { list ->
@@ -79,7 +88,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun checkSession() {
-        val user = Repository.getCurrentUser()
+        val user = repository.getCurrentUser()
         if (user != null) {
             _authState.value = AuthState.Authenticated(user.uid, user.displayName, user.isAnonymous)
             loadData()
@@ -89,14 +98,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadData() = viewModelScope.launch {
-        val user = Repository.getCurrentUser() ?: return@launch
+        val user = repository.getCurrentUser() ?: return@launch
         try {
-            _counterConfigs.value = Repository.getCounterConfigs()
-            val data = Repository.loadLogs().toMutableList()
+            _counterConfigs.value = repository.getCounterConfigs()
+            val data = repository.loadLogs().toMutableList()
             if (data.none { it.logDate == todayString }) {
                 val today = DailyLog(userId = user.uid, logDate = todayString)
                 data.add(0, today)
-                Repository.upsertLog(today)
+                repository.upsertLog(today)
             }
             _logs.value = data
         } catch (_: Exception) {
@@ -107,7 +116,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun addCounter(name: String, limit: Int, type: CounterType) = viewModelScope.launch {
         val newConfig = CounterConfig(id = UUID.randomUUID().toString(), name = name, limit = limit, type = type)
         _counterConfigs.update { it + newConfig }
-        Repository.saveCounterConfigs(_counterConfigs.value)
+        repository.saveCounterConfigs(_counterConfigs.value)
         TabakWidget().updateAll(getApplication())
     }
 
@@ -115,22 +124,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _counterConfigs.update { configs ->
             configs.map { if (it.id == id) it.copy(name = newName, limit = newLimit) else it }
         }
-        Repository.saveCounterConfigs(_counterConfigs.value)
-        if (id == "cigarettes") Repository.saveDailyLimit(newLimit)
+        repository.saveCounterConfigs(_counterConfigs.value)
+        if (id == "cigarettes") repository.saveDailyLimit(newLimit)
         TabakWidget().updateAll(getApplication())
     }
 
     fun removeCounter(id: String) = viewModelScope.launch {
         if (id == "cigarettes") return@launch
         _counterConfigs.update { configs -> configs.filter { it.id != id } }
-        Repository.saveCounterConfigs(_counterConfigs.value)
+        repository.saveCounterConfigs(_counterConfigs.value)
         
         _logs.update { logs ->
             logs.map { log ->
                 if (log.counts.containsKey(id)) {
                     val newCounts = log.counts.toMutableMap().apply { remove(id) }
                     val updatedLog = log.copy(counts = newCounts)
-                    viewModelScope.launch { Repository.upsertLog(updatedLog) }
+                    viewModelScope.launch { repository.upsertLog(updatedLog) }
                     updatedLog
                 } else log
             }
@@ -157,7 +166,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     
                     viewModelScope.launch {
                         try {
-                            Repository.upsertLog(updated)
+                            repository.upsertLog(updated)
+                            repository.logIncrement(counterId) // New: Log timestamped event
                             TabakWidget().updateAll(getApplication())
                         } catch (_: Exception) {
                             _message.value = UiMessage.Error("Sync failed")
@@ -179,7 +189,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val updated = mutableList[i].copy(counts = currentCounts)
                 mutableList[i] = updated
                 viewModelScope.launch {
-                    try { Repository.upsertLog(updated); TabakWidget().updateAll(getApplication()) }
+                    try { repository.upsertLog(updated); TabakWidget().updateAll(getApplication()) }
                     catch (_: Exception) {}
                 }
             }
@@ -209,11 +219,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         settingsRepo.setLaunchedBefore()
     }
 
+    fun setCostPerUnit(cost: Float) = viewModelScope.launch {
+        settingsRepo.setCostPerUnit(cost)
+    }
+
     fun signIn(e: String, p: String) = viewModelScope.launch { 
         _isLoading.value = true
         try { 
-            Repository.signIn(e, p)
-            val user = Repository.getCurrentUser()!!
+            repository.signIn(e, p)
+            val user = repository.getCurrentUser()!!
             _authState.value = AuthState.Authenticated(user.uid, user.displayName, user.isAnonymous)
             loadData() 
         }
@@ -224,8 +238,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun signInWithGoogle(idToken: String) = viewModelScope.launch {
         _isLoading.value = true
         try {
-            Repository.signInWithGoogle(idToken)
-            val user = Repository.getCurrentUser()!!
+            repository.signInWithGoogle(idToken)
+            val user = repository.getCurrentUser()!!
             _authState.value = AuthState.Authenticated(user.uid, user.displayName, user.isAnonymous)
             loadData()
         } catch (_: Exception) { 
@@ -238,8 +252,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun continueAsGuest() = viewModelScope.launch {
         _isLoading.value = true
         try {
-            Repository.signInAnonymously()
-            val user = Repository.getCurrentUser()!!
+            repository.signInAnonymously()
+            val user = repository.getCurrentUser()!!
             _authState.value = AuthState.Authenticated(user.uid, "Guest", true)
             loadData()
         } catch (ex: Exception) {
@@ -251,20 +265,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun signUp(e: String, p: String, n: String) = viewModelScope.launch {
         _isLoading.value = true
-        try { Repository.signUp(e, p, n); _message.value = UiMessage.Success("Account created! You can now sign in.") }
+        try { repository.signUp(email = e, password = p, name = n); _message.value = UiMessage.Success("Account created! You can now sign in.") }
         catch (ex: Exception) { _message.value = UiMessage.Error(ex.message ?: "Sign up failed") }
         finally { _isLoading.value = false }
     }
     
     fun signOut() = viewModelScope.launch {
-        Repository.signOut()
+        repository.signOut()
         _authState.value = AuthState.Unauthenticated
         _logs.value = emptyList() 
     }
     
     fun deleteAccount() = viewModelScope.launch {
         try { 
-            Repository.deleteAccount()
+            repository.deleteAccount()
             _authState.value = AuthState.Unauthenticated
             TabakWidget().updateAll(getApplication()) 
         }
@@ -275,15 +289,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     
     fun updateDisplayName(n: String) = viewModelScope.launch {
         try { 
-            Repository.updateDisplayName(n)
-            val user = Repository.getCurrentUser()!!
+            repository.updateDisplayName(n)
+            val user = repository.getCurrentUser()!!
             _authState.value = AuthState.Authenticated(user.uid, n, user.isAnonymous) 
         }
         catch (ex: Exception) { _message.value = UiMessage.Error("Update failed") }
     }
 
-    fun updatePassword(p: String) = viewModelScope.launch { Repository.updatePassword(p) }
-    fun resetPassword(e: String) = viewModelScope.launch { Repository.resetPassword(e) }
+    fun updatePassword(p: String) = viewModelScope.launch { repository.updatePassword(p) }
+    fun resetPassword(e: String) = viewModelScope.launch { repository.resetPassword(e) }
 
     fun getYesterdayCount(): Int = SmokingCalculator.getYesterdayCount(_logs.value)
     

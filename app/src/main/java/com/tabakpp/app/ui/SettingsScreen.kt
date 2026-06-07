@@ -44,11 +44,10 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
     val configs by vm.counterConfigs.collectAsState()
     val widgetCounterId by vm.widgetCounterId.collectAsState()
     val dashboardLayout by vm.dashboardLayout.collectAsState()
+    val costPerUnit by vm.costPerUnit.collectAsState()
     
     var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var pwd by remember { mutableStateOf("") }
-    var pwd2 by remember { mutableStateOf("") }
+    var tempCost by remember { mutableStateOf("") }
     
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showSignOutDialog by remember { mutableStateOf(false) }
@@ -62,10 +61,15 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-        val user = Repository.getCurrentUser()
-        name = user?.displayName ?: ""
-        email = user?.email ?: ""
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Authenticated) {
+            val user = authState as AuthState.Authenticated
+            name = user.displayName ?: ""
+        }
+    }
+    
+    LaunchedEffect(costPerUnit) {
+        tempCost = costPerUnit.toString()
     }
 
     Column(Modifier.fillMaxSize().background(BgBase).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -103,6 +107,15 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
             SBtn("Add New Counter") { showAddCounter = true }
         }
 
+        SCard("Health & Economics") {
+            Text("Cost per cigarette/unit", fontSize = 11.sp, color = Accent, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+            TabakField(tempCost, { tempCost = it }, "Price (e.g. 0.50)", keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+            Spacer(Modifier.height(8.dp))
+            SBtn("Save Economic Data") {
+                tempCost.toFloatOrNull()?.let { vm.setCostPerUnit(it) }
+            }
+        }
+
         SCard("Profile Controls") {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 20.dp)) {
                 Box(Modifier.size(56.dp).background(Accent.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
@@ -113,8 +126,6 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
                     Text(name.ifEmpty { "User" }, fontWeight = FontWeight.Bold, color = TextMain, fontSize = 18.sp)
                     if (authState is AuthState.Authenticated && (authState as AuthState.Authenticated).isGuest) {
                         Text("Guest Mode • Local Only", fontSize = 11.sp, color = Accent, fontWeight = FontWeight.Bold)
-                    } else {
-                        Text(email, fontSize = 12.sp, color = TextMuted)
                     }
                 }
             }
@@ -138,18 +149,6 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
             TabakField(name, { name = it }, "Your Name")
             Spacer(Modifier.height(8.dp))
             SBtn("Update Name") { confirmTitle = "Update Name?"; confirmText = "This will sync across devices."; confirmAction = { vm.updateDisplayName(name) } }
-            
-            Spacer(Modifier.height(24.dp))
-            Text("Security", fontSize = 11.sp, color = Accent, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-            TabakField(pwd, { pwd = it }, "New Password", isPassword = true)
-            Spacer(Modifier.height(10.dp))
-            TabakField(pwd2, { pwd2 = it }, "Confirm Password", isPassword = true)
-            Spacer(Modifier.height(8.dp))
-            SBtn("Change Password") {
-                if (pwd == pwd2 && pwd.length >= 6) {
-                    confirmTitle = "Change Password?"; confirmText = "Confirm updating your security credentials."; confirmAction = { vm.updatePassword(pwd); pwd = ""; pwd2 = "" }
-                }
-            }
         }
 
         SCard("Display") {

@@ -3,6 +3,7 @@ package com.tabakpp.app.ui.theme
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 
@@ -77,11 +78,17 @@ val SuccessColor @Composable get() = TabakTheme.colors.success
 fun TabakTheme(
     isDark: Boolean = true,
     fontScale: Float = 1f,
+    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colors = if (isDark) DarkTabakColors else LightTabakColors
-    val colorScheme = if (isDark) {
-        darkColorScheme(
+    val context = LocalContext.current
+    
+    val colorScheme = when {
+        dynamicColor && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S -> {
+            if (isDark) dynamicDarkColorScheme(context) else lightColorScheme() // We want to keep our custom base if possible, but dynamic scheme overrides primary
+        }
+        isDark -> darkColorScheme(
             primary = colors.accent,
             onPrimary = colors.accentFg,
             background = colors.bgBase,
@@ -91,8 +98,7 @@ fun TabakTheme(
             error = colors.danger,
             outline = colors.borderSubtle
         )
-    } else {
-        lightColorScheme(
+        else -> lightColorScheme(
             primary = colors.accent,
             onPrimary = colors.accentFg,
             background = colors.bgBase,

@@ -1,25 +1,29 @@
 package com.tabakpp.app.data
 
 import android.content.Context
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.floatPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
 enum class DashboardLayout { LARGE, COMPACT }
 
-class SettingsRepository(private val context: Context) {
+@Singleton
+class SettingsRepository @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
     companion object {
-        val IS_DARK_MODE = booleanPreferencesKey("is_dark_mode")
-        val FONT_SCALE = floatPreferencesKey("font_scale")
-        val WIDGET_COUNTER_ID = stringPreferencesKey("widget_counter_id")
-        val DASHBOARD_LAYOUT = stringPreferencesKey("dashboard_layout")
-        val HAS_LAUNCHED_BEFORE = booleanPreferencesKey("has_launched_before")
+        private val IS_DARK_MODE = booleanPreferencesKey("is_dark_mode")
+        private val FONT_SCALE = floatPreferencesKey("font_scale")
+        private val WIDGET_COUNTER_ID = stringPreferencesKey("widget_counter_id")
+        private val DASHBOARD_LAYOUT = stringPreferencesKey("dashboard_layout")
+        private val HAS_LAUNCHED_BEFORE = booleanPreferencesKey("has_launched_before")
+        private val COST_PER_UNIT = floatPreferencesKey("cost_per_unit")
     }
 
     val isDarkMode: Flow<Boolean> = context.dataStore.data.map { it[IS_DARK_MODE] ?: true }
@@ -29,6 +33,7 @@ class SettingsRepository(private val context: Context) {
         DashboardLayout.valueOf(it[DASHBOARD_LAYOUT] ?: DashboardLayout.LARGE.name) 
     }
     val hasLaunchedBefore: Flow<Boolean> = context.dataStore.data.map { it[HAS_LAUNCHED_BEFORE] ?: false }
+    val costPerUnit: Flow<Float> = context.dataStore.data.map { it[COST_PER_UNIT] ?: 0f }
 
     suspend fun setDarkMode(enabled: Boolean) {
         context.dataStore.edit { it[IS_DARK_MODE] = enabled }
@@ -48,5 +53,9 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setLaunchedBefore() {
         context.dataStore.edit { it[HAS_LAUNCHED_BEFORE] = true }
+    }
+
+    suspend fun setCostPerUnit(cost: Float) {
+        context.dataStore.edit { it[COST_PER_UNIT] = cost }
     }
 }

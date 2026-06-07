@@ -24,6 +24,7 @@ import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.DailyLog
 import com.tabakpp.app.ui.theme.*
 import com.tabakpp.app.viewmodel.MainViewModel
+import com.tabakpp.app.domain.SmokingCalculator
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
@@ -37,6 +38,8 @@ data class ChartPoint(val value: Int, val label: String)
 fun HistoryScreen(vm: MainViewModel) {
     val logs by vm.logs.collectAsState()
     val configs by vm.counterConfigs.collectAsState()
+    val costPerUnit by vm.costPerUnit.collectAsState()
+    
     var selectedCounterId by remember { mutableStateOf("cigarettes") }
     var timeframe by remember { mutableStateOf(ChartTimeframe.DAY) }
     var editTarget by remember { mutableStateOf<Pair<DailyLog, String>?>(null) }
@@ -56,6 +59,11 @@ fun HistoryScreen(vm: MainViewModel) {
                 onSelectTimeframe = { timeframe = it }
             )
             Spacer(Modifier.height(16.dp)) 
+        }
+
+        item {
+            InsightsRow(logs, configs, costPerUnit)
+            Spacer(Modifier.height(16.dp))
         }
         
         items(logs, key = { it.logDate }) { log ->
@@ -98,6 +106,59 @@ fun HistoryScreen(vm: MainViewModel) {
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun InsightsRow(logs: List<DailyLog>, configs: List<CounterConfig>, costPerUnit: Float) {
+    val totalCost = remember(logs, costPerUnit) { SmokingCalculator.calculateSavings(logs, costPerUnit) }
+    val lifeLost = remember(logs) { SmokingCalculator.calculateLifeLostMinutes(logs) }
+    val currentStreak = remember(logs, configs) { SmokingCalculator.calculateStreak(logs, configs) }
+
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        InsightCard(
+            label = "Streak",
+            value = "$currentStreak",
+            suffix = "days",
+            icon = Icons.Default.Whatshot,
+            modifier = Modifier.weight(1f),
+            color = Color(0xFFF59E0B)
+        )
+        InsightCard(
+            label = "Economic Impact",
+            value = String.format(Locale.getDefault(), "$%.2f", totalCost),
+            suffix = "spent",
+            icon = Icons.Default.AccountBalanceWallet,
+            modifier = Modifier.weight(1f),
+            color = Color(0xFF10B981)
+        )
+        InsightCard(
+            label = "Health Cost",
+            value = "${lifeLost / 60}h ${lifeLost % 60}m",
+            suffix = "lost",
+            icon = Icons.Default.Favorite,
+            modifier = Modifier.weight(1f),
+            color = DangerColor
+        )
+    }
+}
+
+@Composable
+private fun InsightCard(label: String, value: String, suffix: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = BgCard),
+        border = BorderStroke(1.dp, BorderSubtle)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Icon(icon, null, tint = color.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+            Spacer(Modifier.height(8.dp))
+            Text(value, fontWeight = FontWeight.Black, fontSize = 16.sp, color = TextMain)
+            Text(suffix, fontSize = 10.sp, color = TextMuted, fontFamily = FontFamily.Monospace)
+            Spacer(Modifier.height(4.dp))
+            Text(label.lowercase(), fontSize = 8.sp, color = TextDim, fontWeight = FontWeight.Bold)
+        }
     }
 }
 

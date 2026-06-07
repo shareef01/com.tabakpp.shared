@@ -2,9 +2,14 @@ package com.tabakpp.app.data
 
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class AuthRepository {
-    private val auth = FirebaseAuth.getInstance()
+@Singleton
+class AuthRepository @Inject constructor(
+    private val auth: FirebaseAuth
+) {
+    fun getCurrentUser() = auth.currentUser
 
     suspend fun signIn(email: String, password: String) {
         auth.signInWithEmailAndPassword(email, password).await()

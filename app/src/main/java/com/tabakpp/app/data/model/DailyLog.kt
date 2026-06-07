@@ -7,6 +7,7 @@ data class DailyLog(
     val userId: String = "",
     val logDate: String = "",
     val counts: Map<String, Int> = mapOf("cigarettes" to 0),
+    val notes: String = ""
 )
 
 @Serializable
