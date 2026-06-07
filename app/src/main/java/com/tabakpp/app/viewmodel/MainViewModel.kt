@@ -36,8 +36,8 @@ class MainViewModel @Inject constructor(
     private val _logs = MutableStateFlow<List<DailyLog>>(emptyList())
     val logs: StateFlow<List<DailyLog>> = _logs.asStateFlow()
 
-    private val _counterConfigs = MutableStateFlow<List<CounterConfig>>(emptyList())
-    val counterConfigs: StateFlow<List<CounterConfig>> = _counterConfigs.asStateFlow()
+    val counterConfigs: StateFlow<List<CounterConfig>> = repository.counterConfigs
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -70,6 +70,7 @@ class MainViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
+        viewModelScope.launch { repository.ensureDefaultCounter() }
         checkSession()
         startMidnightResetWorker()
     }
@@ -98,41 +99,41 @@ class MainViewModel @Inject constructor(
     }
 
     fun loadData() = viewModelScope.launch {
-        val user = repository.getCurrentUser() ?: return@launch
+        repository.getCurrentUser() ?: return@launch
         try {
-            _counterConfigs.value = repository.getCounterConfigs()
+            repository.syncRemoteConfigs()
             val data = repository.loadLogs().toMutableList()
             if (data.none { it.logDate == todayString }) {
+                val user = repository.getCurrentUser()!!
                 val today = DailyLog(userId = user.uid, logDate = todayString)
                 data.add(0, today)
                 repository.upsertLog(today)
             }
             _logs.value = data
-        } catch (_: Exception) {
-            _message.value = UiMessage.Error("Sync error")
+        } catch (e: Exception) {
+            _message.value = UiMessage.Error("Sync error: ${e.localizedMessage}")
         }
     }
 
     fun addCounter(name: String, limit: Int, type: CounterType) = viewModelScope.launch {
         val newConfig = CounterConfig(id = UUID.randomUUID().toString(), name = name, limit = limit, type = type)
-        _counterConfigs.update { it + newConfig }
-        repository.saveCounterConfigs(_counterConfigs.value)
+        repository.saveCounterConfigs(counterConfigs.value + newConfig)
         TabakWidget().updateAll(getApplication())
     }
 
     fun updateCounterConfig(id: String, newName: String, newLimit: Int) = viewModelScope.launch {
-        _counterConfigs.update { configs ->
-            configs.map { if (it.id == id) it.copy(name = newName, limit = newLimit) else it }
+        val updatedConfigs = counterConfigs.value.map { 
+            if (it.id == id) it.copy(name = newName, limit = newLimit) else it 
         }
-        repository.saveCounterConfigs(_counterConfigs.value)
+        repository.saveCounterConfigs(updatedConfigs)
         if (id == "cigarettes") repository.saveDailyLimit(newLimit)
         TabakWidget().updateAll(getApplication())
     }
 
     fun removeCounter(id: String) = viewModelScope.launch {
         if (id == "cigarettes") return@launch
-        _counterConfigs.update { configs -> configs.filter { it.id != id } }
-        repository.saveCounterConfigs(_counterConfigs.value)
+        val updatedConfigs = counterConfigs.value.filter { it.id != id }
+        repository.saveCounterConfigs(updatedConfigs)
         
         _logs.update { logs ->
             logs.map { log ->
@@ -167,10 +168,10 @@ class MainViewModel @Inject constructor(
                     viewModelScope.launch {
                         try {
                             repository.upsertLog(updated)
-                            repository.logIncrement(counterId) // New: Log timestamped event
+                            repository.logIncrement(counterId)
                             TabakWidget().updateAll(getApplication())
-                        } catch (_: Exception) {
-                            _message.value = UiMessage.Error("Sync failed")
+                        } catch (e: Exception) {
+                            _message.value = UiMessage.Error("Sync failed: ${e.localizedMessage}")
                         }
                     }
                 }

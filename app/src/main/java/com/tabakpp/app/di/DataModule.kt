@@ -23,7 +23,14 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideFirebaseFirestore(): FirebaseFirestore = FirebaseFirestore.getInstance()
+    fun provideFirebaseFirestore(): FirebaseFirestore {
+        val db = FirebaseFirestore.getInstance()
+        db.firestoreSettings = com.google.firebase.firestore.firestoreSettings {
+            @Suppress("DEPRECATION")
+            isPersistenceEnabled = true
+        }
+        return db
+    }
 
     @Provides
     @Singleton

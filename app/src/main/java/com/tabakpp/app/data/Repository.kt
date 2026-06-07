@@ -28,14 +28,31 @@ class Repository @Inject constructor(
 ) {
     // Flows from Room
     val counterConfigs = tabakDao.getAllCounterConfigs()
-        .map { entities -> entities.map { it.toDomain() } }
+        .map { entities -> 
+            if (entities.isEmpty()) {
+                val default = CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE)
+                // We shouldn't do side effects in a map block ideally, 
+                // but let's ensure it's there for foreign keys.
+                listOf(default)
+            } else {
+                entities.map { it.toDomain() }
+            }
+        }
+    
+    suspend fun ensureDefaultCounter() {
+        val local = tabakDao.getAllCounterConfigs().first()
+        if (local.isEmpty()) {
+            tabakDao.insertCounterConfig(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE).toEntity())
+        }
+    }
     
     fun getLogs(userId: String) = tabakDao.getLogsForUser(userId)
         .map { entities -> entities.map { it.toDomain() } }
 
     // Helper functions for entity mapping
     private fun CounterConfigEntity.toDomain() = CounterConfig(id, name, limit, type)
-    private fun DailyLogEntity.toDomain() = DailyLog(userId, logDate) // We'll add counts summary here
+    private fun CounterConfig.toEntity() = CounterConfigEntity(id, name, limit, type, true)
+    private fun DailyLogEntity.toDomain() = DailyLog(userId, logDate)
 
     suspend fun signIn(email: String, password: String) = authRepo.signIn(email, password)
 
@@ -86,19 +103,41 @@ class Repository @Inject constructor(
         logsRepo.upsertLog(uid, log)
     }
 
+    // Sync logic
+    suspend fun syncRemoteConfigs() {
+        val uid = auth.currentUser?.uid ?: return
+        try {
+            val remoteConfigs = logsRepo.getCounterConfigs(uid)
+            remoteConfigs.forEach { config ->
+                tabakDao.insertCounterConfig(config.toEntity())
+            }
+        } catch (_: Exception) {}
+    }
+
     suspend fun saveDailyLimit(limit: Int) {
         val uid = auth.currentUser?.uid ?: return
-        logsRepo.saveDailyLimit(uid, limit)
+        try {
+            logsRepo.saveDailyLimit(uid, limit)
+            tabakDao.insertCounterConfig(CounterConfig("cigarettes", "Cigarettes", limit, CounterType.CIGARETTE).toEntity())
+        } catch (_: Exception) {}
     }
 
     suspend fun saveCounterConfigs(configs: List<CounterConfig>) {
         val uid = auth.currentUser?.uid ?: return
-        logsRepo.saveCounterConfigs(uid, configs)
+        try {
+            logsRepo.saveCounterConfigs(uid, configs)
+            configs.forEach { tabakDao.insertCounterConfig(it.toEntity()) }
+        } catch (_: Exception) {}
     }
 
     suspend fun getCounterConfigs(): List<CounterConfig> {
         val uid = auth.currentUser?.uid ?: return listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE))
-        return logsRepo.getCounterConfigs(uid)
+        val local = tabakDao.getAllCounterConfigs().first()
+        if (local.isNotEmpty()) return local.map { it.toDomain() }
+        
+        val remote = logsRepo.getCounterConfigs(uid)
+        remote.forEach { tabakDao.insertCounterConfig(it.toEntity()) }
+        return remote
     }
 
     // New Tracking with Timestamps
