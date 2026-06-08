@@ -188,17 +188,19 @@ class MainViewModel @Inject constructor(
     fun editLog(date: String, counterId: String, count: Int) = viewModelScope.launch {
         val user = repository.getCurrentUser() ?: return@launch
         try {
-            // For historical editing, we update Firestore and then we can sync back to Room 
-            // or just rely on the next full sync. 
-            // For now, let's just update Firestore.
+            // 1. Update Firestore
             val logs = repository.loadLogs().toMutableList()
             val index = logs.indexOfFirst { it.logDate == date }
             if (index >= 0) {
                 val updatedCounts = logs[index].counts.toMutableMap().apply { this[counterId] = count }
                 val updatedLog = logs[index].copy(counts = updatedCounts)
                 repository.upsertLog(updatedLog)
-                loadData()
             }
+            
+            // 2. Update Room (Overwrite)
+            repository.overwriteCounterLogs(user.uid, date, counterId, count)
+            
+            TabakWidget().updateAll(getApplication())
         } catch (_: Exception) {}
     }
 

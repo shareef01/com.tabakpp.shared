@@ -150,6 +150,20 @@ class Repository @Inject constructor(
         }
     }
 
+    suspend fun overwriteCounterLogs(uid: String, date: String, counterId: String, count: Int) {
+        tabakDao.deleteAllEventsForCounter(uid, date, counterId)
+        val eventsToInsert = mutableListOf<LogEventEntity>()
+        repeat(count) {
+            eventsToInsert.add(LogEventEntity(
+                userId = uid,
+                counterId = counterId,
+                logDate = date,
+                timestamp = 0
+            ))
+        }
+        tabakDao.insertEvents(eventsToInsert)
+    }
+
     suspend fun saveDailyLimit(limit: Int) {
         val uid = auth.currentUser?.uid ?: return
         try {
@@ -173,20 +187,31 @@ class Repository @Inject constructor(
         // Safety: Ensure counter exists in local DB before inserting event to avoid 787
         val validCounterIds = tabakDao.getAllCounterConfigsOnce().map { it.id }.toSet()
         if (!validCounterIds.contains(counterId)) {
-            // Try to sync configs first
             syncRemoteConfigs()
             val updatedIds = tabakDao.getAllCounterConfigsOnce().map { it.id }.toSet()
-            if (!updatedIds.contains(counterId)) return // Skip if still not found
+            if (!updatedIds.contains(counterId)) return
         }
 
         tabakDao.insertDailyLog(DailyLogEntity(uid, todayStr))
         tabakDao.insertEvent(LogEventEntity(userId = uid, counterId = counterId, logDate = todayStr, timestamp = System.currentTimeMillis()))
+        
+        syncDayToFirestore(uid, todayStr)
     }
 
     suspend fun logDecrement(counterId: String) {
         val uid = auth.currentUser?.uid ?: return
         val todayStr = LocalDate.now().toString()
         tabakDao.deleteLatestEvent(uid, todayStr, counterId)
+        
+        syncDayToFirestore(uid, todayStr)
+    }
+
+    private suspend fun syncDayToFirestore(uid: String, date: String) {
+        try {
+            val events = tabakDao.getAllEventsOnce(uid).filter { it.logDate == date }
+            val counts = events.groupBy { it.counterId }.mapValues { it.value.size }
+            logsRepo.upsertLog(uid, DailyLog(uid, date, counts))
+        } catch (_: Exception) {}
     }
 
     suspend fun getCounterConfigs(): List<CounterConfig> {

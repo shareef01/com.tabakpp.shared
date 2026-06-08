@@ -47,9 +47,12 @@ interface TabakDao {
     @Insert
     suspend fun insertEvents(events: List<LogEventEntity>)
 
-    @Query("DELETE FROM log_events WHERE userId = :userId AND logDate = :logDate AND counterId = :counterId")
+    @Query("DELETE FROM log_events WHERE id = (SELECT id FROM log_events WHERE userId = :userId AND logDate = :logDate AND counterId = :counterId ORDER BY timestamp DESC LIMIT 1)")
     suspend fun deleteLatestEvent(userId: String, logDate: String, counterId: String)
     
+    @Query("DELETE FROM log_events WHERE userId = :userId AND logDate = :logDate AND counterId = :counterId")
+    suspend fun deleteAllEventsForCounter(userId: String, logDate: String, counterId: String)
+
     @Query("SELECT * FROM log_events WHERE isSynced = 0")
     suspend fun getUnsyncedEvents(): List<LogEventEntity>
     
