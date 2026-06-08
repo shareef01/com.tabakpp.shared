@@ -21,19 +21,22 @@ class SyncWorker @AssistedInject constructor(
         return try {
             val user = repository.getCurrentUser()
             if (user != null) {
-                val logs = repository.loadLogs()
+                val logs = repository.getLogsOnce(user.uid)
                 val todayStr = LocalDateTime.now().toLocalDate().toString()
                 val todayLog = logs.find { it.logDate == todayStr }
                 
-                // Smart Reminder: If it's after 6 PM and no activity logged today
+                val totalLoggedToday = todayLog?.counts?.values?.sum() ?: 0
                 val hour = LocalDateTime.now().hour
-                if (hour >= 18 && (todayLog == null || todayLog.counts.values.sum() == 0)) {
+                if (hour >= 18 && totalLoggedToday == 0) {
                     NotificationHelper.showReminder(
                         context,
                         "tabak++ reminder",
                         "You haven't logged anything today. How's it going?"
                     )
                 }
+                
+                // Trigger a sync
+                repository.loadAndSyncAll()
             }
             Result.success()
         } catch (e: Exception) {

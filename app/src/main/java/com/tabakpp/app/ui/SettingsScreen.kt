@@ -42,7 +42,7 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
     val msg by vm.message.collectAsState()
     val authState by vm.authState.collectAsState()
     val isDark by vm.isDarkMode.collectAsState()
-    val fontScale by vm.fontSizeMultiplier.collectAsState()
+    val fontScale by vm.fontScale.collectAsState()
     val configs by vm.counterConfigs.collectAsState()
     val widgetCounterId by vm.widgetCounterId.collectAsState()
     val dashboardLayout by vm.dashboardLayout.collectAsState()
@@ -62,7 +62,6 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
     var editConfig by remember { mutableStateOf<CounterConfig?>(null) }
 
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Authenticated) {
@@ -80,142 +79,124 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
         Spacer(Modifier.statusBarsPadding().height(84.dp))
         if (msg !is UiMessage.None) MessageBanner(msg)
 
-        SCard(stringResource(R.string.tracker_label) + "s") {
+        SCard(stringResource(R.string.tracker_label).uppercase() + " CONFIGURATION") {
             configs.forEach { config ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 12.dp)) {
                     Column(Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(config.displayName, fontWeight = FontWeight.Bold, color = TextMain)
+                            Text(config.displayName, fontWeight = FontWeight.Black, color = TextMain, fontSize = 16.sp)
                             if (config.id == widgetCounterId) {
-                                Box(Modifier.padding(start = 8.dp).background(Accent.copy(alpha = 0.1f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
+                                Box(Modifier.padding(start = 10.dp).background(Accent.copy(alpha = 0.15f), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp)) {
                                     Text("WIDGET", fontSize = 8.sp, color = Accent, fontWeight = FontWeight.Black)
                                 }
                             }
                         }
-                        Text("Limit: ${config.limit} • ${config.type.name.lowercase().replace("_", " ")}", fontSize = 11.sp, color = TextMuted)
+                        Text("DAILY LIMIT: ${config.limit} • ${config.type.name.replace("_", " ")}", fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Bold)
                     }
-                    IconButton({ vm.setWidgetCounter(config.id) }) {
-                        Icon(Icons.Default.Home, "Set for Widget", tint = if (config.id == widgetCounterId) Accent else TextDim, modifier = Modifier.size(18.dp))
+                    IconButton({ vm.setWidgetCounter(config.id) }, Modifier.size(36.dp)) {
+                        Icon(Icons.Default.Dashboard, null, tint = if (config.id == widgetCounterId) Accent else TextDim, modifier = Modifier.size(20.dp))
                     }
-                    IconButton({ editConfig = config }) {
-                        Icon(Icons.Default.Edit, "Edit", tint = Accent, modifier = Modifier.size(18.dp))
+                    IconButton({ editConfig = config }, Modifier.size(36.dp)) {
+                        Icon(Icons.Default.Edit, null, tint = Accent, modifier = Modifier.size(20.dp))
                     }
                     if (config.id != "cigarettes") {
-                        IconButton({ vm.removeCounter(config.id) }) { Icon(Icons.Default.Delete, null, tint = DangerColor.copy(alpha = 0.5f), modifier = Modifier.size(18.dp)) }
+                        IconButton({ vm.removeCounter(config.id) }, Modifier.size(36.dp)) { Icon(Icons.Default.Delete, null, tint = DangerColor.copy(alpha = 0.5f), modifier = Modifier.size(20.dp)) }
                     }
                 }
-                if (config != configs.last()) HorizontalDivider(color = BorderSubtle.copy(alpha = 0.5f))
+                if (config != configs.last()) HorizontalDivider(color = BorderSubtle.copy(alpha = 0.5f), thickness = 0.5.dp)
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
             SBtn("Add New Counter") { showAddCounter = true }
         }
 
-        SCard("Health & Economics") {
-            Text("Cost per cigarette/unit", fontSize = 11.sp, color = Accent, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-            TabakField(tempCost, { tempCost = it }, "Price (e.g. 0.50)", keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
-            Spacer(Modifier.height(8.dp))
-            SBtn("Save Economic Data") {
+        SCard("ECONOMIC PARAMETERS") {
+            Text("Price per unit ($)", fontSize = 11.sp, color = Accent, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom = 12.dp))
+            TabakField(tempCost, { tempCost = it }, "Enter price", keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
+            Spacer(Modifier.height(12.dp))
+            SBtn("Update Parameters") {
                 tempCost.toFloatOrNull()?.let { vm.setCostPerUnit(it) }
             }
         }
 
-        SCard("Privacy & Security") {
+        SCard("SECURITY & PRIVACY") {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("App Lock", fontWeight = FontWeight.Bold, color = TextMain)
-                    Text("Unlock with Biometrics", fontSize = 12.sp, color = TextMuted)
+                    Text("Vault Lock", fontWeight = FontWeight.Black, color = TextMain, fontSize = 16.sp)
+                    Text("Secure with biometrics", fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                 }
-                Switch(checked = isBiometricEnabled, onCheckedChange = { vm.setBiometricEnabled(it) }, colors = SwitchDefaults.colors(checkedThumbColor = Accent))
+                Switch(checked = isBiometricEnabled, onCheckedChange = { vm.setBiometricEnabled(it) }, colors = SwitchDefaults.colors(checkedThumbColor = Accent, checkedTrackColor = Accent.copy(alpha = 0.5f)))
             }
         }
 
-        SCard("Profile Controls") {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 20.dp)) {
-                Box(Modifier.size(56.dp).background(Accent.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                    Text(name.take(1).uppercase(), color = Accent, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
+        SCard("IDENTITY") {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 24.dp)) {
+                Box(Modifier.size(64.dp).background(Accent.copy(alpha = 0.12f), CircleShape), contentAlignment = Alignment.Center) {
+                    Text(name.take(1).uppercase(), color = Accent, fontWeight = FontWeight.Black, fontSize = 28.sp)
                 }
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(20.dp))
                 Column {
-                    Text(name.ifEmpty { "User" }, fontWeight = FontWeight.Bold, color = TextMain, fontSize = 18.sp)
+                    Text(name.ifEmpty { "Anonymous" }, fontWeight = FontWeight.Black, color = TextMain, fontSize = 20.sp)
                     if (authState is AuthState.Authenticated && (authState as AuthState.Authenticated).isGuest) {
-                        Text("Guest Mode • Local Only", fontSize = 11.sp, color = Accent, fontWeight = FontWeight.Bold)
+                        Text("TEMPORARY SESSION", fontSize = 10.sp, color = Accent, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                     }
                 }
             }
-            if (authState is AuthState.Authenticated && (authState as AuthState.Authenticated).isGuest) {
-                Spacer(Modifier.height(16.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(Accent.copy(alpha = 0.05f)),
-                    border = BorderStroke(1.dp, Accent.copy(alpha = 0.2f))
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text("Save your progress", fontWeight = FontWeight.Bold, color = Accent, fontSize = 14.sp)
-                        Text("Create an account to sync your data across devices.", fontSize = 12.sp, color = TextMuted, modifier = Modifier.padding(vertical = 8.dp))
-                        SBtn("Sign Up / Sign In") { vm.signOut() }
-                    }
-                }
-            }
-            HorizontalDivider(Modifier.padding(vertical = 20.dp), color = BorderSubtle)
-            Text("Edit display name", fontSize = 11.sp, color = Accent, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-            TabakField(name, { name = it }, "Your Name")
-            Spacer(Modifier.height(8.dp))
-            SBtn("Update Name") { confirmTitle = "Update Name?"; confirmText = "This will sync across devices."; confirmAction = { vm.updateDisplayName(name) } }
+            Text("Update identity alias", fontSize = 11.sp, color = Accent, fontWeight = FontWeight.Black, modifier = Modifier.padding(bottom = 12.dp))
+            TabakField(name, { name = it }, "Alias")
+            Spacer(Modifier.height(12.dp))
+            SBtn("Sync Identity") { confirmTitle = "Update Alias?"; confirmText = "This change will propagate to all devices."; confirmAction = { vm.updateDisplayName(name) } }
         }
 
-        SCard("Display") {
+        SCard("VISUAL INTERFACE") {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Dark Mode", fontWeight = FontWeight.Bold, color = TextMain)
-                    Text("Switch theme", fontSize = 12.sp, color = TextMuted)
+                    Text("Obsidian Mode", fontWeight = FontWeight.Black, color = TextMain, fontSize = 16.sp)
+                    Text("Dark thematic interface", fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                 }
                 Switch(checked = isDark, onCheckedChange = { vm.toggleDarkMode(it) }, colors = SwitchDefaults.colors(checkedThumbColor = Accent))
             }
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(24.dp))
             Column {
-                Text("Dashboard Layout", fontWeight = FontWeight.Bold, color = TextMain)
-                Text("Fit more counters at once", fontSize = 12.sp, color = TextMuted)
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    @OptIn(ExperimentalMaterial3Api::class)
-                    FilterChip(selected = dashboardLayout == DashboardLayout.LARGE, onClick = { vm.setDashboardLayout(DashboardLayout.LARGE) }, label = { Text("Standard") })
-                    @OptIn(ExperimentalMaterial3Api::class)
-                    FilterChip(selected = dashboardLayout == DashboardLayout.COMPACT, onClick = { vm.setDashboardLayout(DashboardLayout.COMPACT) }, label = { Text("Compact (2x2)") })
+                Text("Dashboard Matrix", fontWeight = FontWeight.Black, color = TextMain, fontSize = 16.sp)
+                Text("Optimize screen real estate", fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.height(16.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FilterChip(selected = dashboardLayout == DashboardLayout.LARGE, onClick = { vm.setDashboardLayout(DashboardLayout.LARGE) }, label = { Text("STANDARD", fontWeight = FontWeight.Black, fontSize = 10.sp) }, shape = RoundedCornerShape(10.dp))
+                    FilterChip(selected = dashboardLayout == DashboardLayout.COMPACT, onClick = { vm.setDashboardLayout(DashboardLayout.COMPACT) }, label = { Text("MATRIX (2x2)", fontWeight = FontWeight.Black, fontSize = 10.sp) }, shape = RoundedCornerShape(10.dp))
                 }
             }
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(24.dp))
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Font Size", fontWeight = FontWeight.Bold, color = TextMain, modifier = Modifier.weight(1f))
-                    Text("${(fontScale * 100).toInt()}%", fontSize = 12.sp, color = Accent, fontWeight = FontWeight.Bold)
+                    Text("Typography Scale", fontWeight = FontWeight.Black, color = TextMain, modifier = Modifier.weight(1f), fontSize = 16.sp)
+                    Text("${(fontScale * 100).toInt()}%", fontSize = 13.sp, color = Accent, fontWeight = FontWeight.Black)
                 }
-                Slider(value = fontScale, onValueChange = { vm.updateFontSize(it) }, valueRange = 0.8f..1.4f, steps = 5, colors = SliderDefaults.colors(thumbColor = Accent, activeTrackColor = Accent))
+                Slider(value = fontScale, onValueChange = { vm.updateFontSize(it) }, valueRange = 0.85f..1.3f, steps = 3, colors = SliderDefaults.colors(thumbColor = Accent, activeTrackColor = Accent))
             }
         }
 
-        SCard("Export") {
-            Text("History as CSV.", fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(bottom = 12.dp))
-            SBtn("Export .csv") {
+        SCard("DATA MANAGEMENT") {
+            Text("Extract full history to CSV format.", fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(bottom = 16.dp), fontWeight = FontWeight.Medium)
+            SBtn("Generate Data Export") {
                 try {
                     var csv = "Date,Counts\n"
                     logs.forEach { log -> csv += "${log.logDate},${log.counts.entries.joinToString("|") { "${it.key}:${it.value}" }}\n" }
                     val file = File(ctx.cacheDir, "tabak_export.csv")
                     file.writeText(csv)
                     val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.provider", file)
-                    ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/csv"; putExtra(Intent.EXTRA_STREAM, uri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, "Export CSV"))
+                    ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/csv"; putExtra(Intent.EXTRA_STREAM, uri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, "Export Records"))
                 } catch (_: Exception) {}
             }
         }
 
-        SCard("Session", danger = true) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button({ showSignOutDialog = true }, shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = DangerColor.copy(alpha = .1f), contentColor = DangerColor), border = BorderStroke(1.dp, DangerColor.copy(alpha = .2f))) { Text("Sign Out", fontWeight = FontWeight.Bold) }
-                OutlinedButton({ showDeleteDialog = true }, shape = RoundedCornerShape(10.dp), modifier = Modifier.weight(1f), border = BorderStroke(1.dp, DangerColor.copy(alpha = .2f)), colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerColor)) { Text("Delete Account", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+        SCard("SESSION TERMINATION", danger = true) {
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Button({ showSignOutDialog = true }, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = DangerColor.copy(alpha = .12f), contentColor = DangerColor), border = BorderStroke(1.5.dp, DangerColor.copy(alpha = .2f))) { Text("TERMINATE", fontWeight = FontWeight.Black, fontSize = 12.sp) }
+                OutlinedButton({ showDeleteDialog = true }, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f), border = BorderStroke(1.5.dp, DangerColor.copy(alpha = .2f)), colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerColor)) { Text("WIPE VAULT", fontWeight = FontWeight.Black, fontSize = 12.sp) }
             }
         }
         
-        Spacer(Modifier.height(80.dp))
+        Spacer(Modifier.height(120.dp))
     }
 
     if (showAddCounter) AddCounterDialog({ showAddCounter = false }) { n, l, t -> vm.addCounter(n, l, t); showAddCounter = false }
@@ -226,10 +207,10 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
         AlertDialog(
             onDismissRequest = { editConfig = null },
             containerColor = BgCard,
-            title = { Text("Edit ${config.displayName}") },
+            title = { Text("Edit Tracker", fontWeight = FontWeight.Black) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    TabakField(tempName, { tempName = it }, "Counter Name")
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    TabakField(tempName, { tempName = it }, "Label")
                     TabakField(tempLimit, { tempLimit = it.filter { c -> c.isDigit() } }, "Daily Limit", keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
                 }
             },
@@ -237,17 +218,17 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
                 TextButton({ 
                     tempLimit.toIntOrNull()?.let { vm.updateCounterConfig(config.id, tempName, it) }
                     editConfig = null 
-                }) { Text("Save", color = Accent, fontWeight = FontWeight.Bold) }
+                }) { Text("SAVE", color = Accent, fontWeight = FontWeight.Black) }
             },
             dismissButton = {
-                TextButton({ editConfig = null }) { Text("Cancel", color = TextMain) }
+                TextButton({ editConfig = null }) { Text("CANCEL", color = TextMain, fontWeight = FontWeight.Bold) }
             }
         )
     }
 
-    if (showSignOutDialog) AlertDialog(onDismissRequest = { showSignOutDialog = false }, containerColor = BgCard, titleContentColor = TextMain, textContentColor = TextMuted, title = { Text("Sign Out?") }, text = { Text("You will need to sign in again to access your data.") }, confirmButton = { TextButton({ vm.signOut(); showSignOutDialog = false }) { Text("Sign Out", color = DangerColor, fontWeight = FontWeight.Bold) } }, dismissButton = { TextButton({ showSignOutDialog = false }) { Text("Cancel", color = TextMain) } })
-    if (showDeleteDialog) AlertDialog(onDismissRequest = { showDeleteDialog = false }, containerColor = BgCard, titleContentColor = TextMain, textContentColor = TextMuted, title = { Text("Delete Account?") }, text = { Text("Permanent deletion of all data. This action cannot be undone.") }, confirmButton = { TextButton({ vm.deleteAccount(); showDeleteDialog = false }) { Text("Delete", color = DangerColor, fontWeight = FontWeight.Bold) } }, dismissButton = { TextButton({ showDeleteDialog = false }) { Text("Cancel", color = TextMain) } })
-    confirmAction?.let { action -> AlertDialog(onDismissRequest = { confirmAction = null }, containerColor = BgCard, titleContentColor = TextMain, textContentColor = TextMuted, title = { Text(confirmTitle) }, text = { Text(confirmText) }, confirmButton = { TextButton({ action(); confirmAction = null }) { Text("Confirm", color = Accent, fontWeight = FontWeight.Bold) } }, dismissButton = { TextButton({ confirmAction = null }) { Text("Cancel", color = TextMain) } }) }
+    if (showSignOutDialog) AlertDialog(onDismissRequest = { showSignOutDialog = false }, containerColor = BgCard, title = { Text("Terminate Session?", fontWeight = FontWeight.Black) }, text = { Text("You will be logged out of your tracking vault.", color = TextMuted) }, confirmButton = { TextButton({ vm.signOut(); showSignOutDialog = false }) { Text("TERMINATE", color = DangerColor, fontWeight = FontWeight.Black) } }, dismissButton = { TextButton({ showSignOutDialog = false }) { Text("CANCEL", color = TextMain, fontWeight = FontWeight.Bold) } })
+    if (showDeleteDialog) AlertDialog(onDismissRequest = { showDeleteDialog = false }, containerColor = BgCard, title = { Text("Wipe All Data?", fontWeight = FontWeight.Black) }, text = { Text("This will permanently delete your vault and all history from cloud servers. This cannot be undone.", color = TextMuted) }, confirmButton = { TextButton({ vm.deleteAccount(); showDeleteDialog = false }) { Text("WIPE EVERYTHING", color = DangerColor, fontWeight = FontWeight.Black) } }, dismissButton = { TextButton({ showDeleteDialog = false }) { Text("CANCEL", color = TextMain, fontWeight = FontWeight.Bold) } })
+    confirmAction?.let { action -> AlertDialog(onDismissRequest = { confirmAction = null }, containerColor = BgCard, title = { Text(confirmTitle, fontWeight = FontWeight.Black) }, text = { Text(confirmText, color = TextMuted) }, confirmButton = { TextButton({ action(); confirmAction = null }) { Text("CONFIRM", color = Accent, fontWeight = FontWeight.Black) } }, dismissButton = { TextButton({ confirmAction = null }) { Text("CANCEL", color = TextMain, fontWeight = FontWeight.Bold) } }) }
 }
 
 @Composable
@@ -258,27 +239,28 @@ private fun AddCounterDialog(onDismiss: () -> Unit, onAdd: (String, Int, Counter
     
     Dialog(onDismiss) {
         Card(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(BgPanel), border = BorderStroke(1.dp, BorderSubtle)) {
-            Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("Add Counter", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = TextMain)
-                TabakField(name, { name = it }, "Name")
-                TabakField(limit, { limit = it.filter { c -> c.isDigit() } }, "Limit", keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
+            Column(Modifier.padding(32.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                Text("New Tracker", fontWeight = FontWeight.Black, fontSize = 24.sp, color = TextMain)
+                TabakField(name, { name = it }, "Label")
+                TabakField(limit, { limit = it.filter { c -> c.isDigit() } }, "Daily Target", keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
                 
-                Text("Visual Style:", color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("VISUAL ARCHETYPE", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                 @OptIn(ExperimentalLayoutApi::class)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    @OptIn(ExperimentalMaterial3Api::class)
-                    FilterChip(selected = type == CounterType.SIMPLE, onClick = { type = CounterType.SIMPLE }, label = { Text("Simple") })
-                    @OptIn(ExperimentalMaterial3Api::class)
-                    FilterChip(selected = type == CounterType.CIGARETTE, onClick = { type = CounterType.CIGARETTE }, label = { Text("Cigarette") })
-                    @OptIn(ExperimentalMaterial3Api::class)
-                    FilterChip(selected = type == CounterType.JOINT_KING, onClick = { type = CounterType.JOINT_KING }, label = { Text("King Size") })
-                    @OptIn(ExperimentalMaterial3Api::class)
-                    FilterChip(selected = type == CounterType.JOINT_QUEEN, onClick = { type = CounterType.JOINT_QUEEN }, label = { Text("Queen Size") })
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    CounterType.entries.forEach { t ->
+                        @OptIn(ExperimentalMaterial3Api::class)
+                        FilterChip(
+                            selected = type == t, 
+                            onClick = { type = t }, 
+                            label = { Text(t.name.replace("_", " ").uppercase(), fontSize = 9.sp, fontWeight = FontWeight.Black) },
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
                 }
                 
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onDismiss, Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) { Text("Cancel") }
-                    Button({ onAdd(name, limit.toIntOrNull() ?: 20, type) }, Modifier.weight(1f), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = AccentFg)) { Text("Add") }
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(top = 16.dp)) {
+                    OutlinedButton(onDismiss, Modifier.weight(1f), shape = RoundedCornerShape(14.dp)) { Text("CANCEL", fontWeight = FontWeight.Bold) }
+                    Button({ onAdd(name, limit.toIntOrNull() ?: 20, type) }, Modifier.weight(1f), shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = AccentFg)) { Text("CREATE", fontWeight = FontWeight.Black) }
                 }
             }
         }
@@ -287,15 +269,16 @@ private fun AddCounterDialog(onDismiss: () -> Unit, onAdd: (String, Int, Counter
 
 @Composable
 fun SCard(title: String, danger: Boolean = false, content: @Composable ColumnScope.() -> Unit) =
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = BgCard), border = BorderStroke(1.dp, if (danger) DangerColor.copy(alpha = .15f) else BorderSubtle)) {
-        Column(Modifier.padding(22.dp)) {
-            Text(title.uppercase(), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 10.sp, color = if (danger) DangerColor else TextMain, letterSpacing = 1.5.sp)
-            HorizontalDivider(Modifier.padding(vertical = 12.dp), color = if (danger) DangerColor.copy(alpha = .1f) else BorderSubtle)
-
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = BgCard), border = BorderStroke(1.dp, if (danger) DangerColor.copy(alpha = .2f) else BorderSubtle)) {
+        Column(Modifier.padding(24.dp)) {
+            Text(title.uppercase(), fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Black, fontSize = 11.sp, color = if (danger) DangerColor else TextMain, letterSpacing = 2.sp)
+            HorizontalDivider(Modifier.padding(vertical = 16.dp), color = if (danger) DangerColor.copy(alpha = .1f) else BorderSubtle, thickness = 0.5.dp)
             content()
         }
     }
 
 @Composable
 private fun SBtn(text: String, onClick: () -> Unit) =
-    OutlinedButton(onClick, shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, BorderMid), colors = ButtonDefaults.outlinedButtonColors(contentColor = TextMuted)) { Text(text, fontWeight = FontWeight.Medium) }
+    OutlinedButton(onClick, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.5.dp, BorderMid), colors = ButtonDefaults.outlinedButtonColors(contentColor = TextMain)) { 
+        Text(text.uppercase(), fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.sp) 
+    }

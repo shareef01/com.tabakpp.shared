@@ -2,12 +2,10 @@ package com.tabakpp.app
 
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -63,7 +61,7 @@ enum class Tab(val icon: ImageVector, val labelRes: Int) {
 }
 
 @AndroidEntryPoint
-class MainActivity : FragmentActivity() { // Changed to FragmentActivity for Biometric
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -73,13 +71,6 @@ class MainActivity : FragmentActivity() { // Changed to FragmentActivity for Bio
 
         setContent {
             val viewModel: MainViewModel = hiltViewModel()
-            
-            LaunchedEffect(shortcutAction) {
-                if (shortcutAction == "log_cigarettes") {
-                    viewModel.increment("cigarettes")
-                    Toast.makeText(this@MainActivity, "Logged!", Toast.LENGTH_SHORT).show()
-                }
-            }
             val isUnlocked by viewModel.isUnlocked.collectAsState()
             val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsState()
 
@@ -93,6 +84,13 @@ class MainActivity : FragmentActivity() { // Changed to FragmentActivity for Bio
                 }
             }
 
+            LaunchedEffect(shortcutAction) {
+                if (shortcutAction == "log_cigarettes") {
+                    viewModel.increment("cigarettes")
+                    Toast.makeText(this@MainActivity, "Logged!", Toast.LENGTH_SHORT).show()
+                }
+            }
+
             LaunchedEffect(isBiometricEnabled) {
                 if (isBiometricEnabled && !isUnlocked) {
                     showBiometricPrompt(viewModel)
@@ -101,10 +99,23 @@ class MainActivity : FragmentActivity() { // Changed to FragmentActivity for Bio
                 }
             }
 
-            if (isUnlocked || !isBiometricEnabled) {
-                TabakApp(viewModel)
-            } else {
-                LockScreen { showBiometricPrompt(viewModel) }
+            TabakTheme(
+                isDark = viewModel.isDarkMode.collectAsState().value,
+                fontScale = viewModel.fontScale.collectAsState().value
+            ) {
+                Surface(Modifier.fillMaxSize(), color = BgBase) {
+                    AnimatedContent(
+                        targetState = isUnlocked || !isBiometricEnabled,
+                        transitionSpec = { fadeIn(tween(500)) togetherWith fadeOut(tween(500)) },
+                        label = "lock_gate"
+                    ) { unlocked ->
+                        if (unlocked) {
+                            TabakApp(viewModel)
+                        } else {
+                            LockScreen { showBiometricPrompt(viewModel) }
+                        }
+                    }
+                }
             }
         }
     }
@@ -133,12 +144,18 @@ class MainActivity : FragmentActivity() { // Changed to FragmentActivity for Bio
 fun LockScreen(onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize().background(BgBase), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Lock, null, tint = Accent, modifier = Modifier.size(64.dp))
+            Icon(Icons.Default.Lock, null, tint = Accent, modifier = Modifier.size(72.dp))
             Spacer(Modifier.height(24.dp))
-            Text("App Locked", fontWeight = FontWeight.Black, fontSize = 20.sp, color = TextMain)
-            Spacer(Modifier.height(40.dp))
-            Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = Accent)) {
-                Text("Unlock Now", color = AccentFg, fontWeight = FontWeight.Bold)
+            Text("Vault Locked", fontWeight = FontWeight.Black, fontSize = 24.sp, color = TextMain)
+            Text("Authentication required", fontSize = 14.sp, color = TextMuted)
+            Spacer(Modifier.height(48.dp))
+            Button(
+                onClick = onRetry,
+                colors = ButtonDefaults.buttonColors(containerColor = Accent),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.height(56.dp).width(200.dp)
+            ) {
+                Text("Unlock Now", color = AccentFg, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }
@@ -147,16 +164,12 @@ fun LockScreen(onRetry: () -> Unit) {
 @Composable
 fun TabakApp(viewModel: MainViewModel) {
     val authState by viewModel.authState.collectAsState()
-    val isDark by viewModel.isDarkMode.collectAsState()
-    val fontScale by viewModel.fontSizeMultiplier.collectAsState()
 
-    TabakTheme(isDark = isDark, fontScale = fontScale) {
-        Crossfade(targetState = authState, label = "auth_switch") { state ->
-            when (state) {
-                is AuthState.Loading -> LoadingScreen()
-                is AuthState.Unauthenticated -> AuthScreen(viewModel)
-                is AuthState.Authenticated -> MainApp(viewModel)
-            }
+    Crossfade(targetState = authState, label = "auth_switch", animationSpec = tween(600)) { state ->
+        when (state) {
+            is AuthState.Loading -> LoadingScreen()
+            is AuthState.Unauthenticated -> AuthScreen(viewModel)
+            is AuthState.Authenticated -> MainApp(viewModel)
         }
     }
 }
@@ -187,15 +200,18 @@ fun MainApp(viewModel: MainViewModel) {
     Scaffold(
         bottomBar = {
             NavigationBar(
-                containerColor = BgBase.copy(alpha = 0.95f),
+                containerColor = BgBase.copy(alpha = 0.98f),
                 tonalElevation = 0.dp,
-                modifier = Modifier.clipToBounds(),
+                modifier = Modifier.clipToBounds().border(0.5.dp, BorderSubtle, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)).clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
                 windowInsets = WindowInsets.navigationBars
             ) {
-                Tab.entries.forEach { tab ->
+                 Tab.entries.forEach { tab ->
                     val label = stringResource(tab.labelRes)
+                    val selected = currentTab == tab
+                    val animatedSize by animateFloatAsState(if (selected) 1.2f else 1f, label = "nav_scale")
+                    
                     NavigationBarItem(
-                        selected = currentTab == tab,
+                        selected = selected,
                         onClick = {
                             currentTab = tab
                             headerOffsetHeightPx.value = 0f
@@ -204,16 +220,17 @@ fun MainApp(viewModel: MainViewModel) {
                             Icon(
                                 tab.icon,
                                 contentDescription = label,
-                                tint = if (currentTab == tab) Accent else TextMuted
+                                tint = if (selected) Accent else TextMuted,
+                                modifier = Modifier.graphicsLayer { scaleX = animatedSize; scaleY = animatedSize }
                             )
                         },
                         label = {
                             Text(
                                 label.lowercase(),
-                                fontFamily = FontFamily.Monospace,
+                                fontFamily = FontFamily.SansSerif,
                                 fontSize = 10.sp,
-                                fontWeight = if (currentTab == tab) FontWeight.Bold else FontWeight.Normal,
-                                color = if (currentTab == tab) Accent else TextMuted
+                                fontWeight = if (selected) FontWeight.Black else FontWeight.Medium,
+                                color = if (selected) Accent else TextMuted
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
@@ -241,7 +258,7 @@ fun MainApp(viewModel: MainViewModel) {
                     .offset { IntOffset(x = 0, y = headerOffsetHeightPx.value.roundToInt()) }
                     .background(
                         Brush.verticalGradient(
-                            listOf(BgBase, BgBase.copy(alpha = 0.9f), Color.Transparent)
+                            listOf(BgBase, BgBase.copy(alpha = 0.95f), BgBase.copy(alpha = 0.6f), Color.Transparent)
                         )
                     )
                     .statusBarsPadding()
@@ -253,21 +270,24 @@ fun MainApp(viewModel: MainViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(Modifier.graphicsLayer { alpha = headerAlpha }) {
+                    Column(Modifier.graphicsLayer { 
+                        alpha = headerAlpha
+                        translationY = (1f - headerAlpha) * (-20f)
+                    }) {
                         Text(
                             text = stringResource(R.string.app_name),
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.Black,
-                            fontSize = 28.sp,
+                            fontSize = 32.sp,
                             color = TextMain,
-                            letterSpacing = (-1).sp
+                            letterSpacing = (-1.5).sp
                         )
                         Text(
                             text = stringResource(currentTab.labelRes).lowercase(),
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 11.sp,
+                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 12.sp,
                             color = Accent,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Black,
                             letterSpacing = 2.sp
                         )
                     }
@@ -276,14 +296,15 @@ fun MainApp(viewModel: MainViewModel) {
                         IconButton(
                             onClick = { viewModel.loadData() },
                             modifier = Modifier
-                                .size(40.dp)
-                                .background(TextMain.copy(alpha = 0.03f), CircleShape)
+                                .size(44.dp)
+                                .background(TextMain.copy(alpha = 0.05f), CircleShape)
+                                .border(1.dp, BorderSubtle, CircleShape)
                         ) {
                             Icon(
                                 Icons.Default.Refresh,
                                 null,
-                                tint = TextMain.copy(alpha = 0.5f),
-                                modifier = Modifier.size(18.dp)
+                                tint = TextMain.copy(alpha = 0.7f),
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -296,6 +317,10 @@ fun MainApp(viewModel: MainViewModel) {
 @Composable
 fun LoadingScreen() {
     Box(Modifier.fillMaxSize().background(BgBase), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = Accent, strokeWidth = 2.dp, modifier = Modifier.size(32.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+             CircularProgressIndicator(color = Accent, strokeWidth = 3.dp, modifier = Modifier.size(48.dp))
+             Spacer(Modifier.height(16.dp))
+             Text("syncing...", fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+        }
     }
 }

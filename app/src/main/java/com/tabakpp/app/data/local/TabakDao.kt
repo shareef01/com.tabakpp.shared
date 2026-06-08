@@ -5,8 +5,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TabakDao {
-    // Counter Configs
-    @Query("SELECT * FROM counter_configs")
+    // --- COUNTER CONFIGS ---
+    @Query("SELECT * FROM counter_configs ORDER BY displayOrder ASC, name ASC")
     fun getAllCounterConfigs(): Flow<List<CounterConfigEntity>>
     
     @Query("SELECT * FROM counter_configs")
@@ -21,7 +21,10 @@ interface TabakDao {
     @Delete
     suspend fun deleteCounterConfig(config: CounterConfigEntity)
 
-    // Daily Logs
+    @Query("DELETE FROM counter_configs WHERE id = :id")
+    suspend fun deleteCounterConfigById(id: String)
+
+    // --- DAILY LOGS ---
     @Query("SELECT * FROM daily_logs WHERE userId = :userId ORDER BY logDate DESC")
     fun getLogsForUser(userId: String): Flow<List<DailyLogEntity>>
 
@@ -31,7 +34,7 @@ interface TabakDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDailyLogs(logs: List<DailyLogEntity>)
 
-    // Log Events
+    // --- LOG EVENTS ---
     @Query("SELECT counterId, COUNT(*) as count FROM log_events WHERE userId = :userId AND logDate = :logDate GROUP BY counterId")
     fun getCountsForDay(userId: String, logDate: String): Flow<List<CounterCount>>
 
@@ -58,9 +61,15 @@ interface TabakDao {
     
     @Update
     suspend fun updateEvents(events: List<LogEventEntity>)
-    
+
+    // --- ATOMIC OPERATIONS ---
     @Transaction
-    suspend fun migrateLegacyData(logs: List<DailyLogEntity>, events: List<LogEventEntity>) {
+    suspend fun fullSync(
+        configs: List<CounterConfigEntity>,
+        logs: List<DailyLogEntity>,
+        events: List<LogEventEntity>
+    ) {
+        insertCounterConfigs(configs)
         insertDailyLogs(logs)
         insertEvents(events)
     }

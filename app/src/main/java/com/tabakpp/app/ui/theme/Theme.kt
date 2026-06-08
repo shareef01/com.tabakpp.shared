@@ -28,27 +28,27 @@ val DarkTabakColors = TabakColors(
     accentFg = Color(0xFF0C0C00),
     bgBase = Color(0xFF020202),
     bgPanel = Color(0xFF0D0D0E),
-    bgCard = Color(0xFF161618),
+    bgCard = Color(0xFF121214),
     textMain = Color(0xFFFFFFFF),
-    textMuted = Color(0xFF888880),
-    textDim = Color(0xFF444442),
-    borderSubtle = Color(0x22FFFFFF),
-    borderMid = Color(0x33FFFFFF),
+    textMuted = Color(0xFFAAAAA8),
+    textDim = Color(0xFF666664),
+    borderSubtle = Color(0x1AFFFFFF),
+    borderMid = Color(0x2BFFFFFF),
     danger = Color(0xFFF87171)
 )
 
 val LightTabakColors = TabakColors(
     accent = Color(0xFF2563EB),
     accentFg = Color(0xFFFFFFFF),
-    bgBase = Color(0xFFF5F5F7),
+    bgBase = Color(0xFFF8F9FA),
     bgPanel = Color(0xFFFFFFFF),
-    bgCard = Color(0xFFE8E8EB),
-    textMain = Color(0xFF1A1A1C),
-    textMuted = Color(0xFF6B6B6B),
-    textDim = Color(0xFF9E9E9E),
-    borderSubtle = Color(0x11000000),
-    borderMid = Color(0x22000000),
-    danger = Color(0xFFD32F2F)
+    bgCard = Color(0xFFFFFFFF),
+    textMain = Color(0xFF111113),
+    textMuted = Color(0xFF64748B),
+    textDim = Color(0xFF94A3B8),
+    borderSubtle = Color(0x0F000000),
+    borderMid = Color(0x1A000000),
+    danger = Color(0xFFE11D48)
 )
 
 val LocalTabakColors = staticCompositionLocalOf { DarkTabakColors }
@@ -60,7 +60,6 @@ object TabakTheme {
         get() = LocalTabakColors.current
 }
 
-// Keep these for backward compatibility with existing code during transition
 val Accent @Composable get() = TabakTheme.colors.accent
 val AccentFg @Composable get() = TabakTheme.colors.accentFg
 val BgBase @Composable get() = TabakTheme.colors.bgBase
@@ -81,35 +80,26 @@ fun TabakTheme(
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colors = if (isDark) DarkTabakColors else LightTabakColors
     val context = LocalContext.current
-    
     val colorScheme = when {
         dynamicColor && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S -> {
-            if (isDark) dynamicDarkColorScheme(context) else lightColorScheme() // We want to keep our custom base if possible, but dynamic scheme overrides primary
+            if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
         isDark -> darkColorScheme(
-            primary = colors.accent,
-            onPrimary = colors.accentFg,
-            background = colors.bgBase,
-            onBackground = colors.textMain,
-            surface = colors.bgPanel,
-            onSurface = colors.textMain,
-            error = colors.danger,
-            outline = colors.borderSubtle
+            primary = DarkTabakColors.accent,
+            onPrimary = DarkTabakColors.accentFg,
+            background = DarkTabakColors.bgBase,
+            surface = DarkTabakColors.bgCard
         )
         else -> lightColorScheme(
-            primary = colors.accent,
-            onPrimary = colors.accentFg,
-            background = colors.bgBase,
-            onBackground = colors.textMain,
-            surface = colors.bgPanel,
-            onSurface = colors.textMain,
-            error = colors.danger,
-            outline = colors.borderSubtle
+            primary = LightTabakColors.accent,
+            onPrimary = LightTabakColors.accentFg,
+            background = LightTabakColors.bgBase,
+            surface = LightTabakColors.bgCard
         )
     }
 
+    val colors = if (isDark) DarkTabakColors else LightTabakColors
     val currentDensity = LocalDensity.current
     val customDensity = remember(currentDensity, fontScale) {
         Density(density = currentDensity.density, fontScale = currentDensity.fontScale * fontScale)

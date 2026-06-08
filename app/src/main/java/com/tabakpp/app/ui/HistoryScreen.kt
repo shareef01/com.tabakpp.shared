@@ -5,7 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -51,52 +51,36 @@ fun HistoryScreen(vm: MainViewModel) {
     val expandedDates = remember { mutableStateMapOf<String, Boolean>() }
 
     LazyColumn(Modifier.fillMaxSize().background(BgBase).padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(top = 20.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        contentPadding = PaddingValues(top = 20.dp, bottom = 140.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)) {
         
         item { Spacer(Modifier.statusBarsPadding().height(84.dp)) }
 
         item { 
-            AnimatedVisibility(
-                visible = logs.isNotEmpty(),
-                enter = fadeIn() + expandVertically()
-            ) {
+            StaggeredHistoryItem(index = 0) {
                 StockChart(logs, configs, selectedCounterId, timeframe, 
                     onSelectCounter = { selectedCounterId = it },
                     onSelectTimeframe = { timeframe = it }
                 )
             }
-            Spacer(Modifier.height(16.dp)) 
         }
 
         item {
-            AnimatedVisibility(
-                visible = logs.isNotEmpty(),
-                enter = fadeIn(animationSpec = tween(600, delayMillis = 200))
-            ) {
+            StaggeredHistoryItem(index = 1) {
                 InsightsRow(vm)
             }
-            Spacer(Modifier.height(16.dp))
         }
 
         if (heatmap.isNotEmpty()) {
             item {
-                HeatmapSection(heatmap)
-                Spacer(Modifier.height(16.dp))
+                StaggeredHistoryItem(index = 2) {
+                    HeatmapSection(heatmap)
+                }
             }
         }
         
-        items(logs, key = { it.logDate }) { log ->
-            var visible by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                delay(50)
-                visible = true
-            }
-            
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(tween(300)) + slideInVertically(tween(300)) { it / 4 }
-            ) {
+        itemsIndexed(logs, key = { _, it -> it.logDate }) { index, log ->
+            StaggeredHistoryItem(index = index + 3) {
                 val isExpanded = expandedDates[log.logDate] ?: false
                 DateBundle(
                     log = log,
@@ -123,7 +107,7 @@ fun HistoryScreen(vm: MainViewModel) {
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
             containerColor = BgCard,
-            title = { Text("Reset Entry?", color = TextMain, fontWeight = FontWeight.Bold) },
+            title = { Text("Reset Entry?", color = TextMain, fontWeight = FontWeight.Black) },
             text = { Text("Are you sure you want to reset ${config?.displayName ?: cid} for ${log.logDate}?", color = TextMuted) },
             confirmButton = {
                 TextButton({ vm.deleteCounterFromLog(log.logDate, cid); deleteTarget = null }) {
@@ -140,6 +124,22 @@ fun HistoryScreen(vm: MainViewModel) {
 }
 
 @Composable
+private fun StaggeredHistoryItem(index: Int, content: @Composable () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(index * 40L)
+        visible = true
+    }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 6 },
+        label = "history_stagger"
+    ) {
+        content()
+    }
+}
+
+@Composable
 private fun HeatmapSection(heatmap: Map<Int, Int>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -148,28 +148,29 @@ private fun HeatmapSection(heatmap: Map<Int, Int>) {
         border = BorderStroke(1.dp, BorderSubtle)
     ) {
         Column(Modifier.padding(24.dp)) {
-            Text("PEAK USAGE TIMES", fontSize = 10.sp, color = TextMuted, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(20.dp))
-            Row(modifier = Modifier.fillMaxWidth().height(40.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+            Text("PEAK USAGE TIMES", fontSize = 11.sp, color = TextMuted, letterSpacing = 2.sp, fontWeight = FontWeight.Black)
+            Spacer(Modifier.height(28.dp))
+            Row(modifier = Modifier.fillMaxWidth().height(64.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                 val maxVal = heatmap.values.maxOrNull() ?: 1
                 for (h in 0..23) {
                     val count = heatmap[h] ?: 0
-                    val heightFactor = count.toFloat() / maxVal.coerceAtLeast(1)
+                    val heightFactor = count.toFloat() / maxVal.coerceAtLeast(1).toFloat()
+                    val animatedHeight by animateFloatAsState(heightFactor, tween(1000, easing = FastOutSlowInEasing), label = "h")
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .padding(horizontal = 1.dp)
-                            .fillMaxHeight(heightFactor.coerceAtLeast(0.1f))
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(if (count > 0) Accent.copy(alpha = 0.2f + 0.8f * heightFactor) else TextMain.copy(alpha = 0.05f))
+                            .padding(horizontal = 1.5.dp)
+                            .fillMaxHeight(animatedHeight.coerceAtLeast(0.1f))
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (count > 0) Accent.copy(alpha = 0.3f + 0.7f * animatedHeight) else TextMain.copy(alpha = 0.05f))
                     )
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("12am", fontSize = 8.sp, color = TextDim, fontWeight = FontWeight.Bold)
-                Text("12pm", fontSize = 8.sp, color = TextDim, fontWeight = FontWeight.Bold)
-                Text("11pm", fontSize = 8.sp, color = TextDim, fontWeight = FontWeight.Bold)
+                Text("12 AM", fontSize = 9.sp, color = TextDim, fontWeight = FontWeight.Black)
+                Text("12 PM", fontSize = 9.sp, color = TextDim, fontWeight = FontWeight.Black)
+                Text("11 PM", fontSize = 9.sp, color = TextDim, fontWeight = FontWeight.Black)
             }
         }
     }
@@ -223,12 +224,12 @@ private fun InsightCard(label: String, value: String, suffix: String, icon: andr
         border = BorderStroke(1.dp, BorderSubtle)
     ) {
         Column(Modifier.padding(16.dp)) {
-            Icon(icon, null, tint = color.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
-            Spacer(Modifier.height(8.dp))
-            Text(value, fontWeight = FontWeight.Black, fontSize = 20.sp, color = TextMain)
-            Text(suffix, fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Medium)
+            Icon(icon, null, tint = color.copy(alpha = 0.8f), modifier = Modifier.size(20.dp))
+            Spacer(Modifier.height(12.dp))
+            Text(value, fontWeight = FontWeight.Black, fontSize = 22.sp, color = TextMain)
+            Text(suffix, fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
-            Text(label.uppercase(), fontSize = 9.sp, color = TextDim, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
+            Text(label.uppercase(), fontSize = 9.sp, color = TextDim, fontWeight = FontWeight.Black, letterSpacing = 1.5.sp)
         }
     }
 }
@@ -257,20 +258,20 @@ private fun DateBundle(
         colors = CardDefaults.cardColors(if (isToday) Accent.copy(alpha = .03f) else BgCard),
         border = BorderStroke(1.dp, if (isToday) Accent.copy(alpha = 0.1f) else BorderSubtle)) {
         
-        Column(Modifier.padding(horizontal = 20.dp, vertical = 18.dp)) {
+        Column(Modifier.padding(horizontal = 24.dp, vertical = 24.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(dateDisplay, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = TextMain)
-                    Text("$totalActivity total events", fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Medium)
+                    Text(dateDisplay, fontWeight = FontWeight.Black, fontSize = 18.sp, color = TextMain)
+                    Text("$totalActivity total logs", fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Bold)
                 }
                 Icon(
                     if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    null, tint = TextDim, modifier = Modifier.size(24.dp)
+                    null, tint = TextDim, modifier = Modifier.size(28.dp)
                 )
             }
 
             if (isExpanded) {
-                Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.padding(top = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     HorizontalDivider(color = BorderSubtle.copy(alpha = 0.5f))
                     log.counts.forEach { (cid, count) ->
                         val config = configs.find { it.id == cid } ?: return@forEach
@@ -285,11 +286,11 @@ private fun DateBundle(
 @Composable
 private fun HistoryRowItem(name: String, count: Int, onEdit: () -> Unit, onDelete: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Text(name.lowercase(), fontSize = 14.sp, color = TextMain, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
-        Text("$count", fontWeight = FontWeight.Black, fontSize = 20.sp, color = Accent)
+        Text(name.lowercase(), fontSize = 15.sp, color = TextMain, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
+        Text("$count", fontWeight = FontWeight.Black, fontSize = 22.sp, color = Accent)
         Spacer(Modifier.width(16.dp))
-        IconButton(onEdit, Modifier.size(32.dp)) { Icon(Icons.Default.Edit, null, tint = TextDim, modifier = Modifier.size(16.dp)) }
-        IconButton(onDelete, Modifier.size(32.dp)) { Icon(Icons.Default.Delete, null, tint = DangerColor.copy(alpha = 0.4f), modifier = Modifier.size(16.dp)) }
+        IconButton(onEdit, Modifier.size(36.dp)) { Icon(Icons.Default.Edit, null, tint = TextDim, modifier = Modifier.size(18.dp)) }
+        IconButton(onDelete, Modifier.size(36.dp)) { Icon(Icons.Default.Delete, null, tint = DangerColor.copy(alpha = 0.4f), modifier = Modifier.size(18.dp)) }
     }
 }
 
@@ -336,7 +337,7 @@ private fun StockChart(
     val pathProgress = remember { Animatable(0f) }
     LaunchedEffect(chartData, selectedId, timeframe) {
         pathProgress.snapTo(0f)
-        pathProgress.animateTo(1f, animationSpec = tween(1000, easing = FastOutSlowInEasing))
+        pathProgress.animateTo(1f, animationSpec = tween(1200, easing = FastOutSlowInEasing))
     }
 
     // Capture colors for Canvas
@@ -355,27 +356,27 @@ private fun StockChart(
         Column(Modifier.padding(24.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text("TREND ANALYSIS", fontSize = 10.sp, color = TextMuted, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
-                    Text("${selectedConfig?.displayName?.lowercase() ?: "history"} (${timeframe.name.lowercase()})", fontWeight = FontWeight.Black, fontSize = 18.sp, color = Accent)
+                    Text("TREND ANALYSIS", fontSize = 11.sp, color = TextMuted, letterSpacing = 2.sp, fontWeight = FontWeight.Black)
+                    Text("${selectedConfig?.displayName?.lowercase() ?: "history"} (${timeframe.name.lowercase()})", fontWeight = FontWeight.Black, fontSize = 22.sp, color = Accent)
                 }
                 
                 Box {
-                    IconButton(onClick = { showMenu = true }, modifier = Modifier.size(36.dp).background(Accent.copy(alpha = 0.08f), CircleShape)) {
-                        Icon(Icons.Default.Tune, "Settings", tint = Accent, modifier = Modifier.size(18.dp))
+                    IconButton(onClick = { showMenu = true }, modifier = Modifier.size(40.dp).background(Accent.copy(alpha = 0.08f), CircleShape)) {
+                        Icon(Icons.Default.Tune, "Settings", tint = Accent, modifier = Modifier.size(20.dp))
                     }
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, modifier = Modifier.background(BgPanel).border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))) {
-                        Text("TRACKER", fontSize = 10.sp, color = TextMuted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontWeight = FontWeight.Black)
+                        Text("TRACKER", fontSize = 11.sp, color = TextMuted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontWeight = FontWeight.Black)
                         configs.forEach { config ->
                             DropdownMenuItem(
-                                text = { Text(config.displayName.lowercase(), fontSize = 14.sp, color = if (config.id == selectedId) Accent else TextMain, fontWeight = if (config.id == selectedId) FontWeight.Bold else FontWeight.Normal) },
+                                text = { Text(config.displayName.lowercase(), fontSize = 15.sp, color = if (config.id == selectedId) Accent else TextMain, fontWeight = if (config.id == selectedId) FontWeight.Black else FontWeight.Normal) },
                                 onClick = { onSelectCounter(config.id); showMenu = false }
                             )
                         }
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = BorderSubtle)
-                        Text("TIMEFRAME", fontSize = 10.sp, color = TextMuted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontWeight = FontWeight.Black)
+                        Text("TIMEFRAME", fontSize = 11.sp, color = TextMuted, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), fontWeight = FontWeight.Black)
                         ChartTimeframe.entries.forEach { tf ->
                             DropdownMenuItem(
-                                text = { Text(tf.name.lowercase(), fontSize = 14.sp, color = if (timeframe == tf) Accent else TextMain, fontWeight = if (timeframe == tf) FontWeight.Bold else FontWeight.Normal) },
+                                text = { Text(tf.name.lowercase(), fontSize = 15.sp, color = if (timeframe == tf) Accent else TextMain, fontWeight = if (timeframe == tf) FontWeight.Black else FontWeight.Normal) },
                                 onClick = { onSelectTimeframe(tf); showMenu = false }
                             )
                         }
@@ -383,9 +384,9 @@ private fun StockChart(
                 }
             }
             
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(48.dp))
             
-            Canvas(modifier = Modifier.fillMaxWidth().height(140.dp)) {
+            Canvas(modifier = Modifier.fillMaxWidth().height(180.dp)) {
                 val width = size.width
                 val height = size.height
                 val numPoints = chartData.size
@@ -402,7 +403,7 @@ private fun StockChart(
                     start = Offset(0f, limitY),
                     end = Offset(width, limitY),
                     strokeWidth = 1.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 10f))
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(25f, 20f))
                 )
 
                 // 2. Draw Average Line
@@ -437,35 +438,35 @@ private fun StockChart(
                         lineTo(points.first().x, height)
                         close()
                     }
-                    drawPath(fillPath, brush = Brush.verticalGradient(listOf(accentColor.copy(alpha = 0.3f), Color.Transparent)))
-                    drawPath(path, color = accentColor, style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round))
+                    drawPath(fillPath, brush = Brush.verticalGradient(listOf(accentColor.copy(alpha = 0.4f), Color.Transparent)))
+                    drawPath(path, color = accentColor, style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round))
                 }
 
                 if (pathProgress.value > 0.99f) {
                     points.forEachIndexed { idx, point ->
                         val pointLimit = if (timeframe == ChartTimeframe.WEEK) limit * 7 else limit
                         val overLimit = chartData[idx].value > pointLimit
-                        drawCircle(color = bgCardColor, radius = 6.dp.toPx(), center = point)
-                        drawCircle(color = if (overLimit) dangerColor else accentColor, radius = 4.dp.toPx(), center = point)
+                        drawCircle(color = bgCardColor, radius = 8.dp.toPx(), center = point)
+                        drawCircle(color = if (overLimit) dangerColor else accentColor, radius = 5.dp.toPx(), center = point)
                     }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(24.dp))
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 chartData.forEach { point ->
-                    Text(text = point.label, fontSize = 10.sp, color = textDimColor, fontWeight = FontWeight.Bold)
+                    Text(text = point.label, fontSize = 11.sp, color = textDimColor, fontWeight = FontWeight.Black)
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(24.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(8.dp).background(accentColor.copy(alpha = 0.3f), CircleShape))
-                Spacer(Modifier.width(8.dp))
+                Box(Modifier.size(12.dp).background(accentColor.copy(alpha = 0.3f), CircleShape))
+                Spacer(Modifier.width(12.dp))
                 Text(
-                    text = "avg: ${avgVal.roundToInt()} | goal: ${if (timeframe == ChartTimeframe.WEEK) limit * 7 else limit}",
-                    fontSize = 11.sp, color = textMutedColor, fontWeight = FontWeight.Bold
+                    text = "AVERAGE: ${avgVal.roundToInt()} | GOAL: ${if (timeframe == ChartTimeframe.WEEK) limit * 7 else limit}",
+                    fontSize = 13.sp, color = textMutedColor, fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -477,15 +478,15 @@ private fun EditDialog(log: DailyLog, name: String, cid: String, onDismiss: () -
     var value by remember { mutableStateOf((log.counts[cid] ?: 0).toString()) }
     Dialog(onDismiss) {
         Card(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(BgPanel), border = BorderStroke(1.dp, BorderMid)) {
-            Column(Modifier.padding(28.dp)) {
-                Text("Edit ${name.lowercase()}", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = TextMain)
-                Text(log.logDate, fontSize = 14.sp, color = TextMuted, modifier = Modifier.padding(top = 4.dp, bottom = 24.dp), fontWeight = FontWeight.Medium)
+            Column(Modifier.padding(32.dp)) {
+                Text("Manual Correction", fontWeight = FontWeight.Black, fontSize = 24.sp, color = TextMain)
+                Text("${name.lowercase()} for ${log.logDate}", fontSize = 14.sp, color = TextMuted, modifier = Modifier.padding(top = 4.dp, bottom = 32.dp), fontWeight = FontWeight.Bold)
                 OutlinedTextField(value, { value = it.filter { c -> c.isDigit() } }, label = { Text("Update Count") }, singleLine = true,
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Accent, unfocusedBorderColor = BorderSubtle, cursorColor = Accent, focusedTextColor = TextMain, unfocusedTextColor = TextMain, focusedContainerColor = BgBase, unfocusedContainerColor = BgBase, focusedLabelColor = Accent, unfocusedLabelColor = TextMuted))
-                Row(Modifier.padding(top = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onDismiss, Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Text("Cancel", fontWeight = FontWeight.Bold) }
-                    Button({ onSave(value.toIntOrNull() ?: 0) }, Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = AccentFg)) { Text("Save", fontWeight = FontWeight.Bold) }
+                Row(Modifier.padding(top = 32.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    OutlinedButton(onDismiss, Modifier.weight(1f), shape = RoundedCornerShape(14.dp)) { Text("Cancel", fontWeight = FontWeight.Black) }
+                    Button({ onSave(value.toIntOrNull() ?: 0) }, Modifier.weight(1f), shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = AccentFg)) { Text("Save", fontWeight = FontWeight.Black) }
                 }
             }
         }

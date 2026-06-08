@@ -60,10 +60,14 @@ class TabakWidget : GlanceAppWidget() {
         val settingsRepo = entryPoint.settingsRepository()
 
         val selectedId = try { settingsRepo.widgetCounterId.first() } catch (e: Exception) { "cigarettes" }
-        val configs = try { repo.getCounterConfigs() } catch (e: Exception) { emptyList() }
+        val configs = try { repo.getCounterConfigsOnce() } catch (e: Exception) { emptyList() }
         val activeConfig = configs.find { it.id == selectedId } ?: configs.firstOrNull() ?: CounterConfig("cigarettes", "Cigarettes")
 
-        val logs = try { repo.loadLogs() } catch (e: Exception) { emptyList() }
+        val user = repo.getCurrentUser()
+        val logs = if (user != null) {
+            try { repo.getLogsOnce(user.uid) } catch (e: Exception) { emptyList() }
+        } else emptyList()
+
         val todayStr = LocalDate.now().toString()
         val todayLog = logs.find { it.logDate == todayStr }
         val count = todayLog?.counts?.get(activeConfig.id) ?: 0
@@ -92,33 +96,27 @@ class TabakWidget : GlanceAppWidget() {
     @Composable
     private fun WidgetContent(count: Int, limit: Int, streak: Int, name: String, isDark: Boolean) {
         val accentColor = if (isDark) Color(0xFFD4FF5C) else Color(0xFF2563EB)
-        val textMuted = if (isDark) Color(0xFF888880) else Color(0xFF6B6B6B)
         val bgBase = if (isDark) Color(0xFF020202) else Color(0xFFF5F5F7)
         val textMain = if (isDark) Color.White else Color(0xFF1A1A1C)
+        val textMuted = if (isDark) Color(0xFF888880) else Color(0xFF6B6B6B)
         val dangerColor = if (isDark) Color(0xFFF87171) else Color(0xFFD32F2F)
 
         Box(modifier = GlanceModifier.fillMaxSize().background(bgBase).clickable(actionStartActivity<MainActivity>()), contentAlignment = Alignment.Center) {
             Row(modifier = GlanceModifier.fillMaxSize().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                // Action Button
                 Box(modifier = GlanceModifier.size(56.dp).background(accentColor.copy(alpha = 0.15f)).cornerRadius(28.dp), contentAlignment = Alignment.Center) {
                     Box(modifier = GlanceModifier.fillMaxSize().clickable(actionRunCallback<IncrementAction>()), contentAlignment = Alignment.Center) {
                          Text(text = "+", style = TextStyle(color = ColorProvider(if (count >= limit) dangerColor else accentColor), fontSize = 32.sp, fontWeight = FontWeight.Bold))
                     }
                 }
-                
                 Spacer(GlanceModifier.width(12.dp))
-                
                 Column(modifier = GlanceModifier.defaultWeight()) {
                     Text(text = name.lowercase(), style = TextStyle(color = ColorProvider(accentColor), fontSize = 11.sp, fontWeight = FontWeight.Bold))
                     Text(text = count.toString(), style = TextStyle(color = ColorProvider(textMain), fontSize = 36.sp, fontWeight = FontWeight.Bold))
                 }
-
                 Column(horizontalAlignment = Alignment.End) {
                     Text(text = "$streak DAY", style = TextStyle(color = ColorProvider(textMuted), fontSize = 9.sp, fontWeight = FontWeight.Bold))
                     Text(text = "STREAK", style = TextStyle(color = ColorProvider(textMuted), fontSize = 9.sp, fontWeight = FontWeight.Bold))
-                    if (streak > 0) {
-                        Text(text = "🔥", style = TextStyle(fontSize = 16.sp))
-                    }
+                    if (streak > 0) Text(text = "🔥", style = TextStyle(fontSize = 16.sp))
                 }
             }
         }
@@ -135,8 +133,6 @@ class IncrementAction : ActionCallback {
 
                 val selectedId = settingsRepo.widgetCounterId.first()
                 repo.logIncrement(selectedId)
-                
-                // Refresh widget state
                 TabakWidget().update(context, glanceId)
             } catch (e: Exception) {}
         }

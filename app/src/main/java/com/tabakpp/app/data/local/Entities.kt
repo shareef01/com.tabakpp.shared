@@ -9,14 +9,16 @@ data class CounterConfigEntity(
     val name: String,
     val limit: Int,
     val type: CounterType,
-    val isSynced: Boolean = false
+    val displayOrder: Int = 0,
+    val isSynced: Boolean = true
 )
 
 @Entity(tableName = "daily_logs", primaryKeys = ["userId", "logDate"])
 data class DailyLogEntity(
     val userId: String,
     val logDate: String,
-    val isSynced: Boolean = false
+    val notes: String = "",
+    val isSynced: Boolean = true
 )
 
 @Entity(
@@ -29,14 +31,14 @@ data class DailyLogEntity(
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("counterId")]
+    indices = [Index("counterId"), Index("logDate")]
 )
 data class LogEventEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val userId: String,
     val counterId: String,
-    val logDate: String, // YYYY-MM-DD
-    val timestamp: Long, // Unix millis
+    val logDate: String,
+    val timestamp: Long,
     val isSynced: Boolean = false
 )
 
