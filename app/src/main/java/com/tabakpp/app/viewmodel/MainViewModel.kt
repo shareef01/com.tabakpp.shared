@@ -135,13 +135,13 @@ class MainViewModel @Inject constructor(
         val user = repository.getCurrentUser() ?: return@launch
         _isLoading.value = true
         try {
-            // Sequential sync to avoid Foreign Key conflicts
+            // 1. Sync remote counter configs into Room
             repository.syncRemoteConfigs() 
             
-            val remoteLogs = repository.loadLogs()
-            repository.migrateLogs(remoteLogs)
+            // 2. Fetch and migrate historical logs from Firestore to Room
+            repository.loadLogs()
             
-            // Explicitly ensure today's log exists in Room
+            // 3. Ensure today's log entry exists in Room
             repository.upsertLog(DailyLog(userId = user.uid, logDate = todayString))
         } catch (e: Exception) {
             val errorMsg = e.localizedMessage ?: "Unknown Error"
@@ -172,8 +172,7 @@ class MainViewModel @Inject constructor(
 
     fun removeCounter(id: String) = viewModelScope.launch {
         if (id == "cigarettes") return@launch
-        val updatedConfigs = counterConfigs.value.filter { it.id != id }
-        repository.saveCounterConfigs(updatedConfigs)
+        repository.removeCounter(id)
         TabakWidget().updateAll(getApplication())
     }
 

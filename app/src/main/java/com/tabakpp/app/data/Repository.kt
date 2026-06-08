@@ -92,7 +92,10 @@ class Repository @Inject constructor(
 
     suspend fun loadLogs(): List<DailyLog> {
         val uid = auth.currentUser?.uid ?: return emptyList()
-        return logsRepo.loadLogs(uid)
+        val remoteLogs = logsRepo.loadLogs(uid)
+        // Optimization: migrate remote logs to Room every time we load to ensure local-first consistency
+        if (remoteLogs.isNotEmpty()) migrateLogs(remoteLogs)
+        return remoteLogs
     }
 
     suspend fun upsertLog(log: DailyLog) {
@@ -177,6 +180,20 @@ class Repository @Inject constructor(
         try {
             logsRepo.saveCounterConfigs(uid, configs)
             tabakDao.insertCounterConfigs(configs.map { it.toEntity() })
+        } catch (_: Exception) {}
+    }
+
+    suspend fun removeCounter(id: String) {
+        val uid = auth.currentUser?.uid ?: return
+        try {
+            // 1. Delete from local Room DB (ForeignKey CASCADE will handle events)
+            tabakDao.deleteCounterConfig(CounterConfig(id = id).toEntity())
+            
+            // 2. Fetch current local configs to update remote
+            val remainingLocal = tabakDao.getAllCounterConfigsOnce().map { it.toDomain() }
+            
+            // 3. Update Firestore
+            logsRepo.saveCounterConfigs(uid, remainingLocal)
         } catch (_: Exception) {}
     }
 
