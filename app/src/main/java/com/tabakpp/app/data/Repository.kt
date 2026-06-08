@@ -90,6 +90,12 @@ class Repository @Inject constructor(
     }
     fun getCurrentUser() = auth.currentUser
 
+    fun getAllEvents(userId: String) = tabakDao.getAllEvents(userId)
+
+    suspend fun getLastEvent(userId: String): LogEventEntity? {
+        return tabakDao.getAllEventsOnce(userId).maxByOrNull { it.timestamp }
+    }
+
     suspend fun loadLogs(): List<DailyLog> {
         val uid = auth.currentUser?.uid ?: return emptyList()
         val remoteLogs = logsRepo.loadLogs(uid)

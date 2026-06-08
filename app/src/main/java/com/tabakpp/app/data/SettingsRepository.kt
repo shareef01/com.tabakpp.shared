@@ -24,6 +24,7 @@ class SettingsRepository @Inject constructor(
         private val DASHBOARD_LAYOUT = stringPreferencesKey("dashboard_layout")
         private val HAS_LAUNCHED_BEFORE = booleanPreferencesKey("has_launched_before")
         private val COST_PER_UNIT = floatPreferencesKey("cost_per_unit")
+        private val IS_BIOMETRIC_ENABLED = booleanPreferencesKey("is_biometric_enabled")
     }
 
     val isDarkMode: Flow<Boolean> = context.dataStore.data.map { it[IS_DARK_MODE] ?: true }
@@ -34,6 +35,7 @@ class SettingsRepository @Inject constructor(
     }
     val hasLaunchedBefore: Flow<Boolean> = context.dataStore.data.map { it[HAS_LAUNCHED_BEFORE] ?: false }
     val costPerUnit: Flow<Float> = context.dataStore.data.map { it[COST_PER_UNIT] ?: 0f }
+    val isBiometricEnabled: Flow<Boolean> = context.dataStore.data.map { it[IS_BIOMETRIC_ENABLED] ?: false }
 
     suspend fun setDarkMode(enabled: Boolean) {
         context.dataStore.edit { it[IS_DARK_MODE] = enabled }
@@ -57,5 +59,9 @@ class SettingsRepository @Inject constructor(
 
     suspend fun setCostPerUnit(cost: Float) {
         context.dataStore.edit { it[COST_PER_UNIT] = cost }
+    }
+
+    suspend fun setBiometricEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[IS_BIOMETRIC_ENABLED] = enabled }
     }
 }

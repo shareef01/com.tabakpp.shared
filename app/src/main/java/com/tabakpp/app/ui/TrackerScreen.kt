@@ -43,36 +43,118 @@ fun TrackerScreen(vm: MainViewModel) {
     val layout by vm.dashboardLayout.collectAsState()
     val totalCount by vm.totalDailyCount.collectAsState()
     val totalLimit by vm.totalDailyLimit.collectAsState()
+    val coachMessage by vm.coachMessage.collectAsState()
+    val userRank by vm.userRank.collectAsState()
+    val userXP by vm.userXP.collectAsState()
+    val milestones by vm.recoveryMilestones.collectAsState()
 
     Box(Modifier.fillMaxSize().background(BgBase)) {
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(TextMain.copy(alpha = 0.05f), BgBase))))
         
-        if (layout == DashboardLayout.LARGE) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                item { Spacer(Modifier.statusBarsPadding().height(84.dp)) }
-                item { GlobalCigaretteHeader(totalCount, totalLimit) }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 120.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            item { Spacer(Modifier.statusBarsPadding().height(84.dp)) }
+            
+            // --- HEADER & COACH ---
+            item { GlobalCigaretteHeader(totalCount, totalLimit) }
+            
+            item { CoachCard(coachMessage, userRank, userXP) }
+
+            // --- TRACKERS ---
+            if (layout == DashboardLayout.LARGE) {
                 items(configs, key = { it.id }) { config ->
                     CounterCard(config, log?.counts?.get(config.id) ?: 0, vm, isCompact = false)
                 }
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                item(span = { GridItemSpan(2) }) { Spacer(Modifier.statusBarsPadding().height(84.dp)) }
-                item(span = { GridItemSpan(2) }) { GlobalCigaretteHeader(totalCount, totalLimit) }
-                items(configs, key = { it.id }) { config ->
-                    CounterCard(config, log?.counts?.get(config.id) ?: 0, vm, isCompact = true)
+            } else {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        configs.chunked(2).forEach { rowConfigs ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                rowConfigs.forEach { config ->
+                                    Box(Modifier.weight(1f)) {
+                                        CounterCard(config, log?.counts?.get(config.id) ?: 0, vm, isCompact = true)
+                                    }
+                                }
+                                if (rowConfigs.size == 1) Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    }
                 }
+            }
+
+            // --- RECOVERY TIMELINE ---
+            if (milestones.isNotEmpty()) {
+                item {
+                    Text(
+                        "HEALTH RECOVERY",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        color = TextDim,
+                        letterSpacing = 2.sp,
+                        modifier = Modifier.padding(top = 24.dp, bottom = 8.dp).fillMaxWidth()
+                    )
+                }
+                items(milestones) { milestone ->
+                    RecoveryCard(milestone)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CoachCard(message: String, rank: String, xp: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = BgCard),
+        border = BorderStroke(1.dp, BorderSubtle)
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(40.dp).background(Accent.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.AutoAwesome, null, tint = Accent, modifier = Modifier.size(20.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(rank.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Black, color = Accent, letterSpacing = 1.sp)
+                    Text("$xp XP", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            Text(message, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextMain, lineHeight = 20.sp)
+        }
+    }
+}
+
+@Composable
+private fun RecoveryCard(milestone: com.tabakpp.app.domain.RecoveryMilestone) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = TextMain.copy(alpha = 0.02f)),
+        border = BorderStroke(1.dp, BorderSubtle)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(milestone.title, fontWeight = FontWeight.Bold, color = TextMain, modifier = Modifier.weight(1f))
+                Text("${(milestone.progress * 100).toInt()}%", fontSize = 12.sp, fontWeight = FontWeight.Black, color = if (milestone.progress >= 1f) SuccessColor else Accent)
+            }
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { milestone.progress },
+                modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                color = if (milestone.progress >= 1f) SuccessColor else Accent,
+                trackColor = TextMain.copy(alpha = 0.05f),
+                strokeCap = StrokeCap.Round
+            )
+            if (milestone.progress < 1f) {
+                Spacer(Modifier.height(8.dp))
+                Text(milestone.description, fontSize = 11.sp, color = TextMuted, lineHeight = 16.sp)
             }
         }
     }
@@ -236,7 +318,7 @@ private fun BurnableVisual(
                                 0.6f, 1f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "alpha"
                             )
                             Box(contentAlignment = Alignment.Center) {
-                                Box(modifier = Modifier.fillMaxHeight().width(if (isCompact) 6.dp else 12.dp).background(Brush.horizontalGradient(emberColors)).graphicsLayer(alpha = alpha))
+                                Box(modifier = Modifier.fillMaxHeight().width(if (isCompact) 5.dp else 10.dp).background(Brush.horizontalGradient(emberColors)).graphicsLayer(alpha = alpha))
                                 Box(modifier = Modifier.size(if (isCompact) 18.dp else 28.dp).blur(if (isCompact) 8.dp else 14.dp).background(glowColor.copy(alpha = 0.5f * alpha), CircleShape))
                             }
                         }

@@ -10,4 +10,6 @@
     <string name="confirm_action">Confirm Action</string>
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
+    <string name="shortcut_short">Log</string>
+    <string name="shortcut_long">Quick Log Cigarette</string>
 </resources>

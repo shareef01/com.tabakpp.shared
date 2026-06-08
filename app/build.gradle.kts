@@ -81,6 +81,7 @@ dependencies {
     ksp(libs.room.compiler)
 
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.biometric)
 
     debugImplementation(libs.androidx.ui.tooling)
 

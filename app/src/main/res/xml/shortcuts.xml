@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="log_cigarette"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_short"
+        android:shortcutLongLabel="@string/shortcut_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.tabakpp.app"
+            android:targetClass="com.tabakpp.app.MainActivity">
+            <extra android:name="shortcut_action" android:value="log_cigarettes" />
+        </intent>
+    </shortcut>
+</shortcuts>

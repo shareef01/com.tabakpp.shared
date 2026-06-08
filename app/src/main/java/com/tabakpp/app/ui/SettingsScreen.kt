@@ -47,6 +47,7 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
     val widgetCounterId by vm.widgetCounterId.collectAsState()
     val dashboardLayout by vm.dashboardLayout.collectAsState()
     val costPerUnit by vm.costPerUnit.collectAsState()
+    val isBiometricEnabled by vm.isBiometricEnabled.collectAsState()
     
     var name by remember { mutableStateOf("") }
     var tempCost by remember { mutableStateOf("") }
@@ -71,7 +72,7 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
     }
     
     LaunchedEffect(costPerUnit) {
-        tempCost = costPerUnit.toString()
+        tempCost = if (costPerUnit > 0) costPerUnit.toString() else ""
     }
 
     Column(Modifier.fillMaxSize().background(BgBase).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -118,6 +119,16 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
             }
         }
 
+        SCard("Privacy & Security") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("App Lock", fontWeight = FontWeight.Bold, color = TextMain)
+                    Text("Unlock with Biometrics", fontSize = 12.sp, color = TextMuted)
+                }
+                Switch(checked = isBiometricEnabled, onCheckedChange = { vm.setBiometricEnabled(it) }, colors = SwitchDefaults.colors(checkedThumbColor = Accent))
+            }
+        }
+
         SCard("Profile Controls") {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 20.dp)) {
                 Box(Modifier.size(56.dp).background(Accent.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
@@ -141,7 +152,7 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Text("Save your progress", fontWeight = FontWeight.Bold, color = Accent, fontSize = 14.sp)
-                        Text("Create an account to sync your data across devices and never lose your history.", fontSize = 12.sp, color = TextMuted, modifier = Modifier.padding(vertical = 8.dp))
+                        Text("Create an account to sync your data across devices.", fontSize = 12.sp, color = TextMuted, modifier = Modifier.padding(vertical = 8.dp))
                         SBtn("Sign Up / Sign In") { vm.signOut() }
                     }
                 }

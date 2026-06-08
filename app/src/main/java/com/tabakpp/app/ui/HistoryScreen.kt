@@ -41,7 +41,7 @@ data class ChartPoint(val value: Int, val label: String)
 fun HistoryScreen(vm: MainViewModel) {
     val logs by vm.logs.collectAsState()
     val configs by vm.counterConfigs.collectAsState()
-    val costPerUnit by vm.costPerUnit.collectAsState()
+    val heatmap by vm.hourlyHeatmap.collectAsState()
     
     var selectedCounterId by remember { mutableStateOf("cigarettes") }
     var timeframe by remember { mutableStateOf(ChartTimeframe.DAY) }
@@ -78,11 +78,17 @@ fun HistoryScreen(vm: MainViewModel) {
             }
             Spacer(Modifier.height(16.dp))
         }
+
+        if (heatmap.isNotEmpty()) {
+            item {
+                HeatmapSection(heatmap)
+                Spacer(Modifier.height(16.dp))
+            }
+        }
         
         items(logs, key = { it.logDate }) { log ->
             var visible by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
-                // Staggered entry
                 delay(50)
                 visible = true
             }
@@ -130,6 +136,42 @@ fun HistoryScreen(vm: MainViewModel) {
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun HeatmapSection(heatmap: Map<Int, Int>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = BgCard),
+        border = BorderStroke(1.dp, BorderSubtle)
+    ) {
+        Column(Modifier.padding(24.dp)) {
+            Text("PEAK USAGE TIMES", fontSize = 10.sp, color = TextMuted, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(20.dp))
+            Row(modifier = Modifier.fillMaxWidth().height(40.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                val maxVal = heatmap.values.maxOrNull() ?: 1
+                for (h in 0..23) {
+                    val count = heatmap[h] ?: 0
+                    val heightFactor = count.toFloat() / maxVal.coerceAtLeast(1)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 1.dp)
+                            .fillMaxHeight(heightFactor.coerceAtLeast(0.1f))
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(if (count > 0) Accent.copy(alpha = 0.2f + 0.8f * heightFactor) else TextMain.copy(alpha = 0.05f))
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("12am", fontSize = 8.sp, color = TextDim, fontWeight = FontWeight.Bold)
+                Text("12pm", fontSize = 8.sp, color = TextDim, fontWeight = FontWeight.Bold)
+                Text("11pm", fontSize = 8.sp, color = TextDim, fontWeight = FontWeight.Bold)
+            }
+        }
     }
 }
 

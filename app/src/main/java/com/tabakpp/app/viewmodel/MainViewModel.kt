@@ -6,10 +6,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.glance.appwidget.updateAll
 import com.tabakpp.app.widget.TabakWidget
 import com.tabakpp.app.data.*
-import com.tabakpp.app.data.model.CounterConfig
-import com.tabakpp.app.data.model.CounterType
-import com.tabakpp.app.data.model.DailyLog
-import com.tabakpp.app.domain.SmokingCalculator
+import com.tabakpp.app.data.local.LogEventEntity
+import com.tabakpp.app.data.model.*
+import com.tabakpp.app.domain.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -39,6 +38,9 @@ class MainViewModel @Inject constructor(
     private val _message = MutableStateFlow<UiMessage>(UiMessage.None)
     val message: StateFlow<UiMessage> = _message.asStateFlow()
 
+    private val _isUnlocked = MutableStateFlow(false)
+    val isUnlocked: StateFlow<Boolean> = _isUnlocked.asStateFlow()
+
     val counterConfigs: StateFlow<List<CounterConfig>> = repository.counterConfigs
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -64,6 +66,9 @@ class MainViewModel @Inject constructor(
 
     val costPerUnit: StateFlow<Float> = settingsRepo.costPerUnit
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
+
+    val isBiometricEnabled: StateFlow<Boolean> = settingsRepo.isBiometricEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val todayString: String get() = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
 
@@ -91,6 +96,35 @@ class MainViewModel @Inject constructor(
         SmokingCalculator.calculateLifeLostMinutes(it)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
+    // --- NEW ADVANCED STATES ---
+
+    val recoveryMilestones = combine(authState, logs) { state, _ ->
+        if (state is AuthState.Authenticated) {
+            val lastEvent = repository.getLastEvent(state.userId)
+            SmokingCalculator.calculateRecoveryMilestones(lastEvent?.timestamp)
+        } else emptyList()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val userXP = combine(logs, currentStreak) { l, s ->
+        SmokingCalculator.calculateXP(l, s)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val userRank = userXP.map { SmokingCalculator.getRank(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "Apprentice")
+
+    @Suppress("OPT_IN_USAGE")
+    val hourlyHeatmap: StateFlow<Map<Int, Int>> = authState.flatMapLatest { state ->
+        if (state is AuthState.Authenticated) {
+            repository.getAllEvents(state.userId).map { SmokingCalculator.calculateHourlyHeatmap(it) }
+        } else {
+            flowOf(emptyMap())
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    val coachMessage = combine(totalDailyCount, totalDailyLimit, currentStreak) { count, limit, streak ->
+        generateCoachMessage(count, limit, streak)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "Ready to track another day?")
+
     init {
         viewModelScope.launch { repository.ensureDefaultCounter() }
         checkSession()
@@ -98,13 +132,21 @@ class MainViewModel @Inject constructor(
         observeDataForWidget()
     }
 
+    private fun generateCoachMessage(count: Int, limit: Int, streak: Int): String {
+        val progress = if (limit > 0) count.toFloat() / limit else 0f
+        return when {
+            count == 0 && streak > 0 -> "You're on a $streak-day streak! Keep today clean."
+            progress > 0.9f && progress <= 1.0f -> "You're very close to your limit. Stay strong to protect your streak!"
+            progress > 1.0f -> "Limit reached. Take a deep breath and try to pause for today."
+            count > 0 && progress < 0.5f -> "Good pacing so far today."
+            else -> "Every step forward counts."
+        }
+    }
+
     private fun observeDataForWidget() {
-        // Collect daily count changes and update widget with debounce
         combine(totalDailyCount, totalDailyLimit) { count, limit -> count to limit }
             .debounce(1000)
-            .onEach {
-                TabakWidget().updateAll(getApplication())
-            }
+            .onEach { TabakWidget().updateAll(getApplication()) }
             .launchIn(viewModelScope)
     }
 
@@ -113,7 +155,6 @@ class MainViewModel @Inject constructor(
             val now = LocalDateTime.now()
             val midnight = now.toLocalDate().plusDays(1).atStartOfDay()
             val sleepMillis = Duration.between(now, midnight).toMillis()
-            
             if (sleepMillis > 0) {
                 delay(sleepMillis + 1000)
                 loadData()
@@ -131,23 +172,20 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun setUnlocked(unlocked: Boolean) { _isUnlocked.value = unlocked }
+
     fun loadData() = viewModelScope.launch(Dispatchers.IO) {
         val user = repository.getCurrentUser() ?: return@launch
         _isLoading.value = true
         try {
-            // 1. Sync remote counter configs into Room
             repository.syncRemoteConfigs() 
-            
-            // 2. Fetch and migrate historical logs from Firestore to Room
-            repository.loadLogs()
-            
-            // 3. Ensure today's log entry exists in Room
+            val remoteLogs = repository.loadLogs()
+            repository.migrateLogs(remoteLogs)
             repository.upsertLog(DailyLog(userId = user.uid, logDate = todayString))
         } catch (e: Exception) {
             val errorMsg = e.localizedMessage ?: "Unknown Error"
             if (errorMsg.contains("787")) {
                 _message.value = UiMessage.Error("Sync: Database constraint mismatch. Refreshing...")
-                // Auto-retry sync remote configs as a fix
                 repository.syncRemoteConfigs()
             } else {
                 _message.value = UiMessage.Error("Sync error: $errorMsg")
@@ -163,9 +201,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun updateCounterConfig(id: String, newName: String, newLimit: Int) = viewModelScope.launch {
-        val updatedConfigs = counterConfigs.value.map { 
-            if (it.id == id) it.copy(name = newName, limit = newLimit) else it 
-        }
+        val updatedConfigs = counterConfigs.value.map { if (it.id == id) it.copy(name = newName, limit = newLimit) else it }
         repository.saveCounterConfigs(updatedConfigs)
         if (id == "cigarettes") repository.saveDailyLimit(newLimit)
     }
@@ -176,29 +212,19 @@ class MainViewModel @Inject constructor(
         TabakWidget().updateAll(getApplication())
     }
 
-    fun increment(counterId: String) = viewModelScope.launch {
-        repository.logIncrement(counterId)
-    }
-
-    fun decrement(counterId: String) = viewModelScope.launch {
-        repository.logDecrement(counterId)
-    }
+    fun increment(counterId: String) = viewModelScope.launch { repository.logIncrement(counterId) }
+    fun decrement(counterId: String) = viewModelScope.launch { repository.logDecrement(counterId) }
 
     fun editLog(date: String, counterId: String, count: Int) = viewModelScope.launch {
         val user = repository.getCurrentUser() ?: return@launch
         try {
-            // 1. Update Firestore
-            val logs = repository.loadLogs().toMutableList()
-            val index = logs.indexOfFirst { it.logDate == date }
+            val logsList = repository.loadLogs().toMutableList()
+            val index = logsList.indexOfFirst { it.logDate == date }
             if (index >= 0) {
-                val updatedCounts = logs[index].counts.toMutableMap().apply { this[counterId] = count }
-                val updatedLog = logs[index].copy(counts = updatedCounts)
-                repository.upsertLog(updatedLog)
+                val updatedCounts = logsList[index].counts.toMutableMap().apply { this[counterId] = count }
+                repository.upsertLog(logsList[index].copy(counts = updatedCounts))
             }
-            
-            // 2. Update Room (Overwrite)
             repository.overwriteCounterLogs(user.uid, date, counterId, count)
-            
             TabakWidget().updateAll(getApplication())
         } catch (_: Exception) {}
     }
@@ -217,17 +243,10 @@ class MainViewModel @Inject constructor(
         TabakWidget().updateAll(getApplication())
     }
 
-    fun setDashboardLayout(layout: DashboardLayout) = viewModelScope.launch {
-        settingsRepo.setDashboardLayout(layout)
-    }
-
-    fun markLaunched() = viewModelScope.launch {
-        settingsRepo.setLaunchedBefore()
-    }
-
-    fun setCostPerUnit(cost: Float) = viewModelScope.launch {
-        settingsRepo.setCostPerUnit(cost)
-    }
+    fun setDashboardLayout(layout: DashboardLayout) = viewModelScope.launch { settingsRepo.setDashboardLayout(layout) }
+    fun markLaunched() = viewModelScope.launch { settingsRepo.setLaunchedBefore() }
+    fun setCostPerUnit(cost: Float) = viewModelScope.launch { settingsRepo.setCostPerUnit(cost) }
+    fun setBiometricEnabled(enabled: Boolean) = viewModelScope.launch { settingsRepo.setBiometricEnabled(enabled) }
 
     fun signIn(e: String, p: String) = viewModelScope.launch { 
         _isLoading.value = true
@@ -248,11 +267,8 @@ class MainViewModel @Inject constructor(
             val user = repository.getCurrentUser()!!
             _authState.value = AuthState.Authenticated(user.uid, user.displayName, user.isAnonymous)
             loadData()
-        } catch (_: Exception) { 
-            _message.value = UiMessage.Error("Google Sign-In failed") 
-        } finally { 
-            _isLoading.value = false
-        }
+        } catch (_: Exception) { _message.value = UiMessage.Error("Google Sign-In failed") }
+        finally { _isLoading.value = false }
     }
 
     fun continueAsGuest() = viewModelScope.launch {
@@ -262,11 +278,8 @@ class MainViewModel @Inject constructor(
             val user = repository.getCurrentUser()!!
             _authState.value = AuthState.Authenticated(user.uid, "Guest", true)
             loadData()
-        } catch (ex: Exception) {
-            _message.value = UiMessage.Error("Guest login failed")
-        } finally {
-            _isLoading.value = false
-        }
+        } catch (ex: Exception) { _message.value = UiMessage.Error("Guest login failed") }
+        finally { _isLoading.value = false }
     }
 
     fun signUp(e: String, p: String, n: String) = viewModelScope.launch {

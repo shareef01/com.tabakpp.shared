@@ -1,11 +1,14 @@
 package com.tabakpp.app
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -38,6 +41,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tabakpp.app.data.DashboardLayout
 import com.tabakpp.app.ui.*
@@ -53,19 +58,31 @@ import kotlin.math.roundToInt
 
 enum class Tab(val icon: ImageVector, val labelRes: Int) {
     TRACKER(Icons.Default.Home, R.string.tracker_label),
-    HISTORY(Icons.Default.DateRange, R.string.history_label),
+    HISTORY(Icons.Default.History, R.string.history_label),
     SETTINGS(Icons.Default.Settings, R.string.settings_label)
 }
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() { // Changed to FragmentActivity for Biometric
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         NotificationHelper.createChannel(this)
+        
+        val shortcutAction = intent.getStringExtra("shortcut_action")
+
         setContent {
             val viewModel: MainViewModel = hiltViewModel()
             
+            LaunchedEffect(shortcutAction) {
+                if (shortcutAction == "log_cigarettes") {
+                    viewModel.increment("cigarettes")
+                    Toast.makeText(this@MainActivity, "Logged!", Toast.LENGTH_SHORT).show()
+                }
+            }
+            val isUnlocked by viewModel.isUnlocked.collectAsState()
+            val isBiometricEnabled by viewModel.isBiometricEnabled.collectAsState()
+
             val permissionLauncher = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission()
             ) { }
@@ -76,7 +93,53 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            TabakApp(viewModel)
+            LaunchedEffect(isBiometricEnabled) {
+                if (isBiometricEnabled && !isUnlocked) {
+                    showBiometricPrompt(viewModel)
+                } else {
+                    viewModel.setUnlocked(true)
+                }
+            }
+
+            if (isUnlocked || !isBiometricEnabled) {
+                TabakApp(viewModel)
+            } else {
+                LockScreen { showBiometricPrompt(viewModel) }
+            }
+        }
+    }
+
+    private fun showBiometricPrompt(viewModel: MainViewModel) {
+        val executor = ContextCompat.getMainExecutor(this)
+        val biometricPrompt = BiometricPrompt(this, executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    viewModel.setUnlocked(true)
+                }
+            })
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("tabak++ Lock")
+            .setSubtitle("Unlock to access your tracking")
+            .setNegativeButtonText("Cancel")
+            .build()
+
+        biometricPrompt.authenticate(promptInfo)
+    }
+}
+
+@Composable
+fun LockScreen(onRetry: () -> Unit) {
+    Box(Modifier.fillMaxSize().background(BgBase), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Default.Lock, null, tint = Accent, modifier = Modifier.size(64.dp))
+            Spacer(Modifier.height(24.dp))
+            Text("App Locked", fontWeight = FontWeight.Black, fontSize = 20.sp, color = TextMain)
+            Spacer(Modifier.height(40.dp))
+            Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = Accent)) {
+                Text("Unlock Now", color = AccentFg, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
