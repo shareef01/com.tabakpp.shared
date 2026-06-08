@@ -27,6 +27,7 @@ import com.tabakpp.app.data.model.DailyLog
 import com.tabakpp.app.ui.theme.*
 import com.tabakpp.app.viewmodel.MainViewModel
 import com.tabakpp.app.domain.SmokingCalculator
+import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
@@ -80,11 +81,15 @@ fun HistoryScreen(vm: MainViewModel) {
         
         items(logs, key = { it.logDate }) { log ->
             var visible by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) { visible = true }
+            LaunchedEffect(Unit) {
+                // Staggered entry
+                delay(50)
+                visible = true
+            }
             
             AnimatedVisibility(
                 visible = visible,
-                enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 2 }
+                enter = fadeIn(tween(300)) + slideInVertically(tween(300)) { it / 4 }
             ) {
                 val isExpanded = expandedDates[log.logDate] ?: false
                 DateBundle(

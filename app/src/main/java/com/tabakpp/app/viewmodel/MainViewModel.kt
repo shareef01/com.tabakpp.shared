@@ -135,18 +135,20 @@ class MainViewModel @Inject constructor(
         val user = repository.getCurrentUser() ?: return@launch
         _isLoading.value = true
         try {
-            repository.syncRemoteConfigs()
-            val remoteLogs = repository.loadLogs()
+            // Sequential sync to avoid Foreign Key conflicts
+            repository.syncRemoteConfigs() 
             
-            // Perform migration in a background-friendly way
+            val remoteLogs = repository.loadLogs()
             repository.migrateLogs(remoteLogs)
             
-            // Ensure today's log exists in Room
+            // Explicitly ensure today's log exists in Room
             repository.upsertLog(DailyLog(userId = user.uid, logDate = todayString))
         } catch (e: Exception) {
             val errorMsg = e.localizedMessage ?: "Unknown Error"
             if (errorMsg.contains("787")) {
-                _message.value = UiMessage.Error("Sync: Database conflict (787). Retrying...")
+                _message.value = UiMessage.Error("Sync: Database constraint mismatch. Refreshing...")
+                // Auto-retry sync remote configs as a fix
+                repository.syncRemoteConfigs()
             } else {
                 _message.value = UiMessage.Error("Sync error: $errorMsg")
             }

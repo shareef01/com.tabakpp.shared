@@ -34,8 +34,8 @@ class Repository @Inject constructor(
         }.distinctUntilChanged()
     
     suspend fun ensureDefaultCounter() {
-        val local = tabakDao.getAllCounterConfigs().first()
-        if (local.isEmpty()) {
+        val local = tabakDao.getAllCounterConfigsOnce()
+        if (local.none { it.id == "cigarettes" }) {
             tabakDao.insertCounterConfig(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE).toEntity())
         }
     }
@@ -105,7 +105,9 @@ class Repository @Inject constructor(
         val uid = auth.currentUser?.uid ?: return
         try {
             val remoteConfigs = logsRepo.getCounterConfigs(uid)
-            remoteConfigs.forEach { tabakDao.insertCounterConfig(it.toEntity()) }
+            if (remoteConfigs.isNotEmpty()) {
+                tabakDao.insertCounterConfigs(remoteConfigs.map { it.toEntity() })
+            }
         } catch (_: Exception) {}
     }
 
@@ -113,7 +115,10 @@ class Repository @Inject constructor(
         val uid = auth.currentUser?.uid ?: return
         if (remoteLogs.isEmpty()) return
 
-        // Fetch everything once to avoid N+1 queries
+        // 1. Fetch current valid counter IDs once
+        val validCounterIds = tabakDao.getAllCounterConfigsOnce().map { it.id }.toSet()
+        
+        // 2. Fetch existing events once
         val existingEvents = tabakDao.getAllEventsOnce(uid)
         val eventsByDate = existingEvents.groupBy { it.logDate }
         
@@ -126,13 +131,15 @@ class Repository @Inject constructor(
             val localEventsForDay = eventsByDate[log.logDate] ?: emptyList()
             if (localEventsForDay.isEmpty() && log.counts.values.sum() > 0) {
                 log.counts.forEach { (cid, count) ->
-                    repeat(count) {
-                        eventsToInsert.add(LogEventEntity(
-                            userId = uid,
-                            counterId = cid,
-                            logDate = log.logDate,
-                            timestamp = 0
-                        ))
+                    if (validCounterIds.contains(cid)) {
+                        repeat(count) {
+                            eventsToInsert.add(LogEventEntity(
+                                userId = uid,
+                                counterId = cid,
+                                logDate = log.logDate,
+                                timestamp = 0
+                            ))
+                        }
                     }
                 }
             }
@@ -155,13 +162,23 @@ class Repository @Inject constructor(
         val uid = auth.currentUser?.uid ?: return
         try {
             logsRepo.saveCounterConfigs(uid, configs)
-            configs.forEach { tabakDao.insertCounterConfig(it.toEntity()) }
+            tabakDao.insertCounterConfigs(configs.map { it.toEntity() })
         } catch (_: Exception) {}
     }
 
     suspend fun logIncrement(counterId: String) {
         val uid = auth.currentUser?.uid ?: return
         val todayStr = LocalDate.now().toString()
+        
+        // Safety: Ensure counter exists in local DB before inserting event to avoid 787
+        val validCounterIds = tabakDao.getAllCounterConfigsOnce().map { it.id }.toSet()
+        if (!validCounterIds.contains(counterId)) {
+            // Try to sync configs first
+            syncRemoteConfigs()
+            val updatedIds = tabakDao.getAllCounterConfigsOnce().map { it.id }.toSet()
+            if (!updatedIds.contains(counterId)) return // Skip if still not found
+        }
+
         tabakDao.insertDailyLog(DailyLogEntity(uid, todayStr))
         tabakDao.insertEvent(LogEventEntity(userId = uid, counterId = counterId, logDate = todayStr, timestamp = System.currentTimeMillis()))
     }
@@ -173,12 +190,14 @@ class Repository @Inject constructor(
     }
 
     suspend fun getCounterConfigs(): List<CounterConfig> {
-        val local = tabakDao.getAllCounterConfigs().first()
+        val local = tabakDao.getAllCounterConfigsOnce()
         if (local.isNotEmpty()) return local.map { it.toDomain() }
         
         val uid = auth.currentUser?.uid ?: return listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE))
         val remote = logsRepo.getCounterConfigs(uid)
-        remote.forEach { tabakDao.insertCounterConfig(it.toEntity()) }
+        if (remote.isNotEmpty()) {
+            tabakDao.insertCounterConfigs(remote.map { it.toEntity() })
+        }
         return remote
     }
 }

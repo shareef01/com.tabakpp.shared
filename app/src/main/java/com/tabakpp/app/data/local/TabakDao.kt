@@ -8,9 +8,15 @@ interface TabakDao {
     // Counter Configs
     @Query("SELECT * FROM counter_configs")
     fun getAllCounterConfigs(): Flow<List<CounterConfigEntity>>
+    
+    @Query("SELECT * FROM counter_configs")
+    suspend fun getAllCounterConfigsOnce(): List<CounterConfigEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCounterConfig(config: CounterConfigEntity)
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCounterConfigs(configs: List<CounterConfigEntity>)
 
     @Delete
     suspend fun deleteCounterConfig(config: CounterConfigEntity)
