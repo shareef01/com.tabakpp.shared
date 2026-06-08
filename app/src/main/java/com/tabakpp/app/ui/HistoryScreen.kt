@@ -73,7 +73,7 @@ fun HistoryScreen(vm: MainViewModel) {
                 visible = logs.isNotEmpty(),
                 enter = fadeIn(animationSpec = tween(600, delayMillis = 200))
             ) {
-                InsightsRow(logs, configs, costPerUnit)
+                InsightsRow(vm)
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -129,10 +129,10 @@ fun HistoryScreen(vm: MainViewModel) {
 }
 
 @Composable
-private fun InsightsRow(logs: List<DailyLog>, configs: List<CounterConfig>, costPerUnit: Float) {
-    val totalCost = remember(logs, costPerUnit) { SmokingCalculator.calculateSavings(logs, costPerUnit) }
-    val lifeLost = remember(logs) { SmokingCalculator.calculateLifeLostMinutes(logs) }
-    val currentStreak = remember(logs, configs) { SmokingCalculator.calculateStreak(logs, configs) }
+private fun InsightsRow(vm: MainViewModel) {
+    val totalCost by vm.totalSavings.collectAsState()
+    val lifeLost by vm.lifeLostMinutes.collectAsState()
+    val currentStreak by vm.currentStreak.collectAsState()
 
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         InsightCard(
@@ -164,8 +164,13 @@ private fun InsightsRow(logs: List<DailyLog>, configs: List<CounterConfig>, cost
 
 @Composable
 private fun InsightCard(label: String, value: String, suffix: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color, modifier: Modifier = Modifier) {
+    var sizeScale by remember { mutableStateOf(0.8f) }
+    val animatedScale by animateFloatAsState(targetValue = sizeScale, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
+    
+    LaunchedEffect(Unit) { sizeScale = 1f }
+
     Card(
-        modifier = modifier,
+        modifier = modifier.graphicsLayer { scaleX = animatedScale; scaleY = animatedScale },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = BgCard),
         border = BorderStroke(1.dp, BorderSubtle)
@@ -173,10 +178,10 @@ private fun InsightCard(label: String, value: String, suffix: String, icon: andr
         Column(Modifier.padding(16.dp)) {
             Icon(icon, null, tint = color.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
             Spacer(Modifier.height(8.dp))
-            Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = TextMain)
-            Text(suffix, fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Medium)
-            Spacer(Modifier.height(4.dp))
-            Text(label.uppercase(), fontSize = 8.sp, color = TextDim, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+            Text(value, fontWeight = FontWeight.Black, fontSize = 20.sp, color = TextMain)
+            Text(suffix, fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(6.dp))
+            Text(label.uppercase(), fontSize = 9.sp, color = TextDim, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
         }
     }
 }

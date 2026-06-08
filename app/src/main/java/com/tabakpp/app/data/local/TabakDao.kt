@@ -21,6 +21,9 @@ interface TabakDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDailyLog(log: DailyLogEntity)
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDailyLogs(logs: List<DailyLogEntity>)
 
     // Log Events
     @Query("SELECT counterId, COUNT(*) as count FROM log_events WHERE userId = :userId AND logDate = :logDate GROUP BY counterId")
@@ -28,9 +31,15 @@ interface TabakDao {
 
     @Query("SELECT * FROM log_events WHERE userId = :userId")
     fun getAllEvents(userId: String): Flow<List<LogEventEntity>>
+    
+    @Query("SELECT * FROM log_events WHERE userId = :userId")
+    suspend fun getAllEventsOnce(userId: String): List<LogEventEntity>
 
     @Insert
     suspend fun insertEvent(event: LogEventEntity)
+    
+    @Insert
+    suspend fun insertEvents(events: List<LogEventEntity>)
 
     @Query("DELETE FROM log_events WHERE userId = :userId AND logDate = :logDate AND counterId = :counterId")
     suspend fun deleteLatestEvent(userId: String, logDate: String, counterId: String)
@@ -40,4 +49,10 @@ interface TabakDao {
     
     @Update
     suspend fun updateEvents(events: List<LogEventEntity>)
+    
+    @Transaction
+    suspend fun migrateLegacyData(logs: List<DailyLogEntity>, events: List<LogEventEntity>) {
+        insertDailyLogs(logs)
+        insertEvents(events)
+    }
 }

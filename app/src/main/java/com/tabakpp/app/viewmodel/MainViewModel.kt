@@ -79,10 +79,33 @@ class MainViewModel @Inject constructor(
         SmokingCalculator.getTotalLimit(configs)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1)
 
+    val currentStreak = combine(logs, counterConfigs) { l, c ->
+        SmokingCalculator.calculateStreak(l, c)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val totalSavings = combine(logs, costPerUnit) { l, cost ->
+        SmokingCalculator.calculateSavings(l, cost)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
+
+    val lifeLostMinutes = logs.map { 
+        SmokingCalculator.calculateLifeLostMinutes(it)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     init {
         viewModelScope.launch { repository.ensureDefaultCounter() }
         checkSession()
         startMidnightResetWorker()
+        observeDataForWidget()
+    }
+
+    private fun observeDataForWidget() {
+        // Collect daily count changes and update widget with debounce
+        combine(totalDailyCount, totalDailyLimit) { count, limit -> count to limit }
+            .debounce(1000)
+            .onEach {
+                TabakWidget().updateAll(getApplication())
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun startMidnightResetWorker() = viewModelScope.launch(Dispatchers.Default) {
@@ -108,15 +131,25 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun loadData() = viewModelScope.launch {
-        repository.getCurrentUser() ?: return@launch
+    fun loadData() = viewModelScope.launch(Dispatchers.IO) {
+        val user = repository.getCurrentUser() ?: return@launch
         _isLoading.value = true
         try {
             repository.syncRemoteConfigs()
             val remoteLogs = repository.loadLogs()
+            
+            // Perform migration in a background-friendly way
             repository.migrateLogs(remoteLogs)
+            
+            // Ensure today's log exists in Room
+            repository.upsertLog(DailyLog(userId = user.uid, logDate = todayString))
         } catch (e: Exception) {
-            _message.value = UiMessage.Error("Sync error: ${e.localizedMessage}")
+            val errorMsg = e.localizedMessage ?: "Unknown Error"
+            if (errorMsg.contains("787")) {
+                _message.value = UiMessage.Error("Sync: Database conflict (787). Retrying...")
+            } else {
+                _message.value = UiMessage.Error("Sync error: $errorMsg")
+            }
         } finally {
             _isLoading.value = false
         }
@@ -125,7 +158,6 @@ class MainViewModel @Inject constructor(
     fun addCounter(name: String, limit: Int, type: CounterType) = viewModelScope.launch {
         val newConfig = CounterConfig(id = UUID.randomUUID().toString(), name = name, limit = limit, type = type)
         repository.saveCounterConfigs(counterConfigs.value + newConfig)
-        TabakWidget().updateAll(getApplication())
     }
 
     fun updateCounterConfig(id: String, newName: String, newLimit: Int) = viewModelScope.launch {
@@ -134,7 +166,6 @@ class MainViewModel @Inject constructor(
         }
         repository.saveCounterConfigs(updatedConfigs)
         if (id == "cigarettes") repository.saveDailyLimit(newLimit)
-        TabakWidget().updateAll(getApplication())
     }
 
     fun removeCounter(id: String) = viewModelScope.launch {
@@ -146,12 +177,10 @@ class MainViewModel @Inject constructor(
 
     fun increment(counterId: String) = viewModelScope.launch {
         repository.logIncrement(counterId)
-        TabakWidget().updateAll(getApplication())
     }
 
     fun decrement(counterId: String) = viewModelScope.launch {
         repository.logDecrement(counterId)
-        TabakWidget().updateAll(getApplication())
     }
 
     fun editLog(date: String, counterId: String, count: Int) = viewModelScope.launch {

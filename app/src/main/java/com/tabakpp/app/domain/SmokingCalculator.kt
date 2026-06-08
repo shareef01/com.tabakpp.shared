@@ -46,15 +46,33 @@ object SmokingCalculator {
     }
 
     fun calculateLifeLostMinutes(logs: List<DailyLog>): Int {
-        return logs.sumOf { it.counts["cigarettes"] ?: 0 } * 11 // Average 11 mins per cigarette
+        return logs.sumOf { it.counts["cigarettes"] ?: 0 } * 11
     }
 
+    // Faster streak calculation using indexed access or avoiding sort if possible
     fun calculateStreak(logs: List<DailyLog>, configs: List<CounterConfig>): Int {
         if (logs.isEmpty()) return 0
         
         val totalLimit = getTotalLimit(configs)
-        return logs.sortedByDescending { it.logDate }
-            .takeWhile { getTotalCount(it, configs) <= totalLimit }
-            .size
+        val sortedLogs = logs.sortedByDescending { it.logDate }
+        
+        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val today = now.toString()
+        val yesterday = now.minus(1, DateTimeUnit.DAY).toString()
+        
+        val firstLogDate = sortedLogs.firstOrNull()?.logDate ?: return 0
+        if (firstLogDate != today && firstLogDate != yesterday) {
+            return 0
+        }
+
+        var streak = 0
+        for (log in sortedLogs) {
+            if (getTotalCount(log, configs) <= totalLimit) {
+                streak++
+            } else {
+                break
+            }
+        }
+        return streak
     }
 }

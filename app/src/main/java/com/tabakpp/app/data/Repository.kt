@@ -10,6 +10,7 @@ import com.tabakpp.app.data.model.CounterType
 import com.tabakpp.app.data.model.DailyLog
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 import javax.inject.Singleton
 import java.time.LocalDate
@@ -44,16 +45,22 @@ class Repository @Inject constructor(
             tabakDao.getLogsForUser(userId),
             tabakDao.getAllEvents(userId)
         ) { logs, events ->
+            if (logs.isEmpty()) return@combine emptyList()
+            
+            // Optimization: group events by date once using a pre-calculated map
+            val eventsByDate = events.groupBy { it.logDate }
+            
             logs.map { logEntity ->
-                // Start with any legacy counts from the DailyLog (this would need the DailyLogEntity to store them)
-                // OR: We migrate them once and then only use events. 
-                // Let's rely on the migration logic in loadData.
-                val counts = events.filter { it.logDate == logEntity.logDate }
-                    .groupBy { it.counterId }
-                    .mapValues { it.value.size }
+                val dayEvents = eventsByDate[logEntity.logDate]
+                val counts = if (dayEvents != null) {
+                    dayEvents.groupBy { it.counterId }
+                        .mapValues { it.value.size }
+                } else {
+                    emptyMap()
+                }
                 DailyLog(logEntity.userId, logEntity.logDate, counts)
             }
-        }.distinctUntilChanged()
+        }.flowOn(Dispatchers.Default).distinctUntilChanged()
     }
 
     private fun CounterConfigEntity.toDomain() = CounterConfig(id, name, limit, type)
@@ -104,25 +111,35 @@ class Repository @Inject constructor(
 
     suspend fun migrateLogs(remoteLogs: List<DailyLog>) {
         val uid = auth.currentUser?.uid ?: return
+        if (remoteLogs.isEmpty()) return
+
+        // Fetch everything once to avoid N+1 queries
+        val existingEvents = tabakDao.getAllEventsOnce(uid)
+        val eventsByDate = existingEvents.groupBy { it.logDate }
+        
+        val logsToInsert = mutableListOf<DailyLogEntity>()
+        val eventsToInsert = mutableListOf<LogEventEntity>()
+
         remoteLogs.forEach { log ->
-            // 1. Ensure log entry exists in Room
-            tabakDao.insertDailyLog(DailyLogEntity(uid, log.logDate))
+            logsToInsert.add(DailyLogEntity(uid, log.logDate))
             
-            // 2. Check if we have events for this day
-            val localEvents = tabakDao.getAllEvents(uid).first().filter { it.logDate == log.logDate }
-            if (localEvents.isEmpty() && log.counts.values.sum() > 0) {
-                // If Room is empty for this day but remote has counts, migrate them
+            val localEventsForDay = eventsByDate[log.logDate] ?: emptyList()
+            if (localEventsForDay.isEmpty() && log.counts.values.sum() > 0) {
                 log.counts.forEach { (cid, count) ->
                     repeat(count) {
-                        tabakDao.insertEvent(LogEventEntity(
+                        eventsToInsert.add(LogEventEntity(
                             userId = uid,
                             counterId = cid,
                             logDate = log.logDate,
-                            timestamp = 0 // Marker for migrated data
+                            timestamp = 0
                         ))
                     }
                 }
             }
+        }
+        
+        if (logsToInsert.isNotEmpty() || eventsToInsert.isNotEmpty()) {
+            tabakDao.migrateLegacyData(logsToInsert, eventsToInsert)
         }
     }
 
