@@ -83,4 +83,6 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
 
     debugImplementation(libs.androidx.ui.tooling)
+
+    testImplementation(libs.kotlin.test)
 }

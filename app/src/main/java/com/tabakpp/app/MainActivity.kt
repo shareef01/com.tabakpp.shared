@@ -38,7 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.tabakpp.app.data.DashboardLayout
 import com.tabakpp.app.ui.*
 import com.tabakpp.app.ui.theme.*
@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         NotificationHelper.createChannel(this)
         setContent {
-            val viewModel: MainViewModel = viewModel()
+            val viewModel: MainViewModel = hiltViewModel()
             
             val permissionLauncher = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission()
