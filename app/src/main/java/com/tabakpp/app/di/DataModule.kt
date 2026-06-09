@@ -39,7 +39,8 @@ object DataModule {
             context,
             TabakDatabase::class.java,
             "tabak_db"
-        ).build()
+        ).fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides

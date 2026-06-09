@@ -10,6 +10,8 @@ data class CounterConfigEntity(
     val limit: Int,
     val type: CounterType,
     val displayOrder: Int = 0,
+    val pricePerUnit: Float = 0f,
+    val excludeFromEconomics: Boolean = false,
     val isSynced: Boolean = true
 )
 
@@ -23,14 +25,6 @@ data class DailyLogEntity(
 
 @Entity(
     tableName = "log_events",
-    foreignKeys = [
-        ForeignKey(
-            entity = CounterConfigEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["counterId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
     indices = [Index("counterId"), Index("logDate")]
 )
 data class LogEventEntity(

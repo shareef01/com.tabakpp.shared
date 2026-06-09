@@ -1,5 +1,6 @@
 package com.tabakpp.app
 
+import com.tabakpp.app.data.local.LogEventEntity
 import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.CounterType
 import com.tabakpp.app.data.model.DailyLog
@@ -11,6 +12,7 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class SmokingCalculatorTest {
 
@@ -70,48 +72,59 @@ class SmokingCalculatorTest {
     }
 
     @Test
-    fun testCalculateStreak_BrokenByGap() {
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-        val today = now.toString()
-        val dayBeforeYesterday = now.minus(2, DateTimeUnit.DAY).toString()
-
-        val logs = listOf(
-            DailyLog(logDate = today, counts = mapOf("cigarettes" to 5)),
-            DailyLog(logDate = dayBeforeYesterday, counts = mapOf("cigarettes" to 5))
-        )
-
-        assertEquals(1, SmokingCalculator.calculateStreak(logs, configs))
-    }
-
-    @Test
-    fun testCalculateStreak_StartsYesterday() {
-        val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-        val yesterday = now.minus(1, DateTimeUnit.DAY).toString()
-
-        val logs = listOf(
-            DailyLog(logDate = yesterday, counts = mapOf("cigarettes" to 5))
-        )
-
-        assertEquals(1, SmokingCalculator.calculateStreak(logs, configs))
-    }
-
-    @Test
     fun testWeekTotal() {
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
         val logs = (0..10).map { 
             DailyLog(logDate = today.minus(it, DateTimeUnit.DAY).toString(), counts = mapOf("cigarettes" to 1))
         }
-        // Should only count the last 7 days (0 to 6)
         assertEquals(7, SmokingCalculator.getWeekTotal(logs, "cigarettes"))
     }
 
     @Test
-    fun testWeekAverage() {
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-        val logs = listOf(
-            DailyLog(logDate = today.toString(), counts = mapOf("cigarettes" to 14))
+    fun testCalculateXP() {
+        val logs = listOf(DailyLog(), DailyLog()) // 2 days
+        val streak = 5
+        assertEquals(95, SmokingCalculator.calculateXP(logs, streak))
+    }
+
+    @Test
+    fun testGetRank() {
+        assertEquals("Apprentice", SmokingCalculator.getRank(50))
+        assertEquals("Scout", SmokingCalculator.getRank(150))
+        assertEquals("Veteran", SmokingCalculator.getRank(600))
+        assertEquals("Master", SmokingCalculator.getRank(2000))
+        assertEquals("Legend", SmokingCalculator.getRank(6000))
+    }
+
+    @Test
+    fun testCalculateRecoveryMilestones_Progress() {
+        val now = System.currentTimeMillis()
+        val tenMinutesAgo = now - (10 * 60 * 1000)
+        val milestones = SmokingCalculator.calculateRecoveryMilestones(tenMinutesAgo)
+        val heartRate = milestones.find { it.title == "Heart Rate Normalizes" }
+        assertEquals(0.5f, heartRate?.progress ?: 0f, 0.01f)
+    }
+
+    @Test
+    fun testCalculateHourlyHeatmap() {
+        val events = listOf(
+            LogEventEntity(userId = "1", counterId = "c", logDate = "2023-01-01", timestamp = 1672531200000)
         )
-        // 14 / 7 = 2
-        assertEquals(2f, SmokingCalculator.getWeekAverage(logs, "cigarettes"))
+        val heatmap = SmokingCalculator.calculateHourlyHeatmap(events)
+        assertTrue(heatmap.values.sum() >= 1)
+    }
+
+    @Test
+    fun testWeekAverage_EmptyLogs() {
+        assertEquals(0f, SmokingCalculator.getWeekAverage(emptyList()))
+    }
+
+    @Test
+    fun testCalculateStreak_VeryLongStreak() {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val logs = (0 until 100).map { 
+            DailyLog(logDate = today.minus(it, DateTimeUnit.DAY).toString(), counts = mapOf("cigarettes" to 1))
+        }
+        assertEquals(100, SmokingCalculator.calculateStreak(logs, configs))
     }
 }

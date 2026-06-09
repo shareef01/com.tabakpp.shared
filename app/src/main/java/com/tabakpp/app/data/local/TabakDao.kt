@@ -28,6 +28,9 @@ interface TabakDao {
     @Query("SELECT * FROM daily_logs WHERE userId = :userId ORDER BY logDate DESC")
     fun getLogsForUser(userId: String): Flow<List<DailyLogEntity>>
 
+    @Query("SELECT * FROM daily_logs WHERE userId = :userId AND logDate = :logDate")
+    suspend fun getLogEntity(userId: String, logDate: String): DailyLogEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDailyLog(log: DailyLogEntity)
     
@@ -55,6 +58,9 @@ interface TabakDao {
     
     @Query("DELETE FROM log_events WHERE userId = :userId AND logDate = :logDate AND counterId = :counterId")
     suspend fun deleteAllEventsForCounter(userId: String, logDate: String, counterId: String)
+
+    @Query("DELETE FROM log_events WHERE userId = :userId AND logDate = :logDate")
+    suspend fun deleteAllEventsForDay(userId: String, logDate: String)
 
     @Query("SELECT * FROM log_events WHERE isSynced = 0")
     suspend fun getUnsyncedEvents(): List<LogEventEntity>

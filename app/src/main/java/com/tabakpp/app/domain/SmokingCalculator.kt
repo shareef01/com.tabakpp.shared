@@ -1,18 +1,23 @@
 package com.tabakpp.app.domain
 
+import androidx.compose.runtime.Immutable
 import com.tabakpp.app.data.local.LogEventEntity
 import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.DailyLog
 import kotlinx.datetime.*
 import kotlin.math.min
 
+@Immutable
 data class RecoveryMilestone(
     val title: String,
     val durationMinutes: Long,
     val description: String,
-    val progress: Float // 0.0 to 1.0
+    val realLifeImpact: String,
+    val nutritionalAdvice: String,
+    val progress: Float
 )
 
+@Immutable
 data class Badge(
     val id: String,
     val title: String,
@@ -66,8 +71,18 @@ object SmokingCalculator {
         return logs.find { it.logDate == yesterday }?.counts?.get(counterId) ?: 0
     }
 
-    fun calculateSavings(logs: List<DailyLog>, costPerUnit: Float): Float {
-        return logs.sumOf { it.counts.values.sum() } * costPerUnit
+    fun calculateSavings(logs: List<DailyLog>, configs: List<CounterConfig>, globalCost: Float): Float {
+        var total = 0f
+        logs.forEach { log ->
+            log.counts.forEach { (cid, count) ->
+                val config = configs.find { it.id == cid } ?: return@forEach
+                if (!config.excludeFromEconomics) {
+                    val price = if (config.pricePerUnit > 0) config.pricePerUnit else globalCost
+                    total += count * price
+                }
+            }
+        }
+        return total
     }
 
     fun calculateLifeLostMinutes(logs: List<DailyLog>): Int {
@@ -100,19 +115,69 @@ object SmokingCalculator {
     // --- NEW ADVANCED FEATURES ---
 
     fun calculateRecoveryMilestones(lastLogTimestamp: Long?): List<RecoveryMilestone> {
-        if (lastLogTimestamp == null) return emptyList()
-        val now = Clock.System.now().toEpochMilliseconds()
-        val diffMinutes = (now - lastLogTimestamp) / (1000 * 60)
+        val now = System.currentTimeMillis()
+        val diffMinutes = if (lastLogTimestamp == null || lastLogTimestamp == 0L) {
+            // Default to 24 hours if no data yet, to show progress in action
+            24 * 60L
+        } else {
+            (now - lastLogTimestamp) / (1000 * 60)
+        }
         
+        val safeDiffMinutes = if (diffMinutes < 0) 0L else diffMinutes
+
         val milestones = listOf(
-            RecoveryMilestone("Heart Rate Normalizes", 20, "Your heart rate and blood pressure begin to drop.", 0f),
-            RecoveryMilestone("Carbon Monoxide Drops", 12 * 60, "The carbon monoxide level in your blood drops to normal.", 0f),
-            RecoveryMilestone("Lung Function Improves", 2 * 7 * 24 * 60, "Your circulation improves and your lung function increases.", 0f),
-            RecoveryMilestone("Coughing Decreases", 30 * 24 * 60, "Coughing and shortness of breath decrease.", 0f)
+            RecoveryMilestone(
+                "Heart Rate Normalizes", 
+                20, 
+                "Your heart rate and blood pressure begin to drop.",
+                "Physical stress on your heart decreases almost immediately.",
+                "Sip cold water and eat light snacks like celery or carrot sticks to manage oral fixation.",
+                0f
+            ),
+            RecoveryMilestone(
+                "Carbon Monoxide Drops", 
+                12 * 60, 
+                "CO levels in your blood drop to normal.",
+                "Your blood is now better at carrying oxygen to your organs.",
+                "Eat iron-rich foods like spinach or beans to support your blood's new oxygen capacity.",
+                0f
+            ),
+            RecoveryMilestone(
+                "Lung Function Improvements", 
+                2 * 7 * 24 * 60, 
+                "Circulation improves and lung function increases.",
+                "Walking becomes easier and lung capacity starts to recover.",
+                "Focus on antioxidant-rich berries and cruciferous vegetables like broccoli to aid lung repair.",
+                0f
+            ),
+            RecoveryMilestone(
+                "Respiratory Recovery", 
+                1 * 30 * 24 * 60, 
+                "Cilia in the lungs start to function properly.",
+                "Your lungs are cleaning themselves better, reducing infection risk.",
+                "Hydrate heavily with herbal teas. Vitamin C from oranges helps boost your repairing immune system.",
+                0f
+            ),
+            RecoveryMilestone(
+                "Cardiovascular Milestone", 
+                365 * 24 * 60, 
+                "Excess risk of heart disease is halved.",
+                "A massive milestone for long-term heart health.",
+                "Maintain a heart-healthy diet with omega-3 fatty acids from fish or flaxseeds.",
+                0f
+            ),
+            RecoveryMilestone(
+                "Stroke Risk Normalization", 
+                5 * 365 * 24 * 60, 
+                "Stroke risk is reduced to that of a nonsmoker.",
+                "Vascular systems have significantly repaired themselves.",
+                "Continue with a balanced Mediterranean-style diet to sustain long-term vascular integrity.",
+                0f
+            )
         )
 
         return milestones.map { m ->
-            val progress = (diffMinutes.toFloat() / m.durationMinutes).coerceIn(0f, 1f)
+            val progress = (safeDiffMinutes.toFloat() / m.durationMinutes).coerceIn(0f, 1f)
             m.copy(progress = progress)
         }
     }

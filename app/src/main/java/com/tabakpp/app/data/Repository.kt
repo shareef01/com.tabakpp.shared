@@ -28,7 +28,7 @@ class Repository @Inject constructor(
     val counterConfigs: Flow<List<CounterConfig>> = tabakDao.getAllCounterConfigs()
         .map { entities -> 
             if (entities.isEmpty()) {
-                listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE))
+                listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE, 0))
             } else {
                 entities.map { it.toDomain() }
             }
@@ -64,7 +64,7 @@ class Repository @Inject constructor(
     suspend fun getCounterConfigsOnce(): List<CounterConfig> = withContext(Dispatchers.IO) {
         val local = tabakDao.getAllCounterConfigsOnce()
         if (local.isEmpty()) {
-            listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE))
+            listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE, 0))
         } else {
             local.map { it.toDomain() }
         }
@@ -73,7 +73,7 @@ class Repository @Inject constructor(
     suspend fun ensureDefaultCounter() {
         val local = tabakDao.getAllCounterConfigsOnce()
         if (local.none { it.id == "cigarettes" }) {
-            tabakDao.insertCounterConfig(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE).toEntity())
+            tabakDao.insertCounterConfig(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE, 0).toEntity())
         }
     }
 
@@ -114,47 +114,48 @@ class Repository @Inject constructor(
         } else {
             ensureDefaultCounter()
         }
+        
+        val validIds = tabakDao.getAllCounterConfigsOnce().map { it.id }.toSet()
         val remoteLogs = logsRepo.loadLogs(uid)
-        if (remoteLogs.isNotEmpty()) migrateLogs(remoteLogs)
+        if (remoteLogs.isNotEmpty()) migrateLogs(remoteLogs, validIds)
         else tabakDao.insertDailyLog(DailyLogEntity(uid, LocalDate.now().toString()))
     }
 
-    suspend fun migrateLogs(remoteLogs: List<DailyLog>) {
+    suspend fun migrateLogs(remoteLogs: List<DailyLog>, validIds: Set<String>) {
         val uid = auth.currentUser?.uid ?: return
         if (remoteLogs.isEmpty()) return
-        val validIds = tabakDao.getAllCounterConfigsOnce().map { it.id }.toSet()
         val existingEvents = tabakDao.getAllEventsOnce(uid).groupBy { it.logDate }
         val logsToInsert = mutableListOf<DailyLogEntity>()
         val eventsToInsert = mutableListOf<LogEventEntity>()
+        
         remoteLogs.forEach { log ->
             logsToInsert.add(DailyLogEntity(uid, log.logDate, log.notes))
+            // Only add events if we don't have ANY for this day locally to avoid duplicates
             if (existingEvents[log.logDate].isNullOrEmpty() && log.counts.values.sum() > 0) {
                 log.counts.forEach { (cid, count) ->
                     if (validIds.contains(cid)) {
-                        repeat(count) { eventsToInsert.add(LogEventEntity(userId = uid, counterId = cid, logDate = log.logDate, timestamp = 0)) }
+                        repeat(count) { 
+                            eventsToInsert.add(LogEventEntity(userId = uid, counterId = cid, logDate = log.logDate, timestamp = 0)) 
+                        }
                     }
                 }
             }
         }
-        if (logsToInsert.isNotEmpty() || eventsToInsert.isNotEmpty()) {
-            tabakDao.fullSync(emptyList(), logsToInsert, eventsToInsert)
-        }
+        
+        if (logsToInsert.isNotEmpty()) tabakDao.insertDailyLogs(logsToInsert)
+        if (eventsToInsert.isNotEmpty()) tabakDao.insertEvents(eventsToInsert)
     }
 
-    suspend fun logIncrement(counterId: String) = withContext(Dispatchers.IO) {
-        val uid = auth.currentUser?.uid ?: return@withContext
-        val todayStr = LocalDate.now().toString()
+    suspend fun logIncrement(uid: String, date: String, counterId: String) = withContext(Dispatchers.IO) {
         if (!tabakDao.getAllCounterConfigsOnce().any { it.id == counterId }) return@withContext
-        tabakDao.insertDailyLog(DailyLogEntity(uid, todayStr))
-        tabakDao.insertEvent(LogEventEntity(userId = uid, counterId = counterId, logDate = todayStr, timestamp = System.currentTimeMillis()))
-        syncDayToFirestore(uid, todayStr)
+        tabakDao.insertDailyLog(DailyLogEntity(uid, date))
+        tabakDao.insertEvent(LogEventEntity(userId = uid, counterId = counterId, logDate = date, timestamp = System.currentTimeMillis()))
+        syncDayToFirestore(uid, date)
     }
 
-    suspend fun logDecrement(counterId: String) = withContext(Dispatchers.IO) {
-        val uid = auth.currentUser?.uid ?: return@withContext
-        val todayStr = LocalDate.now().toString()
-        tabakDao.deleteLatestEvent(uid, todayStr, counterId)
-        syncDayToFirestore(uid, todayStr)
+    suspend fun logDecrement(uid: String, date: String, counterId: String) = withContext(Dispatchers.IO) {
+        tabakDao.deleteLatestEvent(uid, date, counterId)
+        syncDayToFirestore(uid, date)
     }
 
     suspend fun overwriteCounterLogs(uid: String, date: String, counterId: String, count: Int) = withContext(Dispatchers.IO) {
@@ -164,11 +165,17 @@ class Repository @Inject constructor(
         syncDayToFirestore(uid, date)
     }
 
+    suspend fun resetDayLog(uid: String, date: String) = withContext(Dispatchers.IO) {
+        tabakDao.deleteAllEventsForDay(uid, date)
+        syncDayToFirestore(uid, date)
+    }
+
     private suspend fun syncDayToFirestore(uid: String, date: String) {
         try {
             val events = tabakDao.getAllEventsOnce(uid).filter { it.logDate == date }
             val counts = events.groupBy { it.counterId }.mapValues { it.value.size }
-            logsRepo.upsertLog(uid, DailyLog(uid, date, counts))
+            val existingLocalLog = tabakDao.getLogEntity(uid, date)
+            logsRepo.upsertLog(uid, DailyLog(uid, date, counts, existingLocalLog?.notes ?: ""))
         } catch (_: Exception) {}
     }
 
@@ -193,10 +200,10 @@ class Repository @Inject constructor(
         val uid = auth.currentUser?.uid ?: return@withContext
         try {
             logsRepo.saveDailyLimit(uid, limit)
-            tabakDao.insertCounterConfig(CounterConfig("cigarettes", "Cigarettes", limit, CounterType.CIGARETTE).toEntity())
+            tabakDao.insertCounterConfig(CounterConfig("cigarettes", "Cigarettes", limit, CounterType.CIGARETTE, 0).toEntity())
         } catch (_: Exception) {}
     }
 
-    private fun CounterConfigEntity.toDomain() = CounterConfig(id, name, limit, type)
-    private fun CounterConfig.toEntity() = CounterConfigEntity(id, name, limit, type)
+    private fun CounterConfigEntity.toDomain() = CounterConfig(id, name, limit, type, displayOrder)
+    private fun CounterConfig.toEntity() = CounterConfigEntity(id, name, limit, type, displayOrder)
 }

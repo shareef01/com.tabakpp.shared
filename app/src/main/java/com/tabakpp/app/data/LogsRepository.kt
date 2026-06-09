@@ -21,7 +21,33 @@ class LogsRepository @Inject constructor(
                 .orderBy("logDate", Query.Direction.DESCENDING)
                 .get()
                 .await()
-            snapshot.toObjects(DailyLog::class.java)
+            
+            snapshot.documents.mapNotNull { doc ->
+                val data = doc.data ?: return@mapNotNull null
+                val logDate = data["logDate"] as? String ?: doc.id
+                val notes = data["notes"] as? String ?: ""
+                
+                // Handle both nested 'counts' map and legacy root-level counters
+                val counts = mutableMapOf<String, Int>()
+                
+                // 1. Check for new 'counts' map
+                val nestedCounts = data["counts"] as? Map<*, *>
+                nestedCounts?.forEach { (k, v) ->
+                    if (k is String && v is Number) counts[k] = v.toInt()
+                }
+                
+                // 2. Fallback: check root level for any fields that are Numbers and not metadata
+                if (counts.isEmpty()) {
+                    val metadataFields = setOf("userId", "logDate", "notes", "counts", "timestamp")
+                    data.forEach { (k, v) ->
+                        if (k !in metadataFields && v is Number) {
+                            counts[k] = v.toInt()
+                        }
+                    }
+                }
+                
+                DailyLog(uid, logDate, counts, notes)
+            }
         } catch (_: Exception) {
             emptyList()
         }
@@ -30,7 +56,7 @@ class LogsRepository @Inject constructor(
     suspend fun upsertLog(uid: String, log: DailyLog) {
         db.collection("users").document(uid)
             .collection("logs").document(log.logDate)
-            .set(log, SetOptions.merge())
+            .set(log)
             .await()
     }
 
@@ -65,14 +91,20 @@ class LogsRepository @Inject constructor(
     suspend fun getCounterConfigs(uid: String): List<CounterConfig> {
         return try {
             val doc = db.collection("users").document(uid).get().await()
-            val data = doc.toObject(UserData::class.java)
-            data?.counters ?: listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE))
+            val counters = doc.get("counters") as? List<*>
+            counters?.mapNotNull { item ->
+                val map = item as? Map<*, *> ?: return@mapNotNull null
+                val id = map["id"] as? String ?: ""
+                val name = map["name"] as? String ?: ""
+                val limit = (map["limit"] as? Number)?.toInt() ?: 20
+                val typeStr = map["type"] as? String ?: CounterType.CIGARETTE.name
+                val type = try { CounterType.valueOf(typeStr) } catch (_: Exception) { CounterType.CIGARETTE }
+                val order = (map["displayOrder"] as? Number)?.toInt() ?: 0
+                
+                CounterConfig(id, name, limit, type, order)
+            } ?: listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE, 0))
         } catch (e: Exception) {
-            listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE))
+            listOf(CounterConfig("cigarettes", "Cigarettes", 20, CounterType.CIGARETTE, 0))
         }
     }
-
-    private data class UserData(
-        val counters: List<CounterConfig> = emptyList()
-    )
 }

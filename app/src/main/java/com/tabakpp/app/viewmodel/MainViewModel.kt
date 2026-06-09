@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 import javax.inject.Inject
 
@@ -38,9 +37,6 @@ class MainViewModel @Inject constructor(
     private val _message = MutableStateFlow<UiMessage>(UiMessage.None)
     val message: StateFlow<UiMessage> = _message.asStateFlow()
 
-    private val _isUnlocked = MutableStateFlow(false)
-    val isUnlocked: StateFlow<Boolean> = _isUnlocked.asStateFlow()
-
     // --- DATA STREAMS ---
 
     val counterConfigs: StateFlow<List<CounterConfig>> = repository.counterConfigs
@@ -54,10 +50,19 @@ class MainViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val todayString: String get() = LocalDate.now().toString()
+    private val _systemDate = MutableStateFlow(LocalDate.now().toString())
 
-    val todayLog: StateFlow<DailyLog?> = logs.map { list ->
-        list.find { it.logDate == todayString }
+    val isManualReset = settingsRepo.isManualReset.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    
+    val activeDate = combine(_systemDate, settingsRepo.activeLogDate, isManualReset) { system, manual, isManual ->
+        if (isManual) manual ?: system
+        else system
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LocalDate.now().toString())
+
+    val todayString: String get() = activeDate.value
+
+    val todayLog: StateFlow<DailyLog?> = combine(logs, activeDate) { list, date ->
+        list.find { it.logDate == date }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     // --- DERIVED METRICS ---
@@ -74,18 +79,21 @@ class MainViewModel @Inject constructor(
         SmokingCalculator.calculateStreak(l, c)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    val totalSavings = combine(logs, settingsRepo.costPerUnit) { l, cost ->
-        SmokingCalculator.calculateSavings(l, cost)
+    val totalSavings = combine(logs, counterConfigs, settingsRepo.costPerUnit) { l, configs, cost ->
+        SmokingCalculator.calculateSavings(l, configs, cost)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
 
     val lifeLostMinutes = logs.map { SmokingCalculator.calculateLifeLostMinutes(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    val recoveryMilestones = combine(authState, logs) { state, _ ->
+    @Suppress("OPT_IN_USAGE")
+    val recoveryMilestones = authState.flatMapLatest { state ->
         if (state is AuthState.Authenticated) {
-            val lastEvent = repository.getLastEvent(state.userId)
-            SmokingCalculator.calculateRecoveryMilestones(lastEvent?.timestamp)
-        } else emptyList()
+            repository.getAllEvents(state.userId).map { events ->
+                val lastValidEvent = events.filter { it.timestamp > 0 }.maxByOrNull { it.timestamp }
+                SmokingCalculator.calculateRecoveryMilestones(lastValidEvent?.timestamp)
+            }
+        } else flowOf(emptyList())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val userXP = combine(logs, currentStreak) { l, s -> SmokingCalculator.calculateXP(l, s) }
@@ -112,10 +120,19 @@ class MainViewModel @Inject constructor(
     val widgetCounterId = settingsRepo.widgetCounterId.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "cigarettes")
     val dashboardLayout = settingsRepo.dashboardLayout.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardLayout.LARGE)
     val costPerUnit = settingsRepo.costPerUnit.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
-    val isBiometricEnabled = settingsRepo.isBiometricEnabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val accentColor = settingsRepo.accentColor.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val userGoal = settingsRepo.userGoal.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+    val profileImageUri = settingsRepo.profileImageUri.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
-        viewModelScope.launch { repository.ensureDefaultCounter() }
+        viewModelScope.launch { 
+            repository.ensureDefaultCounter()
+            val isManual = settingsRepo.isManualReset.first()
+            val manualDate = settingsRepo.activeLogDate.first()
+            if (isManual && manualDate == null) {
+                settingsRepo.setActiveLogDate(LocalDate.now().toString())
+            }
+        }
         checkSession()
         startMidnightResetWorker()
         observeDataForWidget()
@@ -146,16 +163,22 @@ class MainViewModel @Inject constructor(
 
     // --- ACTIONS ---
 
-    fun increment(counterId: String) = viewModelScope.launch { repository.logIncrement(counterId) }
-    fun decrement(counterId: String) = viewModelScope.launch { repository.logDecrement(counterId) }
+    fun increment(counterId: String) = viewModelScope.launch {
+        val user = repository.getCurrentUser() ?: return@launch
+        repository.logIncrement(user.uid, todayString, counterId)
+    }
+    fun decrement(counterId: String) = viewModelScope.launch {
+        val user = repository.getCurrentUser() ?: return@launch
+        repository.logDecrement(user.uid, todayString, counterId)
+    }
 
-    fun addCounter(name: String, limit: Int, type: CounterType) = viewModelScope.launch {
-        val newConfig = CounterConfig(id = UUID.randomUUID().toString(), name = name, limit = limit, type = type)
+    fun addCounter(name: String, limit: Int, type: CounterType, price: Float = 0f, exclude: Boolean = false) = viewModelScope.launch {
+        val newConfig = CounterConfig(id = UUID.randomUUID().toString(), name = name, limit = limit, type = type, pricePerUnit = price, excludeFromEconomics = exclude)
         repository.saveCounterConfigs(counterConfigs.value + newConfig)
     }
 
-    fun updateCounterConfig(id: String, newName: String, newLimit: Int) = viewModelScope.launch {
-        val updated = counterConfigs.value.map { if (it.id == id) it.copy(name = newName, limit = newLimit) else it }
+    fun updateCounterConfig(id: String, newName: String, newLimit: Int, newPrice: Float = 0f, newExclude: Boolean = false) = viewModelScope.launch {
+        val updated = counterConfigs.value.map { if (it.id == id) it.copy(name = newName, limit = newLimit, pricePerUnit = newPrice, excludeFromEconomics = newExclude) else it }
         repository.saveCounterConfigs(updated)
         if (id == "cigarettes") repository.saveDailyLimit(newLimit)
     }
@@ -172,13 +195,34 @@ class MainViewModel @Inject constructor(
 
     fun deleteCounterFromLog(date: String, counterId: String) = editLog(date, counterId, 0)
 
-    fun setUnlocked(unlocked: Boolean) { _isUnlocked.value = unlocked }
     fun toggleDarkMode(enabled: Boolean) = viewModelScope.launch { settingsRepo.setDarkMode(enabled) }
     fun updateFontSize(m: Float) = viewModelScope.launch { settingsRepo.setFontScale(m) }
     fun setWidgetCounter(id: String) = viewModelScope.launch { settingsRepo.setWidgetCounterId(id) }
     fun setDashboardLayout(layout: DashboardLayout) = viewModelScope.launch { settingsRepo.setDashboardLayout(layout) }
     fun setCostPerUnit(cost: Float) = viewModelScope.launch { settingsRepo.setCostPerUnit(cost) }
-    fun setBiometricEnabled(enabled: Boolean) = viewModelScope.launch { settingsRepo.setBiometricEnabled(enabled) }
+    fun setManualReset(enabled: Boolean) = viewModelScope.launch { 
+        settingsRepo.setManualReset(enabled)
+        settingsRepo.setActiveLogDate(LocalDate.now().toString())
+    }
+    fun startNewDay() = viewModelScope.launch {
+        val today = LocalDate.now().toString()
+        settingsRepo.setActiveLogDate(today)
+        _systemDate.value = today
+        loadData()
+    }
+
+    fun resetTodayCounts() = viewModelScope.launch {
+        val user = repository.getCurrentUser() ?: return@launch
+        repository.resetDayLog(user.uid, todayString)
+    }
+    fun setAccentColor(colorHex: String?) = viewModelScope.launch { settingsRepo.setAccentColor(colorHex) }
+    fun setUserGoal(goal: String) = viewModelScope.launch { settingsRepo.setUserGoal(goal) }
+    fun setProfileImage(uri: String?) = viewModelScope.launch { settingsRepo.setProfileImageUri(uri) }
+
+    fun reorderCounters(configs: List<CounterConfig>) = viewModelScope.launch {
+        val updated = configs.mapIndexed { index, config -> config.copy(displayOrder = index) }
+        repository.saveCounterConfigs(updated)
+    }
 
     fun signIn(e: String, p: String) = viewModelScope.launch { 
         _isLoading.value = true
@@ -262,6 +306,7 @@ class MainViewModel @Inject constructor(
             val sleepMillis = Duration.between(now, midnight).toMillis()
             if (sleepMillis > 0) {
                 delay(sleepMillis + 1000)
+                _systemDate.value = LocalDate.now().toString()
                 loadData()
             }
         }

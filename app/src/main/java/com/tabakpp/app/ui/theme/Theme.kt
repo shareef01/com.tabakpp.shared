@@ -77,29 +77,36 @@ val SuccessColor @Composable get() = TabakTheme.colors.success
 fun TabakTheme(
     isDark: Boolean = true,
     fontScale: Float = 1f,
+    accentColorHex: String? = null,
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
+    
+    val baseAccent = if (isDark) DarkTabakColors.accent else LightTabakColors.accent
+    val finalAccent = accentColorHex?.let { Color(android.graphics.Color.parseColor(it)) } ?: baseAccent
+
     val colorScheme = when {
         dynamicColor && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S -> {
             if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
         isDark -> darkColorScheme(
-            primary = DarkTabakColors.accent,
+            primary = finalAccent,
             onPrimary = DarkTabakColors.accentFg,
             background = DarkTabakColors.bgBase,
             surface = DarkTabakColors.bgCard
         )
         else -> lightColorScheme(
-            primary = LightTabakColors.accent,
+            primary = finalAccent,
             onPrimary = LightTabakColors.accentFg,
             background = LightTabakColors.bgBase,
             surface = LightTabakColors.bgCard
         )
     }
 
-    val colors = if (isDark) DarkTabakColors else LightTabakColors
+    val baseColors = if (isDark) DarkTabakColors else LightTabakColors
+    val colors = baseColors.copy(accent = finalAccent)
+
     val currentDensity = LocalDensity.current
     val customDensity = remember(currentDensity, fontScale) {
         Density(density = currentDensity.density, fontScale = currentDensity.fontScale * fontScale)

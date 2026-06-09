@@ -68,8 +68,13 @@ class TabakWidget : GlanceAppWidget() {
             try { repo.getLogsOnce(user.uid) } catch (e: Exception) { emptyList() }
         } else emptyList()
 
-        val todayStr = LocalDate.now().toString()
-        val todayLog = logs.find { it.logDate == todayStr }
+        val isManual = try { settingsRepo.isManualReset.first() } catch (e: Exception) { false }
+        val activeDate = if (isManual) {
+            try { settingsRepo.activeLogDate.first() ?: LocalDate.now().toString() } catch (e: Exception) { LocalDate.now().toString() }
+        } else {
+            LocalDate.now().toString()
+        }
+        val todayLog = logs.find { it.logDate == activeDate }
         val count = todayLog?.counts?.get(activeConfig.id) ?: 0
         
         val streak = SmokingCalculator.calculateStreak(logs, configs)
@@ -131,8 +136,16 @@ class IncrementAction : ActionCallback {
                 val repo = entryPoint.repository()
                 val settingsRepo = entryPoint.settingsRepository()
 
+                val user = repo.getCurrentUser() ?: return@withContext
                 val selectedId = settingsRepo.widgetCounterId.first()
-                repo.logIncrement(selectedId)
+                val isManual = settingsRepo.isManualReset.first()
+                val activeDate = if (isManual) {
+                    settingsRepo.activeLogDate.first() ?: LocalDate.now().toString()
+                } else {
+                    LocalDate.now().toString()
+                }
+
+                repo.logIncrement(user.uid, activeDate, selectedId)
                 TabakWidget().update(context, glanceId)
             } catch (e: Exception) {}
         }

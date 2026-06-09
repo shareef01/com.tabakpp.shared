@@ -1,8 +1,44 @@
 <resources>
     <string name="app_name">tabak++</string>
-    <string name="tracker_label">Today</string>
-    <string name="history_label">History</string>
-    <string name="settings_label">Settings</string>
+    <string name="tracker_label">Tracker</string>
+    <string name="health_label">Health</string>
+    <string name="history_label">Vault</string>
+    <string name="settings_label">Control</string>
+
+    <string name="app_edition">Premium Edition</string>
+    <string name="app_version">v1.0.4</string>
+
+    <string name="section_configuration">Tracker Configuration</string>
+    <string name="section_economics">Economic Parameters</string>
+    <string name="section_security">Security &amp; Privacy</string>
+    <string name="section_identity">Identity</string>
+    <string name="section_interface">Visual Interface</string>
+    <string name="section_data">Data Management</string>
+    <string name="section_termination">Session Termination</string>
+    <string name="section_info">Application Info</string>
+
+    <string name="label_daily_limit">Daily Limit</string>
+    <string name="label_price_unit">Price per unit ($)</string>
+    <string name="label_vault_lock">Vault Lock</string>
+    <string name="label_biometric_desc">Secure with biometrics</string>
+    <string name="label_alias">Identity alias</string>
+    <string name="label_obsidian_mode">Obsidian Mode</string>
+    <string name="label_dark_desc">Dark thematic interface</string>
+    <string name="label_dashboard_matrix">Dashboard Matrix</string>
+    <string name="label_typo_scale">Typography Scale</string>
+
+    <string name="btn_add_counter">Add New Tracker</string>
+    <string name="btn_update_params">Update Parameters</string>
+    <string name="btn_sync_identity">Sync Identity</string>
+    <string name="btn_export_data">Generate Data Export</string>
+    <string name="btn_terminate">Terminate Session</string>
+    <string name="btn_wipe_vault">Wipe Vault</string>
+    <string name="btn_read_about">Read About</string>
+
+    <string name="msg_unlocked">Vault Unlocked</string>
+    <string name="msg_locked">Vault Locked</string>
+    <string name="msg_auth_required">Authentication required</string>
+
     <string name="add_counter">Add Counter</string>
     <string name="edit_counter">Edit Counter</string>
     <string name="delete_account">Delete Account</string>
@@ -10,6 +46,7 @@
     <string name="confirm_action">Confirm Action</string>
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
+
     <string name="shortcut_short">Log</string>
     <string name="shortcut_long">Quick Log Cigarette</string>
 </resources>

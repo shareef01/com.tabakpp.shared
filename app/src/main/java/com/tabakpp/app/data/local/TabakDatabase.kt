@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [CounterConfigEntity::class, DailyLogEntity::class, LogEventEntity::class],
-    version = 1,
+    version = 5,
     exportSchema = false
 )
 abstract class TabakDatabase : RoomDatabase() {
