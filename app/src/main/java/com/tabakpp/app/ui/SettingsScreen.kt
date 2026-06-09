@@ -18,14 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.*
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
-import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
 import com.tabakpp.app.R
 import com.tabakpp.app.data.*
@@ -36,28 +32,24 @@ import com.tabakpp.app.ui.theme.*
 import com.tabakpp.app.viewmodel.AuthState
 import com.tabakpp.app.viewmodel.MainViewModel
 import com.tabakpp.app.viewmodel.UiMessage
-import com.tabakpp.app.ui.AboutDialog
-import com.tabakpp.app.ui.MessageBanner
-import com.tabakpp.app.ui.SCard
-import com.tabakpp.app.ui.SBtn
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
 @Composable
 fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
-    val msg by vm.message.collectAsState()
-    val authState by vm.authState.collectAsState()
-    val isDark by vm.isDarkMode.collectAsState()
-    val fontScale by vm.fontScale.collectAsState()
-    val configs by vm.counterConfigs.collectAsState()
-    val widgetCounterId by vm.widgetCounterId.collectAsState()
-    val dashboardLayout by vm.dashboardLayout.collectAsState()
-    val costPerUnit by vm.costPerUnit.collectAsState()
-    val isBiometricEnabled by vm.isBiometricEnabled.collectAsState()
-    val isManualReset by vm.isManualReset.collectAsState()
-    val accentColorHex by vm.accentColor.collectAsState()
-    val userGoal by vm.userGoal.collectAsState()
-    val profileImageUri by vm.profileImageUri.collectAsState()
+    val msg: UiMessage by vm.message.collectAsState()
+    val authState: AuthState by vm.authState.collectAsState()
+    val isDark: Boolean by vm.isDarkMode.collectAsState()
+    val fontScale: Float by vm.fontScale.collectAsState()
+    val configs: List<CounterConfig> by vm.counterConfigs.collectAsState()
+    val widgetCounterId: String by vm.widgetCounterId.collectAsState()
+    val dashboardLayout: DashboardLayout by vm.dashboardLayout.collectAsState()
+    val costPerUnit: Float by vm.costPerUnit.collectAsState()
+    val isManualReset: Boolean by vm.isManualReset.collectAsState()
+    val accentColorHex: String? by vm.accentColor.collectAsState()
+    val userGoal: String by vm.userGoal.collectAsState()
+    val profileImageUri: String? by vm.profileImageUri.collectAsState()
     
     var name by remember { mutableStateOf("") }
     var tempGoal by remember { mutableStateOf("") }
@@ -183,7 +175,18 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
                     Text("Night Owl Mode", fontWeight = FontWeight.Black, color = TextMain, fontSize = 16.sp)
                     Text("Manually start new day", fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                 }
-                Switch(checked = isManualReset, onCheckedChange = { vm.setManualReset(it) }, colors = SwitchDefaults.colors(checkedThumbColor = Accent, checkedTrackColor = Accent.copy(alpha = 0.5f)))
+                Switch(
+                    checked = isManualReset, 
+                    onCheckedChange = { vm.setManualReset(it) }, 
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Accent,
+                        checkedTrackColor = Accent.copy(alpha = 0.38f),
+                        uncheckedThumbColor = TextDim,
+                        uncheckedTrackColor = BorderMid.copy(alpha = 0.5f),
+                        checkedBorderColor = Color.Transparent,
+                        uncheckedBorderColor = Color.Transparent
+                    )
+                )
             }
         }
 
@@ -193,7 +196,18 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
                     Text("Obsidian Mode", fontWeight = FontWeight.Black, color = TextMain, fontSize = 16.sp)
                     Text("Dark thematic interface", fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                 }
-                Switch(checked = isDark, onCheckedChange = { vm.toggleDarkMode(it) }, colors = SwitchDefaults.colors(checkedThumbColor = Accent))
+                Switch(
+                    checked = isDark, 
+                    onCheckedChange = { vm.toggleDarkMode(it) }, 
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Accent,
+                        checkedTrackColor = Accent.copy(alpha = 0.38f),
+                        uncheckedThumbColor = TextDim,
+                        uncheckedTrackColor = BorderMid.copy(alpha = 0.5f),
+                        checkedBorderColor = Color.Transparent,
+                        uncheckedBorderColor = Color.Transparent
+                    )
+                )
             }
             Spacer(Modifier.height(24.dp))
             Column {
@@ -214,8 +228,43 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
                 Text("Optimize screen real estate", fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    FilterChip(selected = dashboardLayout == DashboardLayout.LARGE, onClick = { vm.setDashboardLayout(DashboardLayout.LARGE) }, label = { Text("STANDARD", fontWeight = FontWeight.Black, fontSize = 10.sp) }, shape = RoundedCornerShape(10.dp))
-                    FilterChip(selected = dashboardLayout == DashboardLayout.COMPACT, onClick = { vm.setDashboardLayout(DashboardLayout.COMPACT) }, label = { Text("MATRIX (2x2)", fontWeight = FontWeight.Black, fontSize = 10.sp) }, shape = RoundedCornerShape(10.dp))
+                    val chipColors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Accent.copy(alpha = 0.15f),
+                        selectedLabelColor = Accent,
+                        selectedLeadingIconColor = Accent,
+                        containerColor = BgPanel,
+                        labelColor = TextMuted
+                    )
+                    FilterChip(
+                        selected = dashboardLayout == DashboardLayout.LARGE, 
+                        onClick = { vm.setDashboardLayout(DashboardLayout.LARGE) }, 
+                        label = { Text("STANDARD", fontWeight = FontWeight.Black, fontSize = 10.sp) }, 
+                        shape = RoundedCornerShape(10.dp),
+                        colors = chipColors,
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = dashboardLayout == DashboardLayout.LARGE,
+                            borderColor = BorderSubtle,
+                            selectedBorderColor = Accent.copy(alpha = 0.5f),
+                            borderWidth = 1.dp,
+                            selectedBorderWidth = 1.5.dp
+                        )
+                    )
+                    FilterChip(
+                        selected = dashboardLayout == DashboardLayout.COMPACT, 
+                        onClick = { vm.setDashboardLayout(DashboardLayout.COMPACT) }, 
+                        label = { Text("MATRIX (2x2)", fontWeight = FontWeight.Black, fontSize = 10.sp) }, 
+                        shape = RoundedCornerShape(10.dp),
+                        colors = chipColors,
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = dashboardLayout == DashboardLayout.COMPACT,
+                            borderColor = BorderSubtle,
+                            selectedBorderColor = Accent.copy(alpha = 0.5f),
+                            borderWidth = 1.dp,
+                            selectedBorderWidth = 1.5.dp
+                        )
+                    )
                 }
             }
             Spacer(Modifier.height(24.dp))
@@ -224,7 +273,19 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
                     Text("Typography Scale", fontWeight = FontWeight.Black, color = TextMain, modifier = Modifier.weight(1f), fontSize = 16.sp)
                     Text("${(fontScale * 100).toInt()}%", fontSize = 13.sp, color = Accent, fontWeight = FontWeight.Black)
                 }
-                Slider(value = fontScale, onValueChange = { vm.updateFontSize(it) }, valueRange = 0.85f..1.3f, steps = 3, colors = SliderDefaults.colors(thumbColor = Accent, activeTrackColor = Accent))
+                Slider(
+                    value = fontScale, 
+                    onValueChange = { vm.updateFontSize(it) }, 
+                    valueRange = 0.85f..1.3f, 
+                    steps = 3, 
+                    colors = SliderDefaults.colors(
+                        thumbColor = Accent, 
+                        activeTrackColor = Accent,
+                        inactiveTrackColor = BorderSubtle,
+                        activeTickColor = AccentFg.copy(alpha = 0.5f),
+                        inactiveTickColor = TextDim
+                    )
+                )
             }
         }
 
@@ -279,7 +340,7 @@ fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
                             onCheckedChange = { tempExclude = it }, 
                             colors = CheckboxDefaults.colors(
                                 checkedColor = Accent,
-                                uncheckedColor = TextDim,
+                                uncheckedColor = BorderMid,
                                 checkmarkColor = AccentFg
                             )
                         )
@@ -350,8 +411,18 @@ fun AddCounterDialog(onDismiss: () -> Unit, onAdd: (String, Int, CounterType, Fl
                             label = { Text(t.name.replace("_", " ").uppercase(), fontSize = 9.sp, fontWeight = FontWeight.Black) }, 
                             shape = RoundedCornerShape(10.dp),
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Accent.copy(alpha = 0.2f),
-                                selectedLabelColor = Accent
+                                selectedContainerColor = Accent.copy(alpha = 0.15f),
+                                selectedLabelColor = Accent,
+                                containerColor = BgBase.copy(alpha = 0.4f),
+                                labelColor = TextMuted
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = type == t,
+                                borderColor = BorderSubtle,
+                                selectedBorderColor = Accent.copy(alpha = 0.5f),
+                                borderWidth = 1.dp,
+                                selectedBorderWidth = 1.5.dp
                             )
                         )
                     }
@@ -369,7 +440,7 @@ fun AddCounterDialog(onDismiss: () -> Unit, onAdd: (String, Int, CounterType, Fl
                         onCheckedChange = { exclude = it }, 
                         colors = CheckboxDefaults.colors(
                             checkedColor = Accent,
-                            uncheckedColor = TextDim,
+                            uncheckedColor = BorderMid,
                             checkmarkColor = AccentFg
                         )
                     )

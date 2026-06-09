@@ -3,6 +3,7 @@ package com.tabakpp.app.ui.theme
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
@@ -105,7 +106,15 @@ fun TabakTheme(
     }
 
     val baseColors = if (isDark) DarkTabakColors else LightTabakColors
-    val colors = baseColors.copy(accent = finalAccent)
+    
+    // Calculate contrast foreground if custom accent is used
+    val finalAccentFg = if (accentColorHex != null) {
+        if (finalAccent.luminance() > 0.5f) Color(0xFF0C0C00) else Color.White
+    } else {
+        baseColors.accentFg
+    }
+
+    val colors = baseColors.copy(accent = finalAccent, accentFg = finalAccentFg)
 
     val currentDensity = LocalDensity.current
     val customDensity = remember(currentDensity, fontScale) {
