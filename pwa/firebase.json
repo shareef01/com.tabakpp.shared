@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "tabakpp",
     "public": "dist",
     "ignore": [
       "firebase.json",
