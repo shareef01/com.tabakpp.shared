@@ -172,7 +172,7 @@ const TrackerScreen = ({ metrics, configs, todayLog, onIncrement, onDecrement })
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {configs.sort((a, b) => a.displayOrder - b.displayOrder).map((config, index) => (
         <StaggeredItem key={config.id} index={index + 1}>
-          <CounterCard config={config} count={todayLog.counts[config.id] || 0} onIncrement={onIncrement} onDecrement={handleDecrement} />
+          <CounterCard config={config} count={todayLog.counts[config.id] || 0} onIncrement={onIncrement} onDecrement={onDecrement} />
         </StaggeredItem>
       ))}
     </div>
@@ -193,24 +193,43 @@ const CounterCard = ({ config, count, onIncrement, onDecrement }) => {
       </div>
 
       {/* Advanced Burn Visual */}
-      <div className={cn("relative w-full h-5 bg-white/[0.03] rounded-full overflow-hidden border border-white/5 mb-12", isLimit && "bg-danger/5")}>
+      <div className={cn("relative w-full h-6 bg-white/[0.03] rounded-full overflow-hidden border border-white/5 mb-12 shadow-inner", isLimit && "bg-danger/5")}>
+         {/* White body that decreases as count increases */}
          <motion.div
             animate={{ width: `${(1 - progress) * 100}%` }}
-            className={cn("absolute right-0 h-full", isLimit ? "bg-danger/20" : "bg-white/80")}
+            className={cn("absolute right-0 h-full bg-white transition-colors", isLimit && "bg-danger/20")}
+            initial={false}
          />
+
+         {/* The Ember - At the tip of the burning white body */}
          {count > 0 && !isLimit && (
            <motion.div
              animate={{ right: `${(1 - progress) * 100}%` }}
-             className="absolute top-0 bottom-0 w-4 translate-x-1/2 z-10"
-             style={{ background: 'radial-gradient(circle, #FF3D00 0%, transparent 80%)' }}
+             className="absolute top-1/2 -translate-y-1/2 w-6 h-full z-20"
+             style={{
+                marginRight: '-12px',
+                background: 'radial-gradient(circle at center, #FF3D00 20%, #FFB74D 50%, transparent 80%)'
+             }}
            >
+              {/* Core Flicker */}
               <motion.div
-                animate={{ opacity: [0.6, 1, 0.6], scale: [1, 1.2, 1] }}
+                animate={{
+                  opacity: [0.7, 1, 0.7],
+                  scale: [0.9, 1.2, 0.9],
+                  boxShadow: [
+                    '0 0 10px #FF3D00',
+                    '0 0 25px #FFB74D',
+                    '0 0 10px #FF3D00'
+                  ]
+                }}
                 transition={{ repeat: Infinity, duration: 0.2 }}
-                className="w-full h-full bg-[#FF3D00] blur-[2px] rounded-full"
+                className="w-2 h-full bg-[#FF3D00] mx-auto rounded-full"
               />
            </motion.div>
          )}
+
+         {/* The "Burned" part (background of the bar) */}
+         <div className="absolute inset-0 bg-neutral-900 -z-10" />
       </div>
 
       <motion.div key={count} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-8xl font-[900] tracking-tighter text-center mb-10 leading-none">
