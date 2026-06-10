@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusDirection
@@ -28,6 +27,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.*
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
@@ -40,8 +40,8 @@ enum class AuthForm { LOGIN, SIGNUP, FORGOT }
 @Composable
 fun AuthScreen(viewModel: MainViewModel) {
     var form by remember { mutableStateOf(AuthForm.LOGIN) }
-    val message by viewModel.message.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val message by viewModel.message.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val storagePermissionLauncher = rememberLauncherForActivityResult(
@@ -106,13 +106,13 @@ fun CigaretteLogo(modifier: Modifier = Modifier) {
             Box(Modifier.offset(y = (-50).dp)) {
                 repeat(4) { i ->
                     val alpha by rememberInfiniteTransition(label = "s").animateFloat(0.1f, 0.3f, infiniteRepeatable(tween(2000 + i * 200), RepeatMode.Reverse), label = "alpha")
-                    Box(Modifier.offset(x = (i * 14 - 18).dp, y = (i * 6).dp).size(3.dp, 40.dp).blur(8.dp).background(Accent.copy(alpha = alpha), CircleShape))
+                    Box(Modifier.offset(x = (i * 14 - 18).dp, y = (i * 6).dp).size(24.dp, 60.dp).graphicsLayer { this.alpha = alpha }.background(Brush.radialGradient(listOf(Accent.copy(alpha = 0.6f), Color.Transparent)), CircleShape))
                 }
             }
             
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val flicker by rememberInfiniteTransition(label = "e").animateFloat(0.8f, 1.2f, infiniteRepeatable(tween(150), RepeatMode.Reverse), label = "flicker")
-                Box(Modifier.size(16.dp).blur(8.dp).graphicsLayer { scaleX = flicker; scaleY = flicker }.background(Accent, CircleShape))
+                Box(Modifier.size(24.dp).graphicsLayer { scaleX = flicker; scaleY = flicker }.background(Brush.radialGradient(listOf(Accent, Color.Transparent)), CircleShape))
                 Box(Modifier.size(120.dp, 18.dp).clip(RoundedCornerShape(topStart = 9.dp, bottomStart = 9.dp)).background(Color(0xFFF5F5F5)))
                 Box(Modifier.size(45.dp, 18.dp).clip(RoundedCornerShape(topEnd = 6.dp, bottomEnd = 6.dp)).background(Color(0xFFD97706)))
             }

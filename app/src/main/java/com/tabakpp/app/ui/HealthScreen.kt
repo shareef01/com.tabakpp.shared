@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -24,6 +23,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tabakpp.app.domain.RecoveryMilestone
 import com.tabakpp.app.ui.theme.*
 import com.tabakpp.app.viewmodel.MainViewModel
@@ -32,7 +32,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun HealthScreen(vm: MainViewModel) {
-    val milestones by vm.recoveryMilestones.collectAsState()
+    val milestones by vm.recoveryMilestones.collectAsStateWithLifecycle()
     var infoTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
     val listState = rememberLazyListState()
 
@@ -104,16 +104,37 @@ private fun HealthHeader(onInfo: () -> Unit) {
 
 @Composable
 private fun StaggeredHealthItem(index: Int, content: @Composable () -> Unit) {
-    val visible = remember { MutableTransitionState(initialState = false) }.apply { targetState = true }
-    val delayAmount = remember(index) { index * 45L }
-    LaunchedEffect(Unit) { delay(delayAmount.milliseconds) }
-    AnimatedVisibility(visibleState = visible, enter = fadeIn(tween(450)) + slideInVertically(tween(450)) { it / 5 }, label = "h_stagger") { content() }
+    var visible by remember { mutableStateOf(false) }
+    val delayAmount = remember(index) { index * 40L }
+    
+    val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(500), label = "alpha")
+    val translateY by animateFloatAsState(if (visible) 0f else 40f, tween(500, easing = LinearOutSlowInEasing), label = "y")
+
+    LaunchedEffect(Unit) {
+        delay(delayAmount)
+        visible = true
+    }
+
+    Box(Modifier.graphicsLayer {
+        this.alpha = alpha
+        this.translationY = translateY
+    }) {
+        content()
+    }
 }
 
 @Composable
 private fun RecoveryCard(milestone: RecoveryMilestone, onInfo: () -> Unit) {
     val isComplete = milestone.progress >= 1f
     val accentColor = if (isComplete) SuccessColor else Accent
+    
+    val infinitePulse = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infinitePulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(tween(400, easing = LinearEasing), RepeatMode.Reverse),
+        label = "p"
+    )
     
     Card(
         modifier = Modifier.fillMaxWidth().shadow(TabakDesign.cardElevation, RoundedCornerShape(TabakDesign.cornerLarge), ambientColor = Color.Black.copy(alpha = TabakDesign.shadowAlpha)),
@@ -135,9 +156,8 @@ private fun RecoveryCard(milestone: RecoveryMilestone, onInfo: () -> Unit) {
                     letterSpacing = (-1).sp,
                     modifier = Modifier.graphicsLayer {
                         if (!isComplete && (milestone.progress > 0)) {
-                            val pulse = 1f + 0.05f * kotlin.math.sin(System.currentTimeMillis() / 400.0).toFloat()
-                            scaleX = pulse
-                            scaleY = pulse
+                            scaleX = pulseScale
+                            scaleY = pulseScale
                         }
                     }
                 )
@@ -153,7 +173,7 @@ private fun RecoveryCard(milestone: RecoveryMilestone, onInfo: () -> Unit) {
                     val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
                     val shimmerX by infiniteTransition.animateFloat(initialValue = 0f, targetValue = 1f, animationSpec = infiniteRepeatable(tween(2000, easing = LinearEasing)), label = "s")
                     Box(Modifier.fillMaxWidth(animatedProgress).fillMaxHeight()) {
-                        Box(Modifier.align(Alignment.CenterEnd).size(24.dp).offset(x = 12.dp).blur(12.dp).background(accentColor.copy(alpha = 0.5f), CircleShape))
+                        Box(Modifier.align(Alignment.CenterEnd).size(24.dp).offset(x = 12.dp).background(Brush.radialGradient(listOf(accentColor.copy(alpha = 0.5f), Color.Transparent)), CircleShape))
                         Box(Modifier.fillMaxWidth().fillMaxHeight().background(Brush.horizontalGradient(0.0f to Color.Transparent, shimmerX to Color.White.copy(alpha = 0.12f), (shimmerX + 0.15f).coerceAtMost(1f) to Color.Transparent)))
                     }
                 }

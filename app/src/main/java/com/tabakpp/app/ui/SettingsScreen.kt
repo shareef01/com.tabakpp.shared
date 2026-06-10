@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.*
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.tabakpp.app.R
 import com.tabakpp.app.data.*
@@ -38,18 +39,18 @@ import java.io.File
 
 @Composable
 fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
-    val msg: UiMessage by vm.message.collectAsState()
-    val authState: AuthState by vm.authState.collectAsState()
-    val isDark: Boolean by vm.isDarkMode.collectAsState()
-    val fontScale: Float by vm.fontScale.collectAsState()
-    val configs: List<CounterConfig> by vm.counterConfigs.collectAsState()
-    val widgetCounterId: String by vm.widgetCounterId.collectAsState()
-    val dashboardLayout: DashboardLayout by vm.dashboardLayout.collectAsState()
-    val costPerUnit: Float by vm.costPerUnit.collectAsState()
-    val isManualReset: Boolean by vm.isManualReset.collectAsState()
-    val accentColorHex: String? by vm.accentColor.collectAsState()
-    val userGoal: String by vm.userGoal.collectAsState()
-    val profileImageUri: String? by vm.profileImageUri.collectAsState()
+    val msg: UiMessage by vm.message.collectAsStateWithLifecycle()
+    val authState: AuthState by vm.authState.collectAsStateWithLifecycle()
+    val isDark: Boolean by vm.isDarkMode.collectAsStateWithLifecycle()
+    val fontScale: Float by vm.fontScale.collectAsStateWithLifecycle()
+    val configs: List<CounterConfig> by vm.counterConfigs.collectAsStateWithLifecycle()
+    val widgetCounterId: String by vm.widgetCounterId.collectAsStateWithLifecycle()
+    val dashboardLayout: DashboardLayout by vm.dashboardLayout.collectAsStateWithLifecycle()
+    val costPerUnit: Float by vm.costPerUnit.collectAsStateWithLifecycle()
+    val isManualReset: Boolean by vm.isManualReset.collectAsStateWithLifecycle()
+    val accentColorHex: String? by vm.accentColor.collectAsStateWithLifecycle()
+    val userGoal: String by vm.userGoal.collectAsStateWithLifecycle()
+    val profileImageUri: String? by vm.profileImageUri.collectAsStateWithLifecycle()
     
     var name by remember { mutableStateOf("") }
     var tempGoal by remember { mutableStateOf("") }

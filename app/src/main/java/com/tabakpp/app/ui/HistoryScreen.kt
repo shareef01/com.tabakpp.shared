@@ -29,6 +29,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.*
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.DailyLog
 import com.tabakpp.app.ui.theme.*
@@ -49,10 +50,10 @@ data class ChartPoint(val value: Int, val label: String)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(vm: MainViewModel) {
-    val logs by vm.logs.collectAsState()
-    val configs by vm.counterConfigs.collectAsState()
-    val heatmap by vm.hourlyHeatmap.collectAsState()
-    val isLoading by vm.isLoading.collectAsState()
+    val logs by vm.logs.collectAsStateWithLifecycle()
+    val configs by vm.counterConfigs.collectAsStateWithLifecycle()
+    val heatmap by vm.hourlyHeatmap.collectAsStateWithLifecycle()
+    val isLoading by vm.isLoading.collectAsStateWithLifecycle()
     
     var selectedCounterId by remember { mutableStateOf("cigarettes") }
     var timeframe by remember { mutableStateOf(ChartTimeframe.DAY) }
@@ -167,15 +168,22 @@ fun HistoryScreen(vm: MainViewModel) {
 
 @Composable
 private fun StaggeredHistoryItem(index: Int, content: @Composable () -> Unit) {
-    val visible = remember { MutableTransitionState(false) }.apply { targetState = true }
-    val delay = remember(index) { index * 40L }
-    LaunchedEffect(Unit) { delay(delay) }
-    AnimatedVisibility(
-        visibleState = visible,
-        enter = fadeIn(tween(400, easing = LinearOutSlowInEasing)) + 
-                slideInVertically(tween(400, easing = LinearOutSlowInEasing)) { it / 6 },
-        label = "history_stagger"
-    ) { content() }
+    var visible by remember { mutableStateOf(false) }
+    val delayAmount = remember(index) { index * 40L }
+    LaunchedEffect(Unit) { 
+        delay(delayAmount)
+        visible = true
+    }
+    
+    val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(500), label = "alpha")
+    val translateY by animateFloatAsState(if (visible) 0f else 40f, tween(500, easing = LinearOutSlowInEasing), label = "y")
+
+    Box(Modifier.graphicsLayer {
+        this.alpha = alpha
+        this.translationY = translateY
+    }) {
+        content()
+    }
 }
 
 @Composable
@@ -237,9 +245,9 @@ private fun HeatmapSection(heatmap: Map<Int, Int>, onInfo: () -> Unit) {
 
 @Composable
 private fun InsightsRow(vm: MainViewModel, onInfo: (String, String) -> Unit) {
-    val totalCost by vm.totalSavings.collectAsState()
-    val lifeLost by vm.lifeLostMinutes.collectAsState()
-    val currentStreak by vm.currentStreak.collectAsState()
+    val totalCost by vm.totalSavings.collectAsStateWithLifecycle()
+    val lifeLost by vm.lifeLostMinutes.collectAsStateWithLifecycle()
+    val currentStreak by vm.currentStreak.collectAsStateWithLifecycle()
 
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         InsightCard(label = "Streak", value = "$currentStreak", suffix = "days", icon = Icons.Default.Whatshot, modifier = Modifier.weight(1f), color = Color(0xFFF59E0B),

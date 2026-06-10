@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import com.tabakpp.app.ui.*
 import com.tabakpp.app.ui.theme.*
@@ -74,7 +75,7 @@ class MainActivity : FragmentActivity() {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
 
-            TabakTheme(isDark = viewModel.isDarkMode.collectAsState().value, fontScale = viewModel.fontScale.collectAsState().value, accentColorHex = viewModel.accentColor.collectAsState().value) {
+            TabakTheme(isDark = viewModel.isDarkMode.collectAsStateWithLifecycle().value, fontScale = viewModel.fontScale.collectAsStateWithLifecycle().value, accentColorHex = viewModel.accentColor.collectAsStateWithLifecycle().value) {
                 Surface(Modifier.fillMaxSize(), color = BgBase) {
                     TabakApp(viewModel)
                 }
@@ -85,7 +86,7 @@ class MainActivity : FragmentActivity() {
 
 @Composable
 fun TabakApp(viewModel: MainViewModel) {
-    val authState by viewModel.authState.collectAsState()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
     Crossfade(targetState = authState, label = "auth", animationSpec = tween(600)) { state ->
         when (state) {
             is AuthState.Loading -> LoadingScreen()
@@ -101,7 +102,7 @@ fun MainApp(viewModel: MainViewModel) {
     val screens = Tab.entries
     val pagerState = rememberPagerState { screens.size }
     val scope = rememberCoroutineScope()
-    val logs by viewModel.logs.collectAsState()
+    val logs by viewModel.logs.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
     LaunchedEffect(pagerState.currentPage) { haptic.performHapticFeedback(HapticFeedbackType.LongPress) }
 
@@ -134,10 +135,30 @@ fun MainApp(viewModel: MainViewModel) {
                     }
                 }
             }
-            val currentTab = screens[pagerState.currentPage]; val headerAlpha = (1f + (headerOffsetHeightPx.value / (totalHeaderHeightPx - statusBarHeightPx))).coerceIn(0f, 1f)
-            Column(modifier = Modifier.fillMaxWidth().height(140.dp).offset { IntOffset(x = 0, y = headerOffsetHeightPx.value.roundToInt()) }.background(Brush.verticalGradient(listOf(BgBase, BgBase.copy(alpha = 0.95f), BgBase.copy(alpha = 0.6f), Color.Transparent))).statusBarsPadding().padding(horizontal = 24.dp), verticalArrangement = Arrangement.Center) {
+            val currentTab = screens[pagerState.currentPage]
+            val scrollThreshold = totalHeaderHeightPx - statusBarHeightPx
+            
+            val bgBase = BgBase
+            val headerBrush = remember(bgBase) {
+                Brush.verticalGradient(listOf(bgBase, bgBase.copy(alpha = 0.95f), bgBase.copy(alpha = 0.6f), Color.Transparent))
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .offset { IntOffset(x = 0, y = headerOffsetHeightPx.value.roundToInt()) }
+                    .background(headerBrush)
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp), 
+                verticalArrangement = Arrangement.Center
+            ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.graphicsLayer { alpha = headerAlpha; translationY = (1f - headerAlpha) * (-20f) }) {
+                    Column(Modifier.graphicsLayer { 
+                        val alpha = (1f + (headerOffsetHeightPx.value / scrollThreshold)).coerceIn(0f, 1f)
+                        this.alpha = alpha
+                        this.translationY = (1f - alpha) * (-20f) 
+                    }) {
                         Text(text = stringResource(R.string.app_name), fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Black, fontSize = 32.sp, color = TextMain, letterSpacing = (-1.5).sp)
                         Text(text = stringResource(currentTab.labelRes).lowercase(), fontFamily = FontFamily.SansSerif, fontSize = 12.sp, color = Accent, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                     }

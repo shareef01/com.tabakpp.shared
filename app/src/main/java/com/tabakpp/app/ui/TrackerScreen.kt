@@ -14,18 +14,22 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.*
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.tabakpp.app.data.DashboardLayout
 import com.tabakpp.app.ui.theme.*
@@ -38,21 +42,21 @@ import java.time.format.DateTimeFormatter
 
 @Composable
 fun TrackerScreen(vm: MainViewModel) {
-    val todayLog by vm.todayLog.collectAsState()
-    val configs by vm.counterConfigs.collectAsState()
-    val layout by vm.dashboardLayout.collectAsState()
-    val totalDailyCount by vm.totalDailyCount.collectAsState()
-    val totalDailyLimit by vm.totalDailyLimit.collectAsState()
-    val coachMessage by vm.coachMessage.collectAsState()
-    val userRank by vm.userRank.collectAsState()
-    val userXP by vm.userXP.collectAsState()
-    val userGoal by vm.userGoal.collectAsState()
-    val profileImageUri by vm.profileImageUri.collectAsState()
-    val isManualReset by vm.isManualReset.collectAsState()
-    val activeDate by vm.activeDate.collectAsState()
+    val todayLog by vm.todayLog.collectAsStateWithLifecycle()
+    val configs by vm.counterConfigs.collectAsStateWithLifecycle()
+    val layout by vm.dashboardLayout.collectAsStateWithLifecycle()
+    val totalDailyCount by vm.totalDailyCount.collectAsStateWithLifecycle()
+    val totalDailyLimit by vm.totalDailyLimit.collectAsStateWithLifecycle()
+    val coachMessage by vm.coachMessage.collectAsStateWithLifecycle()
+    val userRank by vm.userRank.collectAsStateWithLifecycle()
+    val userXP by vm.userXP.collectAsStateWithLifecycle()
+    val userGoal by vm.userGoal.collectAsStateWithLifecycle()
+    val profileImageUri by vm.profileImageUri.collectAsStateWithLifecycle()
+    val isManualReset by vm.isManualReset.collectAsStateWithLifecycle()
+    val activeDate by vm.activeDate.collectAsStateWithLifecycle()
     
-    val totalCount by remember { derivedStateOf { totalDailyCount } }
-    val totalLimit by remember { derivedStateOf { totalDailyLimit } }
+    val totalCount = totalDailyCount
+    val totalLimit = totalDailyLimit
     
     var infoTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showResetDialog by remember { mutableStateOf(false) }
@@ -164,15 +168,21 @@ fun TrackerScreen(vm: MainViewModel) {
 
 @Composable
 private fun StaggeredEntry(index: Int, content: @Composable () -> Unit) {
-    val visible = remember { MutableTransitionState(false) }.apply { targetState = true }
-    val delay = remember(index) { index * 45L }
-    LaunchedEffect(Unit) { kotlinx.coroutines.delay(delay) }
-    AnimatedVisibility(
-        visibleState = visible,
-        enter = fadeIn(tween(450, easing = LinearOutSlowInEasing)) + 
-                slideInVertically(tween(450, easing = LinearOutSlowInEasing)) { it / 6 },
-        label = "stagger"
-    ) { content() }
+    var visible by remember { mutableStateOf(false) }
+    val delay = remember(index) { index * 40L }
+    LaunchedEffect(Unit) { 
+        kotlinx.coroutines.delay(delay)
+        visible = true
+    }
+    val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(500), label = "alpha")
+    val translateY by animateFloatAsState(if (visible) 0f else 40f, tween(500, easing = LinearOutSlowInEasing), label = "y")
+    
+    Box(Modifier.graphicsLayer {
+        this.alpha = alpha
+        this.translationY = translateY
+    }) {
+        content()
+    }
 }
 
 @Composable
@@ -315,17 +325,29 @@ private fun GlobalCigaretteHeader(
             modifier = Modifier.height(14.dp).width(240.dp).clip(CircleShape).background(TextMain.copy(alpha = 0.05f)).border(0.5.dp, BorderSubtle, CircleShape),
             contentAlignment = Alignment.CenterStart
         ) {
-            if (totalCount >= totalLimit) {
-                Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(DangerColor.copy(alpha = 0.8f), DangerColor))))
-            } else {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    Spacer(Modifier.weight(animatedProgress.coerceAtLeast(0.0001f)))
+            val dangerColor = DangerColor
+            Box(Modifier.fillMaxSize().drawBehind {
+                if (totalCount >= totalLimit) {
+                    drawRect(Brush.horizontalGradient(listOf(dangerColor.copy(alpha = 0.8f), dangerColor)))
+                } else {
+                    val splitX = size.width * animatedProgress
+                    // Draw filled portion with flicker
                     if (totalCount > 0) {
-                        Box(modifier = Modifier.fillMaxHeight().width(6.dp).graphicsLayer { scaleY = flickerAlpha; alpha = flickerAlpha }.background(Brush.horizontalGradient(listOf(Color(0xFFFF3D00), Color(0xFFFFB74D)))))
+                        drawRect(
+                            brush = Brush.horizontalGradient(listOf(Color(0xFFFF3D00), Color(0xFFFFB74D))),
+                            topLeft = Offset(splitX - 6.dp.toPx(), 0f),
+                            size = Size(6.dp.toPx(), size.height),
+                            alpha = flickerAlpha
+                        )
                     }
-                    Box(modifier = Modifier.fillMaxHeight().weight((1f - animatedProgress).coerceAtLeast(0.0001f)).background(Color.White))
+                    // Draw background for remaining part
+                    drawRect(
+                        color = Color.White,
+                        topLeft = Offset(splitX, 0f),
+                        size = Size(size.width - splitX, size.height)
+                    )
                 }
-            }
+            })
         }
         
         Spacer(Modifier.height(12.dp))
@@ -342,7 +364,6 @@ private fun GlobalCigaretteHeader(
 private fun CounterCard(config: CounterConfig, count: Int, vm: MainViewModel, isCompact: Boolean) {
     val isLimitReached = count >= config.limit
     val progress by remember(count, config.limit) { derivedStateOf { (count / config.limit.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f) } }
-    val animatedProgress by animateFloatAsState(targetValue = progress, animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy), label = "progress")
     val haptic = LocalHapticFeedback.current
     
     var showEditDialog by remember { mutableStateOf(false) }
@@ -367,10 +388,10 @@ private fun CounterCard(config: CounterConfig, count: Int, vm: MainViewModel, is
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     when (config.type) {
-                        CounterType.CIGARETTE -> CigaretteVisual(count, config.limit, animatedProgress, isCompact)
-                        CounterType.JOINT_KING -> JointVisual(count, config.limit, animatedProgress, isKing = true, isCompact)
-                        CounterType.JOINT_QUEEN -> JointVisual(count, config.limit, animatedProgress, isKing = false, isCompact)
-                        CounterType.SIMPLE -> ModernRingVisual(count, config.limit, animatedProgress, size = if (isCompact) 120.dp else 220.dp)
+                        CounterType.CIGARETTE -> CigaretteVisual(count, config.limit, progress, isCompact)
+                        CounterType.JOINT_KING -> JointVisual(count, config.limit, progress, isKing = true, isCompact)
+                        CounterType.JOINT_QUEEN -> JointVisual(count, config.limit, progress, isKing = false, isCompact)
+                        CounterType.SIMPLE -> ModernRingVisual(count, config.limit, progress, size = if (isCompact) 120.dp else 220.dp)
                     }
                     Spacer(Modifier.height(if (isCompact) 32.dp else 64.dp))
                     AnimatedContent(targetState = count, transitionSpec = { (fadeIn(tween(250)) + scaleIn(initialScale = 0.7f)).togetherWith(fadeOut(tween(250)) + scaleOut(targetScale = 1.3f)) }, label = "count") { c ->
@@ -411,16 +432,35 @@ private fun CounterCard(config: CounterConfig, count: Int, vm: MainViewModel, is
 }
 
 @Composable
-private fun ModernRingVisual(count: Int, limit: Int, animatedProgress: Float, size: Dp) {
+private fun ModernRingVisual(count: Int, limit: Int, progress: Float, size: Dp) {
     val isLimitReached = count >= limit
+    val animatedProgress by animateFloatAsState(targetValue = progress, animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy), label = "progress")
     val infiniteTransition = rememberInfiniteTransition(label = "ring_glow")
     val glowAlpha by infiniteTransition.animateFloat(0.3f, 0.6f, infiniteRepeatable(tween(1200), RepeatMode.Reverse), label = "g")
+    val accentColor = Accent
+    val dangerColor = DangerColor
 
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(size)) {
         CircularProgressIndicator(progress = { 1f }, modifier = Modifier.fillMaxSize(), color = TextMain.copy(alpha = 0.05f), strokeWidth = (size.value / 20).dp, strokeCap = StrokeCap.Round)
-        CircularProgressIndicator(progress = { animatedProgress }, modifier = Modifier.fillMaxSize(), color = if (isLimitReached) DangerColor else Accent, strokeWidth = (size.value / 20).dp, strokeCap = StrokeCap.Round)
+        CircularProgressIndicator(progress = { animatedProgress }, modifier = Modifier.fillMaxSize(), color = if (isLimitReached) dangerColor else accentColor, strokeWidth = (size.value / 20).dp, strokeCap = StrokeCap.Round)
         if (count > 0) {
-            CircularProgressIndicator(progress = { animatedProgress }, modifier = Modifier.fillMaxSize().blur(if (isLimitReached) 10.dp else 16.dp).graphicsLayer { alpha = glowAlpha }, color = if (isLimitReached) DangerColor else Accent, strokeWidth = (size.value / 15).dp, strokeCap = StrokeCap.Round)
+            val glowColor = if (isLimitReached) dangerColor else accentColor
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = glowAlpha }
+                    .drawBehind {
+                        drawCircle(
+                            Brush.sweepGradient(
+                                0.0f to Color.Transparent,
+                                animatedProgress to glowColor.copy(alpha = 0.5f),
+                                animatedProgress to Color.Transparent,
+                                1.0f to Color.Transparent
+                            ),
+                            style = Stroke(width = (size.value / 15).dp.toPx(), cap = StrokeCap.Round)
+                        )
+                    }
+            )
         }
     }
 }
@@ -447,40 +487,83 @@ private fun BurnableVisual(
     val infiniteTransition = rememberInfiniteTransition(label = "ember")
     val alpha by infiniteTransition.animateFloat(0.7f, 1f, infiniteRepeatable(tween(500), RepeatMode.Reverse), label = "alpha")
     
+    val roachWidth = if (isCompact) 32.dp else 64.dp
+    val bodyWidth = width - roachWidth
+    val dangerColor = DangerColor
+
     Box(
-        modifier = Modifier.height(height).width(width).clip(RoundedCornerShape(cornerRadius)).background(TextMain.copy(alpha = 0.05f)).border(1.dp, BorderSubtle, RoundedCornerShape(cornerRadius)),
+        modifier = Modifier
+            .height(height)
+            .width(width)
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(TextMain.copy(alpha = 0.05f))
+            .border(1.dp, BorderSubtle, RoundedCornerShape(cornerRadius)),
         contentAlignment = Alignment.CenterStart
     ) {
-        Row(modifier = Modifier.fillMaxSize()) {
-            Box(modifier = Modifier.fillMaxHeight().weight(1f)) {
-                if (isLimitReached) {
-                    Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(DangerColor.copy(alpha = 0.7f), DangerColor))))
-                } else {
-                    Row(modifier = Modifier.fillMaxSize()) {
-                        val leftWeight = progress.coerceAtLeast(0.0001f)
-                        Spacer(modifier = Modifier.weight(leftWeight))
-                        if (count > 0) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Box(modifier = Modifier.fillMaxHeight().width(if (isCompact) 8.dp else 14.dp).graphicsLayer { this.alpha = alpha }.background(Brush.horizontalGradient(emberColors)))
-                                Box(modifier = Modifier.size(if (isCompact) 22.dp else 36.dp).blur(if (isCompact) 12.dp else 20.dp).graphicsLayer { this.alpha = 0.4f * alpha }.background(glowColor, CircleShape))
-                            }
+        // Body and Roach
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Draw Body with Progress
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .width(bodyWidth)
+                    .drawBehind {
+                        if (isLimitReached) {
+                            drawRect(Brush.horizontalGradient(listOf(dangerColor.copy(alpha = 0.7f), dangerColor)))
+                        } else {
+                            val splitX = size.width * progress
+                            // Draw remaining part
+                            drawRect(
+                                brush = Brush.horizontalGradient(colors),
+                                topLeft = Offset(splitX, 0f),
+                                size = Size(size.width - splitX, size.height)
+                            )
                         }
-                        val rightWeight = (1f - progress).coerceAtLeast(0.0001f)
-                        Box(modifier = Modifier.fillMaxHeight().weight(rightWeight).background(Brush.horizontalGradient(colors)))
                     }
+            ) {
+                // Ember (Animating part)
+                if (count > 0 && !isLimitReached) {
+                    Box(
+                        Modifier
+                            .fillMaxHeight()
+                            .width(if (isCompact) 8.dp else 14.dp)
+                            .graphicsLayer {
+                                translationX = (bodyWidth.toPx() * progress) - (size.width / 2)
+                                this.alpha = alpha
+                            }
+                            .background(Brush.horizontalGradient(emberColors))
+                    )
+                    Box(
+                        Modifier
+                            .size(if (isCompact) 22.dp else 36.dp)
+                            .graphicsLayer {
+                                translationX = (bodyWidth.toPx() * progress) - (size.width / 2)
+                                this.alpha = 0.4f * alpha
+                            }
+                            .background(Brush.radialGradient(listOf(glowColor.copy(alpha = 0.8f), Color.Transparent)), CircleShape)
+                    )
                 }
             }
-            Box(modifier = Modifier.fillMaxHeight().width(if (isCompact) 32.dp else 64.dp).background(if (isLimitReached) DangerColor else roachColor))
+            // Roach
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(roachWidth)
+                    .align(Alignment.CenterEnd)
+                    .background(if (isLimitReached) DangerColor else roachColor)
+            )
         }
     }
 }
 
 @Composable
-private fun JointVisual(count: Int, limit: Int, animatedBurnProgress: Float, isKing: Boolean, isCompact: Boolean) {
-    BurnableVisual(count, limit, animatedBurnProgress, isCompact, listOf(Color(0xFFA5D6A7).copy(alpha = 0.9f), Color(0xFFC8E6C9)), listOf(Color(0xFF9C27B0), Color(0xFFE91E63)), Color(0xFFBA68C8), if (isCompact) 130.dp else 280.dp, if (isCompact) (if (isKing) 20.dp else 16.dp) else (if (isKing) 36.dp else 24.dp))
+private fun JointVisual(count: Int, limit: Int, progress: Float, isKing: Boolean, isCompact: Boolean) {
+    val animatedProgress by animateFloatAsState(targetValue = progress, animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy), label = "progress")
+    BurnableVisual(count, limit, animatedProgress, isCompact, listOf(Color(0xFFA5D6A7).copy(alpha = 0.9f), Color(0xFFC8E6C9)), listOf(Color(0xFF9C27B0), Color(0xFFE91E63)), Color(0xFFBA68C8), if (isCompact) 130.dp else 280.dp, if (isCompact) (if (isKing) 20.dp else 16.dp) else (if (isKing) 36.dp else 24.dp))
 }
 
 @Composable
-private fun CigaretteVisual(count: Int, limit: Int, animatedBurnProgress: Float, isCompact: Boolean) {
-    BurnableVisual(count, limit, animatedBurnProgress, isCompact, listOf(Color(0xFFF5F5F5), Color(0xFFFFFFFF)), listOf(Color(0xFFFF3D00), Color(0xFFFFB74D)), Color(0xFFFF3D00), if (isCompact) 120.dp else 260.dp, if (isCompact) 18.dp else 28.dp, Color(0xFFE6A33E).copy(alpha = 0.9f))
+private fun CigaretteVisual(count: Int, limit: Int, progress: Float, isCompact: Boolean) {
+    val animatedProgress by animateFloatAsState(targetValue = progress, animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy), label = "progress")
+    BurnableVisual(count, limit, animatedProgress, isCompact, listOf(Color(0xFFF5F5F5), Color(0xFFFFFFFF)), listOf(Color(0xFFFF3D00), Color(0xFFFFB74D)), Color(0xFFFF3D00), if (isCompact) 120.dp else 260.dp, if (isCompact) 18.dp else 28.dp, Color(0xFFE6A33E).copy(alpha = 0.9f))
 }
