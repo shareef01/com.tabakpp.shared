@@ -120,6 +120,41 @@ class SmokingCalculatorTest {
     }
 
     @Test
+    fun testCalculateSavings() {
+        val logs = listOf(
+            DailyLog(counts = mapOf("cigarettes" to 10, "joint" to 2))
+        )
+        val globalCost = 0.5f
+        // Cigarettes: 10 * 0.5 = 5.0
+        // Joint: 2 * 0 = 0 (config has price 0 in this test setup)
+        // Let's use a setup where joint has a price.
+        val customConfigs = listOf(
+            CounterConfig("cigarettes", "Cigarettes", 10, CounterType.CIGARETTE, pricePerUnit = 1.0f),
+            CounterConfig("joint", "Joint", 5, CounterType.JOINT_KING, pricePerUnit = 2.0f)
+        )
+        assertEquals(14.0f, SmokingCalculator.calculateSavings(logs, customConfigs, 0.5f))
+    }
+
+    @Test
+    fun testCalculateSavings_Excluded() {
+        val logs = listOf(DailyLog(counts = mapOf("cigarettes" to 10)))
+        val customConfigs = listOf(
+            CounterConfig("cigarettes", "Cigarettes", 10, CounterType.CIGARETTE, pricePerUnit = 1.0f, excludeFromEconomics = true)
+        )
+        assertEquals(0f, SmokingCalculator.calculateSavings(logs, customConfigs, 0.5f))
+    }
+
+    @Test
+    fun testCalculateLifeLostMinutes() {
+        val logs = listOf(
+            DailyLog(counts = mapOf("cigarettes" to 5)),
+            DailyLog(counts = mapOf("cigarettes" to 10))
+        )
+        // (5 + 10) * 11 = 165
+        assertEquals(165, SmokingCalculator.calculateLifeLostMinutes(logs))
+    }
+
+    @Test
     fun testCalculateStreak_VeryLongStreak() {
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
         val logs = (0 until 100).map { 
