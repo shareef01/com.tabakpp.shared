@@ -12,10 +12,8 @@ This is a 100% feature-parity web version of the `tabak++` Android app, optimize
 1.  **Environment**: Ensure you have Node.js installed.
 2.  **Setup**:
     ```bash
-    # Create project (if not already done)
-    npm create vite@latest . -- --template react
-    npm install tailwindcss postcss autoprefixer framer-motion firebase
-    npx tailwindcss init -p
+    # Install dependencies
+    npm install
     ```
 3.  **Firebase**: Copy your Web Config from the Firebase Console into `src/firebase.js`.
 4.  **Launch**:
