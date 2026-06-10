@@ -87,13 +87,17 @@ class MainViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     @Suppress("OPT_IN_USAGE")
-    val recoveryMilestones = authState.flatMapLatest { state ->
+    val lastEntryTimestamp: StateFlow<Long?> = authState.flatMapLatest { state ->
         if (state is AuthState.Authenticated) {
             repository.getAllEvents(state.userId).map { events ->
-                val lastValidEvent = events.filter { it.timestamp > 0 }.maxByOrNull { it.timestamp }
-                SmokingCalculator.calculateRecoveryMilestones(lastValidEvent?.timestamp)
+                events.filter { it.timestamp > 0 }.maxByOrNull { it.timestamp }?.timestamp
             }
-        } else flowOf(emptyList())
+        } else flowOf(null)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    @Suppress("OPT_IN_USAGE")
+    val recoveryMilestones = lastEntryTimestamp.map { timestamp ->
+        SmokingCalculator.calculateRecoveryMilestones(timestamp)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val userXP = combine(logs, currentStreak) { l, s -> SmokingCalculator.calculateXP(l, s) }
