@@ -1,27 +1,21 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutDashboard, Heart, BarChart3, Settings, LogOut, ChevronRight, Info, History } from 'lucide-react';
 import { SmokingCalculator } from './utils/smokingCalculator';
+import { Card, Button, Input, StaggeredItem } from './components/Common';
+import { cn } from './utils/utils';
 
-const COLORS = {
-  bgBase: '#020202',
-  bgPanel: '#0D0D0E',
-  bgCard: '#121214',
-  accent: '#D4FF5C',
-  textMain: '#FFFFFF',
-  textMuted: '#AAAAA8',
-  textDim: '#666664',
-  danger: '#F87171',
-  success: '#4ADE80'
-};
-
+// --- MAIN APP COMPONENT ---
 const App = () => {
+  const [user, setUser] = useState(null); // Simple mock auth
   const [activeTab, setActiveTab] = useState('tracker');
   const [logs, setLogs] = useState([]);
-  const [configs] = useState([
-    { id: 'cigarettes', name: 'Cigarettes', limit: 20, type: 'CIGARETTE', pricePerUnit: 0, excludeFromEconomics: false }
+  const [configs, setConfigs] = useState([
+    { id: 'cigarettes', name: 'Cigarettes', limit: 20, type: 'CIGARETTE', pricePerUnit: 0.5, excludeFromEconomics: false }
   ]);
 
-  const lastEntryTimestamp = Date.now() - (3 * 60 * 60 * 1000);
+  // Use lastEntry for Health timer
+  const [lastEntry, setLastEntry] = useState(Date.now() - 3600000);
 
   const today = new Date().toISOString().split('T')[0];
   const todayLog = logs.find(l => l.logDate === today) || { logDate: today, counts: {} };
@@ -50,201 +44,234 @@ const App = () => {
       updatedLogs.push({ logDate: today, counts: { [cid]: 1 } });
     }
     setLogs(updatedLogs);
+    setLastEntry(Date.now());
   };
 
+  if (!user) return <AuthScreen onLogin={() => setUser({ name: 'Shareef' })} />;
+
   return (
-    <div className="flex flex-col min-h-screen select-none overflow-hidden font-['Inter']" style={{ backgroundColor: COLORS.bgBase }}>
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 pt-[env(safe-area-inset-top)] px-8 py-6 bg-gradient-to-b from-black via-black/80 to-transparent">
+    <div className="flex flex-col min-h-screen bg-bg-base text-white font-inter selection:bg-accent/30 overflow-hidden">
+      {/* Desktop Sidebar / Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 pt-[env(safe-area-inset-top)] px-8 py-6 bg-gradient-to-b from-black via-black/80 to-transparent flex justify-between items-center">
         <div className="flex flex-col">
-          <h1 className="text-4xl font-[900] tracking-[-0.05em] text-white uppercase leading-none">tabak++</h1>
-          <span className="text-[10px] font-black tracking-[0.4em] text-[#D4FF5C] mt-2 uppercase">
-            {activeTab === 'tracker' ? 'Vault' : activeTab}
+          <h1 className="text-4xl font-[900] tracking-[-0.05em] uppercase leading-none">tabak++</h1>
+          <span className="text-[10px] font-black tracking-[0.4em] text-accent mt-2 uppercase">
+            {activeTab} Vault
           </span>
+        </div>
+        <div className="hidden md:flex space-x-2">
+           <Button variant="secondary" className="h-10 rounded-full" onClick={() => setUser(null)}>
+             <LogOut size={14} className="mr-2" /> Sign Out
+           </Button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto pt-36 pb-32 px-6 max-w-lg mx-auto w-full">
+      {/* Main Content Area - Responsive */}
+      <main className="flex-1 overflow-y-auto pt-36 pb-40 px-6 max-w-4xl mx-auto w-full md:grid md:grid-cols-1 md:gap-8">
         <AnimatePresence mode="wait">
           {activeTab === 'tracker' && (
             <TrackerScreen key="tracker" metrics={metrics} configs={configs} todayLog={todayLog} onIncrement={handleIncrement} />
           )}
           {activeTab === 'health' && (
-            <HealthScreen key="health" lastTimestamp={lastEntryTimestamp} />
+            <HealthScreen key="health" lastTimestamp={lastEntry} />
           )}
         </AnimatePresence>
       </main>
 
-      {/* Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)] bg-black/80 backdrop-blur-3xl border-t border-white/5 rounded-t-[40px] z-50">
-        <div className="flex justify-around items-center h-24 px-6">
-          <TabItem id="tracker" label="Vault" active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} />
-          <TabItem id="health" label="Health" active={activeTab === 'health'} onClick={() => setActiveTab('health')} />
-          <TabItem id="history" label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
-          <TabItem id="settings" label="Control" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+      {/* Navigation - Bottom bar on mobile, floating on desktop */}
+      <nav className="fixed bottom-0 left-0 right-0 md:bottom-8 md:left-1/2 md:-translate-x-1/2 md:w-[500px] pb-[env(safe-area-inset-bottom)] bg-black/80 backdrop-blur-3xl border-t md:border border-white/5 md:rounded-[40px] rounded-t-[40px] z-50">
+        <div className="flex justify-around items-center h-24 md:h-20 px-6">
+          <TabItem id="tracker" Icon={LayoutDashboard} label="Vault" active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} />
+          <TabItem id="health" Icon={Heart} label="Health" active={activeTab === 'health'} onClick={() => setActiveTab('health')} />
+          <TabItem id="history" Icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+          <TabItem id="settings" Icon={Settings} label="Control" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
         </div>
       </nav>
     </div>
   );
 };
 
-const TabItem = ({ label, active, onClick }) => (
+const TabItem = ({ Icon, label, active, onClick }) => (
   <motion.div
     onClick={onClick}
     whileTap={{ scale: 0.9 }}
     className="flex flex-col items-center justify-center flex-1 py-2 cursor-pointer relative"
   >
-    {active && (
-      <motion.div
-        layoutId="activeTab"
-        className="absolute -top-1 w-1.5 h-1.5 rounded-full bg-[#D4FF5C]"
-      />
-    )}
-    <span className={`text-[10px] font-black tracking-[0.15em] uppercase transition-colors duration-300 ${active ? 'text-white' : 'text-neutral-600'}`}>
+    <Icon size={20} className={cn("mb-1 transition-colors duration-300", active ? "text-accent" : "text-text-dim")} />
+    <span className={cn("text-[9px] font-black tracking-widest uppercase transition-colors duration-300", active ? "text-white" : "text-text-dim")}>
       {label}
     </span>
+    {active && (
+      <motion.div layoutId="navDot" className="absolute -top-1 w-1 h-1 rounded-full bg-accent" />
+    )}
   </motion.div>
 );
 
-const TrackerScreen = ({ metrics, configs, todayLog, onIncrement }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    className="flex flex-col space-y-10"
-  >
-    {/* Global Header Metrics */}
-    <div className="flex flex-col space-y-6">
-       <div className="flex justify-between items-end w-full">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black tracking-widest text-neutral-500 uppercase">Remaining</span>
-            <span className="text-2xl font-black text-white leading-none mt-1">{Math.max(0, metrics.totalLimit - metrics.totalCount)}</span>
+const AuthScreen = ({ onLogin }) => {
+  const [email, setEmail] = useState('');
+  const [pass, setPass] = useState('');
+
+  return (
+    <div className="min-h-screen bg-bg-base flex items-center justify-center p-6">
+      <div className="w-full max-w-md space-y-12">
+        <div className="flex flex-col items-center text-center">
+           <div className="w-20 h-20 bg-accent rounded-[32px] flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(212,255,92,0.2)]">
+              <LayoutDashboard size={32} className="text-bg-base" />
+           </div>
+           <h1 className="text-5xl font-[900] tracking-tighter uppercase mb-2">tabak++</h1>
+           <p className="text-text-muted font-bold tracking-widest text-[10px] uppercase">The Tracking Vault</p>
+        </div>
+
+        <Card className="space-y-6">
+          <Input label="Vault ID" placeholder="email@address.com" value={email} onChange={setEmail} />
+          <Input label="Security Phrase" type="password" placeholder="••••••••" value={pass} onChange={setPass} />
+          <Button className="w-full h-16 text-sm" onClick={onLogin}>Access Vault</Button>
+          <div className="flex justify-center pt-4">
+             <button className="text-[10px] font-black text-text-dim uppercase tracking-[0.2em] hover:text-accent transition-colors">Create New Vault</button>
           </div>
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-black tracking-widest text-[#D4FF5C] uppercase">{metrics.rank}</span>
-            <span className="text-2xl font-black text-neutral-400 leading-none mt-1">{metrics.xp} XP</span>
-          </div>
-       </div>
-       <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden border border-white/5">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min(1, metrics.progress) * 100}%` }}
-            className="h-full bg-white"
-          />
-       </div>
+        </Card>
+      </div>
     </div>
+  );
+};
 
-    {/* Tracker Cards */}
-    {configs.map((config, index) => {
-      const count = todayLog.counts[config.id] || 0;
-      const progress = Math.min(1, count / config.limit);
-      const isOverLimit = count >= config.limit;
-
-      return (
-        <motion.div
-          key={config.id}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1, transition: { delay: index * 0.1 } }}
-          className="p-10 rounded-[42px] bg-[#121214] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center relative overflow-hidden"
-          style={{ borderColor: isOverLimit ? 'rgba(248,113,113,0.2)' : 'rgba(255,255,255,0.05)' }}
-        >
-          <span className="text-[11px] font-black tracking-[0.4em] text-[#D4FF5C] uppercase mb-1" style={{ color: isOverLimit ? COLORS.danger : COLORS.accent }}>
-            {config.name}
-          </span>
-          <span className="text-[9px] font-bold tracking-[0.1em] text-neutral-600 uppercase mb-8">
-            Daily Target: {config.limit}
-          </span>
-
-          {/* Burn Visual */}
-          <div className="relative w-full h-4 bg-white/[0.03] rounded-full overflow-hidden border border-white/5 mb-12">
-             <motion.div
-                animate={{ x: `${progress * 100}%` }}
-                className="absolute inset-0 bg-white"
-                style={{ right: 0 }}
-             />
-             {count > 0 && !isOverLimit && (
-               <motion.div
-                 animate={{ x: `calc(${progress * 100}% - 8px)` }}
-                 className="absolute top-0 bottom-0 w-4"
-                 style={{
-                    background: 'radial-gradient(circle, #FF3D00 0%, transparent 70%)',
-                    filter: 'blur(4px)'
-                 }}
-               />
-             )}
-             {isOverLimit && <div className="absolute inset-0 bg-gradient-to-r from-red-500/50 to-red-600" />}
+const TrackerScreen = ({ metrics, configs, todayLog, onIncrement }) => (
+  <div className="flex flex-col space-y-12">
+    {/* Global Performance Header */}
+    <StaggeredItem index={0}>
+      <Card className="flex flex-col space-y-8 bg-bg-panel/50 border-accent/10">
+        <div className="flex justify-between items-end">
+          <div>
+            <span className="text-[10px] font-black text-text-dim uppercase tracking-widest">Global Remaining</span>
+            <div className="text-4xl font-[900] leading-none mt-2">{Math.max(0, metrics.totalLimit - metrics.totalCount)}</div>
           </div>
+          <div className="text-right">
+             <span className="text-[10px] font-black text-accent uppercase tracking-widest">{metrics.rank}</span>
+             <div className="text-2xl font-black text-text-muted leading-none mt-1">{metrics.xp} XP</div>
+          </div>
+        </div>
+        <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+           <motion.div
+             initial={{ width: 0 }}
+             animate={{ width: `${Math.min(1, metrics.progress) * 100}%` }}
+             className="h-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+           />
+        </div>
+      </Card>
+    </StaggeredItem>
 
-          <motion.div
-            key={count}
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="text-8xl font-[900] tracking-[-0.05em] mb-12 text-white"
-          >
-            {count}
-          </motion.div>
+    {/* Counter Grid */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {configs.map((config, index) => {
+        const count = todayLog.counts[config.id] || 0;
+        const progress = Math.min(1, count / config.limit);
+        const isLimit = count >= config.limit;
 
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => onIncrement(config.id)}
-            className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center border border-white/10"
-          >
-            <span className="text-4xl font-light text-white">+</span>
-          </motion.button>
-        </motion.div>
-      );
-    })}
-  </motion.div>
+        return (
+          <StaggeredItem key={config.id} index={index + 1}>
+            <Card className={cn("relative group overflow-hidden", isLimit && "border-danger/30 shadow-danger/5")}>
+              <div className="flex justify-between items-start mb-8">
+                <div className="flex flex-col">
+                  <span className={cn("text-[10px] font-[900] tracking-[0.3em] uppercase", isLimit ? "text-danger" : "text-accent")}>{config.name}</span>
+                  <span className="text-[9px] font-bold text-text-dim uppercase mt-1">Target: {config.limit}</span>
+                </div>
+                {isLimit && <Info size={14} className="text-danger animate-pulse" />}
+              </div>
+
+              {/* Progress Bar (Manual Draw logic) */}
+              <div className="relative w-full h-6 bg-white/[0.03] rounded-full overflow-hidden border border-white/5 mb-12">
+                 <motion.div
+                    animate={{ x: `${progress * 100}%` }}
+                    className={cn("absolute inset-0 transition-colors", isLimit ? "bg-danger/40" : "bg-white/80")}
+                    style={{ right: 0 }}
+                 />
+                 {count > 0 && !isLimit && (
+                   <motion.div
+                     animate={{ x: `calc(${progress * 100}% - 12px)` }}
+                     className="absolute top-0 bottom-0 w-3 bg-[#FF3D00] shadow-[0_0_20px_#FF3D00]"
+                   />
+                 )}
+              </div>
+
+              <motion.div
+                key={count}
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="text-7xl md:text-8xl font-[900] tracking-tighter text-center mb-10"
+              >
+                {count}
+              </motion.div>
+
+              <div className="flex justify-center">
+                <Button
+                   variant={isLimit ? "danger" : "secondary"}
+                   className="w-24 h-24 rounded-full border-2"
+                   onClick={() => onIncrement(config.id)}
+                >
+                  <span className="text-4xl">+</span>
+                </Button>
+              </div>
+            </Card>
+          </StaggeredItem>
+        );
+      })}
+    </div>
+  </div>
 );
 
 const HealthScreen = ({ lastTimestamp }) => {
   const milestones = useMemo(() => SmokingCalculator.calculateRecoveryMilestones(lastTimestamp), [lastTimestamp]);
+  const timeSince = Math.floor((Date.now() - lastTimestamp) / 60000);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex flex-col space-y-8"
-    >
-      <div className="p-10 rounded-[42px] bg-[#121214] border border-white/5">
-        <h2 className="text-[10px] font-black tracking-[0.3em] text-emerald-400 uppercase mb-2">Restoration Hub</h2>
-        <h3 className="text-3xl font-black tracking-tight text-white leading-tight">Body Repair Center</h3>
-      </div>
+    <div className="flex flex-col space-y-8">
+      <StaggeredItem index={0}>
+        <Card className="bg-success/5 border-success/20">
+          <div className="flex justify-between items-center mb-6">
+            <div className="w-14 h-14 rounded-2xl bg-success/20 flex items-center justify-center">
+              <Heart className="text-success" size={24} fill="currentColor" />
+            </div>
+            <div className="text-right">
+              <span className="text-[9px] font-black text-text-dim uppercase tracking-widest">Last Entry</span>
+              <div className="text-xl font-black text-success">{timeSince}M AGO</div>
+            </div>
+          </div>
+          <h2 className="text-3xl font-[900] tracking-tight mb-2">Restoration Hub</h2>
+          <p className="text-xs text-text-muted font-medium leading-relaxed max-w-sm">Biological markers are actively repairing. Each phase duration is based on clinical nonsmoker recovery timelines.</p>
+        </Card>
+      </StaggeredItem>
 
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {milestones.map((m, i) => (
-          <motion.div
-            key={m.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0, transition: { delay: i * 0.05 } }}
-            className="p-8 rounded-[32px] bg-[#121214] border border-white/5"
-          >
-            <div className="flex justify-between items-start mb-6">
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black tracking-widest text-neutral-600 uppercase mb-1">{m.progress >= 1 ? 'COMPLETE' : 'REPAIRING'}</span>
-                <span className="text-xl font-black text-white tracking-tight leading-none">{m.title}</span>
+          <StaggeredItem key={m.title} index={i + 1}>
+            <Card className="h-full flex flex-col">
+              <div className="flex justify-between items-start mb-6">
+                 <div>
+                   <span className="text-[9px] font-black text-text-dim uppercase tracking-widest">{m.progress >= 1 ? 'Phase Complete' : 'Active Repair'}</span>
+                   <h4 className="text-lg font-black tracking-tight mt-1">{m.title}</h4>
+                 </div>
+                 <div className="text-3xl font-black text-success tracking-tighter">{Math.floor(m.progress * 100)}%</div>
               </div>
-              <span className="text-3xl font-black text-emerald-400 tracking-tighter">
-                {Math.floor(m.progress * 100)}%
-              </span>
-            </div>
-
-            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-               <motion.div
-                 initial={{ width: 0 }}
-                 animate={{ width: `${m.progress * 100}%` }}
-                 className="h-full bg-emerald-400"
-               />
-            </div>
-
-            <p className="text-[13px] text-neutral-500 font-medium leading-relaxed mt-6">
-              {m.desc}
-            </p>
-          </motion.div>
+              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-6">
+                 <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${m.progress * 100}%` }}
+                    className="h-full bg-success"
+                 />
+              </div>
+              <p className="text-xs text-text-muted font-medium leading-relaxed mb-6 flex-1">{m.desc}</p>
+              <div className="pt-4 border-t border-white/5 flex justify-between items-center text-text-dim">
+                 <div className="flex items-center space-x-2">
+                    <History size={12} />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Log Audit</span>
+                 </div>
+                 <ChevronRight size={14} />
+              </div>
+            </Card>
+          </StaggeredItem>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
