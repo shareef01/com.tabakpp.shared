@@ -34,7 +34,6 @@ import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.DailyLog
 import com.tabakpp.app.ui.theme.*
 import com.tabakpp.app.viewmodel.HistoryViewModel
-import com.tabakpp.app.domain.SmokingCalculator
 import com.tabakpp.app.ui.InfoMarker
 import com.tabakpp.app.ui.InfoDialog
 import kotlinx.coroutines.delay

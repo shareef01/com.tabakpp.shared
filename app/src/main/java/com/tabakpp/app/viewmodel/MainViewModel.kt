@@ -72,8 +72,6 @@ class MainViewModel @Inject constructor(
         list.find { it.logDate == date }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    // --- DERIVED METRICS ---
-
     val totalDailyCount = combine(todayLog, counterConfigs) { log, configs ->
         SmokingCalculator.getTotalCount(log, configs)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
@@ -81,48 +79,6 @@ class MainViewModel @Inject constructor(
     val totalDailyLimit = counterConfigs.map { configs ->
         SmokingCalculator.getTotalLimit(configs)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1)
-
-    val currentStreak = combine(logs, counterConfigs) { l, c ->
-        SmokingCalculator.calculateStreak(l, c)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
-
-    val totalSavings = combine(logs, counterConfigs, settingsRepo.costPerUnit) { l, configs, cost ->
-        SmokingCalculator.calculateSavings(l, configs, cost)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
-
-    val lifeLostMinutes = logs.map { SmokingCalculator.calculateLifeLostMinutes(it) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
-
-    @Suppress("OPT_IN_USAGE")
-    val lastEntryTimestamp: StateFlow<Long?> = authState.flatMapLatest { state ->
-        if (state is AuthState.Authenticated) {
-            repository.getAllEvents(state.userId).map { events ->
-                events.filter { it.timestamp > 0 }.maxByOrNull { it.timestamp }?.timestamp
-            }
-        } else flowOf(null)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
-    @Suppress("OPT_IN_USAGE")
-    val recoveryMilestones = lastEntryTimestamp.map { timestamp ->
-        SmokingCalculator.calculateRecoveryMilestones(timestamp)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val userXP = combine(logs, currentStreak) { l, s -> SmokingCalculator.calculateXP(l, s) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
-
-    val userRank = userXP.map { SmokingCalculator.getRank(it) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "Apprentice")
-
-    @Suppress("OPT_IN_USAGE")
-    val hourlyHeatmap: StateFlow<Map<Int, Int>> = authState.flatMapLatest { state ->
-        if (state is AuthState.Authenticated) {
-            repository.getAllEvents(state.userId).map { SmokingCalculator.calculateHourlyHeatmap(it) }
-        } else flowOf(emptyMap())
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
-
-    val coachMessage = combine(totalDailyCount, totalDailyLimit, currentStreak) { count, limit, streak ->
-        generateCoachMessage(count, limit, streak)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "Welcome back.")
 
     // --- SETTINGS ---
 
@@ -188,16 +144,6 @@ class MainViewModel @Inject constructor(
     }
 
     fun clearMessage() { _message.value = UiMessage.None }
-
-    private fun generateCoachMessage(count: Int, limit: Int, streak: Int): String {
-        val progress = if (limit > 0) count.toFloat() / limit else 0f
-        return when {
-            count == 0 && streak > 0 -> "Perfect start! You're on a $streak-day streak."
-            progress > 1.0f -> "You've hit your limit for today. Time for a breather."
-            progress > 0.8f -> "Nearing your limit. You've come so far, keep going."
-            else -> "Tracking is the first step to progress."
-        }
-    }
 
     private fun observeDataForWidget() {
         combine(totalDailyCount, totalDailyLimit) { _, _ -> }.debounce(1000).onEach {

@@ -28,7 +28,6 @@ import com.tabakpp.app.domain.RecoveryMilestone
 import com.tabakpp.app.ui.theme.*
 import com.tabakpp.app.viewmodel.HealthViewModel
 import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun HealthScreen(vm: HealthViewModel) {

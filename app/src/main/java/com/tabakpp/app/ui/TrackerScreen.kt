@@ -36,7 +36,6 @@ import com.tabakpp.app.ui.theme.*
 import com.tabakpp.app.viewmodel.TrackerViewModel
 import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.CounterType
-import com.tabakpp.app.domain.SmokingCalculator
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
