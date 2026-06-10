@@ -3,11 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Heart, BarChart3, Settings, LogOut,
   ChevronRight, Info, History, Plus, Minus, Edit2, Trash2,
-  TrendingUp, Wallet, Activity, Calendar, Clock, ArrowUp, ArrowDown
+  TrendingUp, Wallet, Activity, Calendar, Clock, ArrowUp, ArrowDown, X
 } from 'lucide-react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { SmokingCalculator } from './utils/smokingCalculator';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
@@ -15,7 +14,7 @@ import { cn } from './utils/utils';
 
 // --- MAIN APP COMPONENT ---
 const App = () => {
-  const [user, setUser] = useState({ name: 'Shareef' }); // Mock logged in for dev
+  const [user, setUser] = useState({ name: 'Shareef' });
   const [activeTab, setActiveTab] = useState('tracker');
   const [logs, setLogs] = useState([
     { logDate: '2026-06-08', counts: { cigarettes: 12 } },
@@ -27,6 +26,7 @@ const App = () => {
   ]);
 
   const [lastEntry, setLastEntry] = useState(Date.now() - 3600000 * 4);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
   const todayLog = logs.find(l => l.logDate === today) || { logDate: today, counts: {} };
@@ -67,11 +67,25 @@ const App = () => {
     }
   };
 
+  const handleAddTracker = (name, limit) => {
+    const newConfig = {
+      id: Math.random().toString(36).substr(2, 9),
+      name,
+      limit: parseInt(limit) || 20,
+      type: 'SIMPLE',
+      pricePerUnit: 0,
+      excludeFromEconomics: false,
+      displayOrder: configs.length
+    };
+    setConfigs([...configs, newConfig]);
+    setShowAddModal(false);
+  };
+
   if (!user) return <AuthScreen onLogin={() => setUser({ name: 'Shareef' })} />;
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-base text-white font-inter selection:bg-accent/30 overflow-hidden">
-      <header className="fixed top-0 left-0 right-0 z-50 pt-[env(safe-area-inset-top)] px-8 py-6 bg-gradient-to-b from-black via-black/90 to-transparent flex justify-between items-center">
+      <header className="fixed top-0 left-0 right-0 z-40 pt-[env(safe-area-inset-top)] px-8 py-6 bg-gradient-to-b from-black via-black/90 to-transparent flex justify-between items-center">
         <div className="flex flex-col">
           <h1 className="text-4xl font-[900] tracking-[-0.05em] uppercase leading-none">tabak++</h1>
           <span className="text-[10px] font-black tracking-[0.4em] text-accent mt-2 uppercase">
@@ -88,21 +102,21 @@ const App = () => {
       <main className="flex-1 overflow-y-auto pt-36 pb-40 px-6 max-w-5xl mx-auto w-full">
         <AnimatePresence mode="wait">
           {activeTab === 'tracker' && (
-            <TrackerScreen key="tracker" metrics={metrics} configs={configs} todayLog={todayLog} onIncrement={handleIncrement} onDecrement={handleDecrement} />
+            <TrackerScreen key="tracker" metrics={metrics} configs={configs} todayLog={todayLog} onIncrement={handleIncrement} onDecrement={handleDecrement} onAddClick={() => setShowAddModal(true)} />
           )}
           {activeTab === 'health' && (
             <HealthScreen key="health" lastTimestamp={lastEntry} />
           )}
           {activeTab === 'history' && (
-            <HistoryScreen key="history" logs={logs} configs={configs} />
+            <HistoryScreen key="history" logs={logs} configs={configs} todayString={today} />
           )}
           {activeTab === 'settings' && (
-            <SettingsScreen key="settings" configs={configs} setConfigs={setConfigs} user={user} />
+            <SettingsScreen key="settings" configs={configs} setConfigs={setConfigs} user={user} onAddClick={() => setShowAddModal(true)} />
           )}
         </AnimatePresence>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 md:bottom-8 md:left-1/2 md:-translate-x-1/2 md:w-[600px] pb-[env(safe-area-inset-bottom)] bg-black/80 backdrop-blur-3xl border-t md:border border-white/5 md:rounded-[40px] rounded-t-[40px] z-50">
+      <nav className="fixed bottom-0 left-0 right-0 md:bottom-8 md:left-1/2 md:-translate-x-1/2 md:w-[600px] pb-[env(safe-area-inset-bottom)] bg-black/80 backdrop-blur-3xl border-t md:border border-white/5 md:rounded-[40px] rounded-t-[40px] z-40">
         <div className="flex justify-around items-center h-24 md:h-20 px-6">
           <TabItem id="tracker" Icon={LayoutDashboard} label="Vault" active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} />
           <TabItem id="health" Icon={Heart} label="Health" active={activeTab === 'health'} onClick={() => setActiveTab('health')} />
@@ -110,11 +124,38 @@ const App = () => {
           <TabItem id="settings" Icon={Settings} label="Control" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
         </div>
       </nav>
+
+      {/* Add Modal */}
+      <AnimatePresence>
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="w-full max-w-sm">
+              <Card className="space-y-6 relative">
+                <button onClick={() => setShowAddModal(false)} className="absolute top-4 right-4 p-2 text-text-dim hover:text-white"><X size={20} /></button>
+                <h3 className="text-2xl font-black tracking-tight">New Tracker</h3>
+                <AddTrackerForm onAdd={handleAddTracker} />
+              </Card>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-// --- COMPONENTS ---
+// --- SUB-COMPONENTS ---
+
+const AddTrackerForm = ({ onAdd }) => {
+  const [name, setName] = useState('');
+  const [limit, setLimit] = useState('20');
+  return (
+    <div className="space-y-6">
+      <Input label="Label" value={name} onChange={setName} placeholder="e.g. Vapes" />
+      <Input label="Daily Target" value={limit} onChange={setLimit} type="number" />
+      <Button className="w-full h-16" onClick={() => onAdd(name, limit)}>Create Tracker</Button>
+    </div>
+  );
+};
 
 const TabItem = ({ Icon, label, active, onClick }) => (
   <motion.div onClick={onClick} whileTap={{ scale: 0.9 }} className="flex flex-col items-center justify-center flex-1 py-2 cursor-pointer relative">
@@ -149,7 +190,7 @@ const AuthScreen = ({ onLogin }) => {
   );
 };
 
-const TrackerScreen = ({ metrics, configs, todayLog, onIncrement, onDecrement }) => (
+const TrackerScreen = ({ metrics, configs, todayLog, onIncrement, onDecrement, onAddClick }) => (
   <div className="flex flex-col space-y-12">
     <StaggeredItem index={0}>
       <Card className="flex flex-col space-y-8 bg-bg-panel/50 border-accent/10">
@@ -175,6 +216,14 @@ const TrackerScreen = ({ metrics, configs, todayLog, onIncrement, onDecrement })
           <CounterCard config={config} count={todayLog.counts[config.id] || 0} onIncrement={onIncrement} onDecrement={onDecrement} />
         </StaggeredItem>
       ))}
+      <StaggeredItem index={configs.length + 1}>
+         <button onClick={onAddClick} className="w-full h-full min-h-[300px] border-2 border-dashed border-white/5 rounded-card flex flex-col items-center justify-center space-y-4 hover:bg-white/[0.02] transition-colors group">
+            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+               <Plus className="text-text-dim group-hover:text-white" />
+            </div>
+            <span className="text-[10px] font-black text-text-dim uppercase tracking-widest group-hover:text-white">New Tracker</span>
+         </button>
+      </StaggeredItem>
     </div>
   </div>
 );
@@ -182,8 +231,10 @@ const TrackerScreen = ({ metrics, configs, todayLog, onIncrement, onDecrement })
 const CounterCard = ({ config, count, onIncrement, onDecrement }) => {
   const isLimit = count >= config.limit;
   const progress = Math.min(1, count / config.limit);
+  const isBurnable = config.type === 'CIGARETTE';
+
   return (
-    <Card className={cn("relative group overflow-hidden transition-colors duration-500", isLimit && "border-danger/30 shadow-danger/5")}>
+    <Card className={cn("relative group overflow-hidden transition-colors duration-500 min-h-[400px] flex flex-col", isLimit && "border-danger/30 shadow-danger/5")}>
       <div className="flex justify-between items-start mb-8">
         <div className="flex flex-col">
           <span className={cn("text-[10px] font-[900] tracking-[0.3em] uppercase", isLimit ? "text-danger" : "text-accent")}>{config.name}</span>
@@ -192,49 +243,44 @@ const CounterCard = ({ config, count, onIncrement, onDecrement }) => {
         {isLimit && <motion.div animate={{ opacity: [1, 0.4, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}><Info size={14} className="text-danger" /></motion.div>}
       </div>
 
-      {/* Advanced Burn Visual */}
-      <div className={cn("relative w-full h-6 bg-white/[0.03] rounded-full overflow-hidden border border-white/5 mb-12 shadow-inner", isLimit && "bg-danger/5")}>
-         {/* White body that decreases as count increases */}
-         <motion.div
-            animate={{ width: `${(1 - progress) * 100}%` }}
-            className={cn("absolute right-0 h-full bg-white transition-colors", isLimit && "bg-danger/20")}
-            initial={false}
-         />
+      <div className="flex-1 flex flex-col items-center justify-center w-full">
+        {/* Advanced Burn Visual (Fixed to match App: Progress moves from Left to Right, Ember follows tip) */}
+        <div className={cn("relative w-full h-8 bg-white/[0.03] rounded-full overflow-hidden border border-white/5 mb-12 shadow-inner", isLimit && "bg-danger/5")}>
+          {/* White Body - Fixed to Right side, length shrinks from Left to Right */}
+          <motion.div
+              animate={{ left: `${progress * 100}%` }}
+              className={cn("absolute inset-y-0 right-0 bg-white transition-colors", isLimit && "bg-danger/40")}
+              initial={false}
+          />
 
-         {/* The Ember - At the tip of the burning white body */}
-         {count > 0 && !isLimit && (
-           <motion.div
-             animate={{ right: `${(1 - progress) * 100}%` }}
-             className="absolute top-1/2 -translate-y-1/2 w-6 h-full z-20"
-             style={{
-                marginRight: '-12px',
-                background: 'radial-gradient(circle at center, #FF3D00 20%, #FFB74D 50%, transparent 80%)'
-             }}
-           >
-              {/* Core Flicker */}
+          {/* Ember (The Burning Tip) - Moves from Left to Right with the burning edge */}
+          {count > 0 && !isLimit && (
               <motion.div
-                animate={{
-                  opacity: [0.7, 1, 0.7],
-                  scale: [0.9, 1.2, 0.9],
-                  boxShadow: [
-                    '0 0 10px #FF3D00',
-                    '0 0 25px #FFB74D',
-                    '0 0 10px #FF3D00'
-                  ]
-                }}
-                transition={{ repeat: Infinity, duration: 0.2 }}
-                className="w-2 h-full bg-[#FF3D00] mx-auto rounded-full"
-              />
-           </motion.div>
-         )}
+                animate={{ left: `calc(${progress * 100}% - 16px)` }}
+                className="absolute inset-y-0 w-8 z-20 flex items-center justify-center"
+              >
+                  {/* Outer Glow */}
+                  <div className="absolute inset-0 bg-radial-gradient from-[#FF3D00]/60 to-transparent blur-md" />
+                  {/* Flicker Core */}
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.8, 1, 0.8] }}
+                    transition={{ repeat: Infinity, duration: 0.2 }}
+                    className="w-4 h-full bg-[#FF3D00] rounded-full shadow-[0_0_15px_#FF3D00]"
+                  />
+              </motion.div>
+          )}
 
-         {/* The "Burned" part (background of the bar) */}
-         <div className="absolute inset-0 bg-neutral-900 -z-10" />
+          {/* Orange Filter (The Roach) - Fixed on the right */}
+          <div className="absolute top-0 bottom-0 right-0 w-16 bg-[#D97706] rounded-r-full shadow-lg border-l border-black/10 z-10" />
+
+          {/* The "Burned" Ash/Empty Space (Background of the bar) */}
+          <div className="absolute inset-0 bg-neutral-950 -z-10" />
+        </div>
+
+        <motion.div key={count} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-8xl font-[900] tracking-tighter text-center mb-10 leading-none">
+          {count}
+        </motion.div>
       </div>
-
-      <motion.div key={count} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-8xl font-[900] tracking-tighter text-center mb-10 leading-none">
-        {count}
-      </motion.div>
 
       <div className="flex justify-center items-center space-x-8">
         <motion.button whileTap={{ scale: 0.8 }} onClick={() => onDecrement(config.id)} className="w-16 h-16 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-text-dim hover:text-white transition-colors">
@@ -303,7 +349,7 @@ const HealthScreen = ({ lastTimestamp }) => {
   );
 };
 
-const HistoryScreen = ({ logs, configs }) => {
+const HistoryScreen = ({ logs, configs, todayString }) => {
   const chartData = useMemo(() => {
     return [...logs].sort((a, b) => a.logDate.localeCompare(b.logDate)).slice(-7).map(l => ({
       name: new Date(l.logDate).toLocaleDateString('en-US', { weekday: 'short' }),
@@ -311,14 +357,10 @@ const HistoryScreen = ({ logs, configs }) => {
     }));
   }, [logs]);
 
-  const heatmap = useMemo(() => {
-    // Random mock heatmap for parity
-    return Array.from({ length: 24 }, (_, i) => ({ h: i, v: Math.floor(Math.random() * 10) }));
-  }, []);
+  const heatmap = useMemo(() => Array.from({ length: 24 }, (_, i) => ({ h: i, v: Math.floor(Math.random() * 10) })), []);
 
   return (
     <div className="flex flex-col space-y-8 pb-12">
-      {/* Charts Section */}
       <StaggeredItem index={0}>
         <Card className="p-0 overflow-hidden">
           <div className="p-8 pb-4">
@@ -344,7 +386,26 @@ const HistoryScreen = ({ logs, configs }) => {
         <InsightCard Icon={Activity} label="Health" val="12h 45m" suffix="Lost" color="text-rose-400" index={3} />
       </div>
 
-      {/* Heatmap Section */}
+      {/* Actual History Logs */}
+      <div className="space-y-4">
+         <h4 className="text-[10px] font-black text-text-dim uppercase tracking-widest ml-1">Recent Vault Activity</h4>
+         {logs.sort((a,b) => b.logDate.localeCompare(a.logDate)).map((log, i) => (
+           <Card key={log.logDate} className="py-6 flex items-center justify-between">
+              <div className="flex flex-col">
+                 <span className="text-lg font-black tracking-tight">{log.logDate === todayString ? 'Today' : new Date(log.logDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'long'})}</span>
+                 <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{Object.values(log.counts).reduce((a,b) => a+b, 0)} logs recorded</span>
+              </div>
+              <div className="flex -space-x-2">
+                 {Object.entries(log.counts).map(([cid, count]) => (
+                   <div key={cid} className="w-10 h-10 rounded-full bg-accent text-bg-base border-4 border-bg-card flex items-center justify-center font-black text-xs">
+                      {count}
+                   </div>
+                 ))}
+              </div>
+           </Card>
+         ))}
+      </div>
+
       <StaggeredItem index={4}>
         <Card>
            <span className="text-[10px] font-black text-text-dim uppercase tracking-widest">Peak Activity</span>
@@ -379,13 +440,11 @@ const InsightCard = ({ Icon, label, val, suffix, color, index }) => (
   </StaggeredItem>
 );
 
-const SettingsScreen = ({ configs, setConfigs, user }) => {
+const SettingsScreen = ({ configs, setConfigs, user, onAddClick }) => {
   const [alias, setAlias] = useState(user.name);
   const [goal, setGoal] = useState('SAVE FOR VACATION');
-
   return (
     <div className="flex flex-col space-y-8 pb-20">
-      {/* Identity Card */}
       <StaggeredItem index={0}>
         <Card>
           <div className="flex items-center space-x-6 mb-10">
@@ -400,12 +459,11 @@ const SettingsScreen = ({ configs, setConfigs, user }) => {
           <div className="space-y-6">
              <Input label="Vault Alias" value={alias} onChange={setAlias} />
              <Input label="Life Goal" value={goal} onChange={setGoal} />
-             <Button className="w-full">Sync Identity</Button>
+             <Button className="w-full h-16">Sync Identity</Button>
           </div>
         </Card>
       </StaggeredItem>
 
-      {/* Tracker Config */}
       <StaggeredItem index={1}>
         <Card>
           <h4 className="text-[10px] font-black text-text-dim uppercase tracking-[0.2em] mb-8">Vault Configuration</h4>
@@ -422,7 +480,7 @@ const SettingsScreen = ({ configs, setConfigs, user }) => {
                   </div>
                </div>
              ))}
-             <Button variant="secondary" className="w-full h-12 border-dashed border-2">
+             <Button variant="secondary" className="w-full h-12 border-dashed border-2" onClick={onAddClick}>
                 <Plus size={14} className="mr-2" /> Add Tracker
              </Button>
           </div>
