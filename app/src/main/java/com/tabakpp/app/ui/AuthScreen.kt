@@ -32,13 +32,14 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.tabakpp.app.ui.theme.*
+import com.tabakpp.app.viewmodel.AuthViewModel
 import com.tabakpp.app.viewmodel.MainViewModel
 import com.tabakpp.app.viewmodel.UiMessage
 
 enum class AuthForm { LOGIN, SIGNUP, FORGOT }
 
 @Composable
-fun AuthScreen(viewModel: MainViewModel) {
+fun AuthScreen(viewModel: AuthViewModel, onAuthenticated: () -> Unit) {
     var form by remember { mutableStateOf(AuthForm.LOGIN) }
     val message by viewModel.message.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -47,7 +48,7 @@ fun AuthScreen(viewModel: MainViewModel) {
     val storagePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        if (isGranted) { viewModel.continueAsGuest() } 
+        if (isGranted) { viewModel.continueAsGuest(onAuthenticated) } 
         else { Toast.makeText(context, "Permission required for local storage.", Toast.LENGTH_LONG).show() }
     }
 
@@ -57,7 +58,7 @@ fun AuthScreen(viewModel: MainViewModel) {
         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
         try {
             val account = task.getResult(ApiException::class.java)
-            account.idToken?.let { viewModel.signInWithGoogle(it) }
+            account.idToken?.let { viewModel.signInWithGoogle(it, onAuthenticated) }
         } catch (_: Exception) {
             Toast.makeText(context, "Authentication Failed", Toast.LENGTH_SHORT).show()
         }
@@ -86,7 +87,7 @@ fun AuthScreen(viewModel: MainViewModel) {
                             },
                             onGuest = {
                                 if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.Q) { storagePermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) } 
-                                else { viewModel.continueAsGuest() }
+                                else { viewModel.continueAsGuest(onAuthenticated) }
                             }
                         )
                         AuthForm.SIGNUP -> SignupForm(viewModel, isLoading, message) { form = AuthForm.LOGIN }
@@ -124,7 +125,7 @@ fun CigaretteLogo(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun LoginForm(vm: MainViewModel, loading: Boolean, message: UiMessage, onForgot: () -> Unit, onSignup: () -> Unit, onGoogle: () -> Unit, onGuest: () -> Unit) {
+private fun LoginForm(vm: AuthViewModel, loading: Boolean, message: UiMessage, onForgot: () -> Unit, onSignup: () -> Unit, onGoogle: () -> Unit, onGuest: () -> Unit) {
     var email by remember { mutableStateOf("") }
     var pwd by remember { mutableStateOf("") }
     val fm = LocalFocusManager.current
@@ -137,14 +138,14 @@ private fun LoginForm(vm: MainViewModel, loading: Boolean, message: UiMessage, o
 
         TabakField(email, { email = it }, "Email Address", KeyboardType.Email, ImeAction.Next) { fm.moveFocus(FocusDirection.Down) }
         Spacer(Modifier.height(20.dp))
-        TabakField(pwd, { pwd = it }, "Security Phrase", KeyboardType.Password, ImeAction.Done, isPassword = true) { fm.clearFocus(); vm.signIn(email, pwd) }
+        TabakField(pwd, { pwd = it }, "Security Phrase", KeyboardType.Password, ImeAction.Done, isPassword = true) { fm.clearFocus(); vm.signIn(email, pwd) {} }
 
         Box(Modifier.fillMaxWidth().padding(top = 12.dp)) {
             Text("Lost Phrase?", fontSize = 13.sp, color = Accent, modifier = Modifier.align(Alignment.CenterEnd).clickable { onForgot() }, fontWeight = FontWeight.Bold)
         }
 
         Spacer(Modifier.height(40.dp))
-        TabakButton(if (loading) "AUTHENTICATING..." else "SIGN IN", !loading) { vm.signIn(email, pwd) }
+        TabakButton(if (loading) "AUTHENTICATING..." else "SIGN IN", !loading) { vm.signIn(email, pwd) {} }
         
         Spacer(Modifier.height(20.dp))
         Button(onClick = onGoogle, modifier = Modifier.fillMaxWidth().height(60.dp).bounceClick(onClick = onGoogle), shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF1F1F1F)), border = BorderStroke(1.dp, Color.Black.copy(alpha = 0.1f))) {
@@ -165,7 +166,7 @@ private fun LoginForm(vm: MainViewModel, loading: Boolean, message: UiMessage, o
 }
 
 @Composable
-private fun SignupForm(vm: MainViewModel, loading: Boolean, message: UiMessage, onLogin: () -> Unit) {
+private fun SignupForm(vm: AuthViewModel, loading: Boolean, message: UiMessage, onLogin: () -> Unit) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var pwd by remember { mutableStateOf("") }
@@ -194,7 +195,7 @@ private fun SignupForm(vm: MainViewModel, loading: Boolean, message: UiMessage, 
 }
 
 @Composable
-private fun ForgotForm(vm: MainViewModel, message: UiMessage, onBack: () -> Unit) {
+private fun ForgotForm(vm: AuthViewModel, message: UiMessage, onBack: () -> Unit) {
     var email by remember { mutableStateOf("") }
     Column(Modifier.padding(32.dp)) {
         Text("Recovery", fontWeight = FontWeight.Black, fontSize = 28.sp, color = TextMain, letterSpacing = (-1).sp)

@@ -33,7 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.DailyLog
 import com.tabakpp.app.ui.theme.*
-import com.tabakpp.app.viewmodel.MainViewModel
+import com.tabakpp.app.viewmodel.HistoryViewModel
 import com.tabakpp.app.domain.SmokingCalculator
 import com.tabakpp.app.ui.InfoMarker
 import com.tabakpp.app.ui.InfoDialog
@@ -49,7 +49,7 @@ data class ChartPoint(val value: Int, val label: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryScreen(vm: MainViewModel) {
+fun HistoryScreen(vm: HistoryViewModel, todayString: String) {
     val logs by vm.logs.collectAsStateWithLifecycle()
     val configs by vm.counterConfigs.collectAsStateWithLifecycle()
     val heatmap by vm.hourlyHeatmap.collectAsStateWithLifecycle()
@@ -116,7 +116,7 @@ fun HistoryScreen(vm: MainViewModel) {
                     DateBundle(
                         log = log,
                         configs = configs,
-                        isToday = log.logDate == vm.todayString,
+                        isToday = log.logDate == todayString,
                         isExpanded = isExpanded,
                         onToggle = { expandedDates[log.logDate] = !isExpanded },
                         onEdit = { cid -> editTarget = log to cid },
@@ -244,17 +244,15 @@ private fun HeatmapSection(heatmap: Map<Int, Int>, onInfo: () -> Unit) {
 }
 
 @Composable
-private fun InsightsRow(vm: MainViewModel, onInfo: (String, String) -> Unit) {
-    val totalCost by vm.totalSavings.collectAsStateWithLifecycle()
-    val lifeLost by vm.lifeLostMinutes.collectAsStateWithLifecycle()
-    val currentStreak by vm.currentStreak.collectAsStateWithLifecycle()
+private fun InsightsRow(vm: HistoryViewModel, onInfo: (String, String) -> Unit) {
+    val insights by vm.insights.collectAsStateWithLifecycle()
 
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        InsightCard(label = "Streak", value = "$currentStreak", suffix = "days", icon = Icons.Default.Whatshot, modifier = Modifier.weight(1f), color = Color(0xFFF59E0B),
+        InsightCard(label = "Streak", value = "${insights.currentStreak}", suffix = "days", icon = Icons.Default.Whatshot, modifier = Modifier.weight(1f), color = Color(0xFFF59E0B),
             onInfo = { onInfo("Tracking Streak", "Consecutive days logging within your set limits. Reaching milestones increases your rank and XP multiplier.") })
-        InsightCard(label = "Spent", value = String.format(Locale.getDefault(), "$%.2f", totalCost), suffix = "total", icon = Icons.Default.AccountBalanceWallet, modifier = Modifier.weight(1f), color = Color(0xFF10B981),
+        InsightCard(label = "Spent", value = String.format(Locale.getDefault(), "$%.2f", insights.totalSavings), suffix = "total", icon = Icons.Default.AccountBalanceWallet, modifier = Modifier.weight(1f), color = Color(0xFF10B981),
             onInfo = { onInfo("Economic Impact", "Total investment in tracked items. Use the Control panel to update price per unit for precise calculation.") })
-        InsightCard(label = "Health", value = "${lifeLost / 60}h ${lifeLost % 60}m", suffix = "lost", icon = Icons.Default.Favorite, modifier = Modifier.weight(1f), color = DangerColor,
+        InsightCard(label = "Health", value = "${insights.lifeLostMinutes / 60}h ${insights.lifeLostMinutes % 60}m", suffix = "lost", icon = Icons.Default.Favorite, modifier = Modifier.weight(1f), color = DangerColor,
             onInfo = { onInfo("Vitality Impact", "Cumulative physiological cost estimated based on log frequency. Every entry tracked affects your long-term health metrics.") })
     }
 }

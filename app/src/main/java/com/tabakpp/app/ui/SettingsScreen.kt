@@ -31,16 +31,15 @@ import com.tabakpp.app.data.model.CounterType
 import com.tabakpp.app.data.model.DailyLog
 import com.tabakpp.app.ui.theme.*
 import com.tabakpp.app.viewmodel.AuthState
-import com.tabakpp.app.viewmodel.MainViewModel
+import com.tabakpp.app.viewmodel.SettingsViewModel
 import com.tabakpp.app.viewmodel.UiMessage
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
 @Composable
-fun SettingsScreen(vm: MainViewModel, logs: List<DailyLog>) {
+fun SettingsScreen(vm: SettingsViewModel, authState: AuthState, logs: List<DailyLog>) {
     val msg: UiMessage by vm.message.collectAsStateWithLifecycle()
-    val authState: AuthState by vm.authState.collectAsStateWithLifecycle()
     val isDark: Boolean by vm.isDarkMode.collectAsStateWithLifecycle()
     val fontScale: Float by vm.fontScale.collectAsStateWithLifecycle()
     val configs: List<CounterConfig> by vm.counterConfigs.collectAsStateWithLifecycle()

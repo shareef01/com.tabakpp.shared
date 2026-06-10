@@ -8,7 +8,9 @@ import com.tabakpp.app.widget.TabakWidget
 import com.tabakpp.app.data.*
 import com.tabakpp.app.data.local.LogEventEntity
 import com.tabakpp.app.data.model.*
-import com.tabakpp.app.domain.*
+import com.tabakpp.app.domain.SmokingCalculator
+import com.tabakpp.app.viewmodel.TrackerMetrics
+import com.tabakpp.app.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -25,11 +27,16 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     application: Application,
     private val repository: Repository,
-    private val settingsRepo: SettingsRepository
+    private val settingsRepo: SettingsRepository,
+    private val authUseCases: AuthUseCases,
+    private val trackingUseCases: TrackingUseCases,
+    private val getLogsUseCase: GetLogsUseCase
 ) : AndroidViewModel(application) {
     
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
-    val authState: StateFlow<AuthState> = _authState.asStateFlow()
+    val authState: StateFlow<AuthState> = authUseCases.authState.map { user ->
+        if (user != null) AuthState.Authenticated(user.uid, user.displayName, user.isAnonymous)
+        else AuthState.Unauthenticated
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AuthState.Loading)
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -130,33 +137,31 @@ class MainViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { 
-            repository.ensureDefaultCounter()
+            trackingUseCases.ensureDefault()
             val isManual = settingsRepo.isManualReset.first()
             val manualDate = settingsRepo.activeLogDate.first()
             if (isManual && manualDate == null) {
                 settingsRepo.setActiveLogDate(LocalDate.now().toString())
             }
         }
-        checkSession()
+        
+        authState.onEach { state ->
+            if (state is AuthState.Authenticated) loadData()
+        }.launchIn(viewModelScope)
+
         startMidnightResetWorker()
         observeDataForWidget()
     }
 
-    private fun checkSession() {
-        val user = repository.getCurrentUser()
-        if (user != null) {
-            _authState.value = AuthState.Authenticated(user.uid, user.displayName, user.isAnonymous)
-            loadData()
-        } else {
-            _authState.value = AuthState.Unauthenticated
-        }
+    fun checkSession() {
+        if (repository.getCurrentUser() != null) loadData()
     }
 
     fun loadData() = viewModelScope.launch {
         if (_isLoading.value) return@launch
         _isLoading.value = true
         try {
-            repository.loadAndSyncAll()
+            trackingUseCases.syncAll()
         } catch (e: Exception) {
             val errorMsg = e.localizedMessage ?: "Sync Error"
             _message.value = UiMessage.Error(if (errorMsg.contains("787")) "Database conflict. Retrying..." else errorMsg)
@@ -165,126 +170,23 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    // --- ACTIONS ---
+    // --- ACTIONS (Shortcut support / Common) ---
 
     fun increment(counterId: String) = viewModelScope.launch {
-        val user = repository.getCurrentUser() ?: return@launch
-        repository.logIncrement(user.uid, todayString, counterId)
-    }
-    fun decrement(counterId: String) = viewModelScope.launch {
-        val user = repository.getCurrentUser() ?: return@launch
-        repository.logDecrement(user.uid, todayString, counterId)
-    }
-
-    fun addCounter(name: String, limit: Int, type: CounterType, price: Float = 0f, exclude: Boolean = false) = viewModelScope.launch {
-        val newConfig = CounterConfig(id = UUID.randomUUID().toString(), name = name, limit = limit, type = type, pricePerUnit = price, excludeFromEconomics = exclude)
-        repository.saveCounterConfigs(counterConfigs.value + newConfig)
-    }
-
-    fun updateCounterConfig(id: String, newName: String, newLimit: Int, newPrice: Float = 0f, newExclude: Boolean = false) = viewModelScope.launch {
-        val updated = counterConfigs.value.map { if (it.id == id) it.copy(name = newName, limit = newLimit, pricePerUnit = newPrice, excludeFromEconomics = newExclude) else it }
-        repository.saveCounterConfigs(updated)
-        if (id == "cigarettes") repository.saveDailyLimit(newLimit)
-    }
-
-    fun removeCounter(id: String) = viewModelScope.launch {
-        if (id == "cigarettes") return@launch
-        repository.removeCounter(id)
-    }
-
-    fun editLog(date: String, counterId: String, count: Int) = viewModelScope.launch {
-        val user = repository.getCurrentUser() ?: return@launch
-        repository.overwriteCounterLogs(user.uid, date, counterId, count)
-    }
-
-    fun deleteCounterFromLog(date: String, counterId: String) = editLog(date, counterId, 0)
-
-    fun toggleDarkMode(enabled: Boolean) = viewModelScope.launch { settingsRepo.setDarkMode(enabled) }
-    fun updateFontSize(m: Float) = viewModelScope.launch { settingsRepo.setFontScale(m) }
-    fun setWidgetCounter(id: String) = viewModelScope.launch { settingsRepo.setWidgetCounterId(id) }
-    fun setDashboardLayout(layout: DashboardLayout) = viewModelScope.launch { settingsRepo.setDashboardLayout(layout) }
-    fun setCostPerUnit(cost: Float) = viewModelScope.launch { settingsRepo.setCostPerUnit(cost) }
-    fun setManualReset(enabled: Boolean) = viewModelScope.launch { 
-        settingsRepo.setManualReset(enabled)
-        settingsRepo.setActiveLogDate(LocalDate.now().toString())
-    }
-    fun startNewDay() = viewModelScope.launch {
-        val today = LocalDate.now().toString()
-        settingsRepo.setActiveLogDate(today)
-        _systemDate.value = today
-        loadData()
-    }
-
-    fun resetTodayCounts() = viewModelScope.launch {
-        val user = repository.getCurrentUser() ?: return@launch
-        repository.resetDayLog(user.uid, todayString)
-    }
-    fun setAccentColor(colorHex: String?) = viewModelScope.launch { settingsRepo.setAccentColor(colorHex) }
-    fun setUserGoal(goal: String) = viewModelScope.launch { settingsRepo.setUserGoal(goal) }
-    fun setProfileImage(uri: String?) = viewModelScope.launch { settingsRepo.setProfileImageUri(uri) }
-
-    fun reorderCounters(configs: List<CounterConfig>) = viewModelScope.launch {
-        val updated = configs.mapIndexed { index, config -> config.copy(displayOrder = index) }
-        repository.saveCounterConfigs(updated)
-    }
-
-    fun signIn(e: String, p: String) = viewModelScope.launch { 
-        _isLoading.value = true
-        try { 
-            repository.signIn(e, p)
-            checkSession()
-        } catch (ex: Exception) { _message.value = UiMessage.Error(ex.message ?: "Login failed") }
-        finally { _isLoading.value = false }
-    }
-
-    fun signInWithGoogle(idToken: String) = viewModelScope.launch {
-        _isLoading.value = true
-        try {
-            repository.signInWithGoogle(idToken)
-            checkSession()
-        } catch (_: Exception) { _message.value = UiMessage.Error("Google Login failed") }
-        finally { _isLoading.value = false }
-    }
-
-    fun continueAsGuest() = viewModelScope.launch {
-        _isLoading.value = true
-        try {
-            repository.signInAnonymously()
-            checkSession()
-        } catch (ex: Exception) { _message.value = UiMessage.Error("Guest login failed") }
-        finally { _isLoading.value = false }
-    }
-
-    fun signUp(e: String, p: String, n: String) = viewModelScope.launch {
-        _isLoading.value = true
-        try {
-            repository.signUp(email = e, password = p, name = n)
-            _message.value = UiMessage.Success("Account created!")
-        } catch (ex: Exception) { _message.value = UiMessage.Error(ex.message ?: "Signup failed") }
-        finally { _isLoading.value = false }
+        val uid = authUseCases.getCurrentUser()?.uid ?: return@launch
+        trackingUseCases.increment(uid, todayString, counterId)
     }
     
     fun signOut() = viewModelScope.launch {
-        repository.signOut()
-        _authState.value = AuthState.Unauthenticated
+        authUseCases.signOut()
     }
     
     fun deleteAccount() = viewModelScope.launch {
         try { 
-            repository.deleteAccount()
-            _authState.value = AuthState.Unauthenticated
-        } catch (ex: Exception) { _message.value = UiMessage.Error("Delete failed") }
-    }
-    
-    fun updateDisplayName(n: String) = viewModelScope.launch {
-        try { 
-            repository.updateDisplayName(n)
-            checkSession()
-        } catch (ex: Exception) { _message.value = UiMessage.Error("Update failed") }
+            authUseCases.deleteAccount()
+        } catch (_: Exception) { _message.value = UiMessage.Error("Delete failed") }
     }
 
-    fun updatePassword(p: String) = viewModelScope.launch { repository.updatePassword(p) }
-    fun resetPassword(e: String) = viewModelScope.launch { repository.resetPassword(e) }
     fun clearMessage() { _message.value = UiMessage.None }
 
     private fun generateCoachMessage(count: Int, limit: Int, streak: Int): String {

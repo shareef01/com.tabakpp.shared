@@ -90,7 +90,10 @@ fun TabakApp(viewModel: MainViewModel) {
     Crossfade(targetState = authState, label = "auth", animationSpec = tween(600)) { state ->
         when (state) {
             is AuthState.Loading -> LoadingScreen()
-            is AuthState.Unauthenticated -> AuthScreen(viewModel)
+            is AuthState.Unauthenticated -> {
+                val authVm: com.tabakpp.app.viewmodel.AuthViewModel = hiltViewModel()
+                AuthScreen(authVm) { viewModel.checkSession() }
+            }
             is AuthState.Authenticated -> MainApp(viewModel)
         }
     }
@@ -99,6 +102,7 @@ fun TabakApp(viewModel: MainViewModel) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainApp(viewModel: MainViewModel) {
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
     val screens = Tab.entries
     val pagerState = rememberPagerState { screens.size }
     val scope = rememberCoroutineScope()
@@ -128,10 +132,22 @@ fun MainApp(viewModel: MainViewModel) {
                 val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).let { if (it < 0) -it else it }
                 Box(Modifier.graphicsLayer { val scale = 1f - (pageOffset * 0.12f).coerceIn(0f, 1f); scaleX = scale; scaleY = scale; alpha = 1f - (pageOffset * 0.5f).coerceIn(0f, 1f); translationX = pageOffset * size.width * 0.1f }) {
                     when (screens[page]) {
-                        Tab.TRACKER -> TrackerScreen(viewModel)
-                        Tab.HEALTH -> HealthScreen(viewModel)
-                        Tab.HISTORY -> HistoryScreen(viewModel)
-                        Tab.SETTINGS -> SettingsScreen(viewModel, logs)
+                        Tab.TRACKER -> {
+                            val trackerVm: com.tabakpp.app.viewmodel.TrackerViewModel = hiltViewModel()
+                            TrackerScreen(trackerVm)
+                        }
+                        Tab.HEALTH -> {
+                            val healthVm: com.tabakpp.app.viewmodel.HealthViewModel = hiltViewModel()
+                            HealthScreen(healthVm)
+                        }
+                        Tab.HISTORY -> {
+                            val historyVm: com.tabakpp.app.viewmodel.HistoryViewModel = hiltViewModel()
+                            HistoryScreen(historyVm, viewModel.todayString)
+                        }
+                        Tab.SETTINGS -> {
+                            val settingsVm: com.tabakpp.app.viewmodel.SettingsViewModel = hiltViewModel()
+                            SettingsScreen(settingsVm, authState, logs)
+                        }
                     }
                 }
             }

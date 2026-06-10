@@ -33,7 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.tabakpp.app.data.DashboardLayout
 import com.tabakpp.app.ui.theme.*
-import com.tabakpp.app.viewmodel.MainViewModel
+import com.tabakpp.app.viewmodel.TrackerViewModel
 import com.tabakpp.app.data.model.CounterConfig
 import com.tabakpp.app.data.model.CounterType
 import com.tabakpp.app.domain.SmokingCalculator
@@ -41,22 +41,21 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun TrackerScreen(vm: MainViewModel) {
+fun TrackerScreen(vm: TrackerViewModel) {
     val todayLog by vm.todayLog.collectAsStateWithLifecycle()
     val configs by vm.counterConfigs.collectAsStateWithLifecycle()
     val layout by vm.dashboardLayout.collectAsStateWithLifecycle()
-    val totalDailyCount by vm.totalDailyCount.collectAsStateWithLifecycle()
-    val totalDailyLimit by vm.totalDailyLimit.collectAsStateWithLifecycle()
-    val coachMessage by vm.coachMessage.collectAsStateWithLifecycle()
-    val userRank by vm.userRank.collectAsStateWithLifecycle()
-    val userXP by vm.userXP.collectAsStateWithLifecycle()
     val userGoal by vm.userGoal.collectAsStateWithLifecycle()
     val profileImageUri by vm.profileImageUri.collectAsStateWithLifecycle()
     val isManualReset by vm.isManualReset.collectAsStateWithLifecycle()
     val activeDate by vm.activeDate.collectAsStateWithLifecycle()
+    val metrics by vm.metrics.collectAsStateWithLifecycle()
     
-    val totalCount = totalDailyCount
-    val totalLimit = totalDailyLimit
+    val totalCount = metrics.totalCount
+    val totalLimit = metrics.totalLimit
+    val coachMessage = metrics.coachMessage
+    val userRank = metrics.rank
+    val userXP = metrics.xp
     
     var infoTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showResetDialog by remember { mutableStateOf(false) }
@@ -361,7 +360,7 @@ private fun GlobalCigaretteHeader(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun CounterCard(config: CounterConfig, count: Int, vm: MainViewModel, isCompact: Boolean) {
+private fun CounterCard(config: CounterConfig, count: Int, vm: TrackerViewModel, isCompact: Boolean) {
     val isLimitReached = count >= config.limit
     val progress by remember(count, config.limit) { derivedStateOf { (count / config.limit.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f) } }
     val haptic = LocalHapticFeedback.current
