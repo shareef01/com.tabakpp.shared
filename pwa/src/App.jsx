@@ -98,7 +98,20 @@ const App = () => {
 
     // Sync Settings
     const settingsUnsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
-      if (snap.exists()) setSettings(prev => ({ ...prev, ...snap.data() }));
+      if (snap.exists()) {
+        const data = snap.data();
+        setSettings(prev => ({
+          ...prev,
+          accent: data.accent || '#D4FF5C',
+          isDark: data.isDark !== undefined ? data.isDark : true,
+          layout: data.layout || 'LARGE',
+          fontScale: data.fontScale || 1,
+          nightOwl: data.nightOwl !== undefined ? data.nightOwl : false,
+          globalPrice: data.globalPrice || '0.5'
+        }));
+      }
+    }, (err) => {
+      console.error("Settings sync error:", err);
     });
 
     return () => {
