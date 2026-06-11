@@ -6,12 +6,12 @@ import { getFirestore } from "firebase/firestore";
 // Your web app's Firebase configuration
 // REPLACE THIS WITH YOUR ACTUAL FIREBASE WEB CONFIG FROM CONSOLE
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCiAz3coiXQyozfym3T0xFmq9jYtBa6pJY",
+  authDomain: "tabakpp-ff036.firebaseapp.com",
+  projectId: "tabakpp-ff036",
+  storageBucket: "tabakpp-ff036.firebasestorage.app",
+  messagingSenderId: "651175477527",
+  appId: "1:651175477527:web:f68c3ef517667e3e9b3752" // Note: This is an estimated Web ID, you may need to verify in Firebase Console
 };
 
 // Initialize Firebase
