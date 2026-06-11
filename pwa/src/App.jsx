@@ -72,23 +72,18 @@ const App = () => {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // 1. Auth Listener - CRITICAL FIX: Ensure setAuthLoading(false) always runs
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setAuthLoading(false);
-      if (!u) {
-        setLogs([]);
-        setConfigs([]);
-      }
+      if (!u) { setLogs([]); setConfigs([]); }
     }, (err) => {
-      setAppError("Auth connection lost: " + err.message);
+      setAppError("Auth denied: " + err.message);
       setAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // 2. Data Sync
   useEffect(() => {
     if (!user) return;
     try {
@@ -160,9 +155,8 @@ const App = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
 
-  // AUTH BRANCHING - CRITICAL CHECK
   if (appError) return <ErrorView msg={appError} />;
-  if (authLoading) return <LoadingView />; // If stuck here, auth listener didn't fire
+  if (authLoading) return <LoadingView />;
   if (!user) return <AuthScreen />;
 
   const themeClass = settings.isDark ? "bg-[#020202] text-white" : "bg-[#F5F5F5] text-[#111]";
