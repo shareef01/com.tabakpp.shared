@@ -4,7 +4,7 @@ import { cn } from '../utils/utils';
 
 export const Card = ({ children, className, danger, noPadding }) => (
   <div className={cn(
-    "bg-bg-card rounded-card border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-all duration-500",
+    "rounded-[32px] border transition-all duration-500",
     !noPadding && "p-8 md:p-10",
     danger && "border-danger/30 bg-danger/[0.02]",
     className
@@ -13,13 +13,13 @@ export const Card = ({ children, className, danger, noPadding }) => (
   </div>
 );
 
-export const Button = ({ children, onClick, className, variant = 'primary', disabled, size = 'md' }) => {
+export const Button = ({ children, onClick, className, variant = 'primary', disabled, size = 'md', style }) => {
   const variants = {
-    primary: "bg-accent text-accent-fg shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]",
-    secondary: "bg-white/[0.05] text-white border border-white/10 hover:bg-white/[0.08]",
+    primary: "bg-accent text-[#0C0C00] shadow-[0_0_20px_var(--accent-glow)]",
+    secondary: "bg-white/[0.05] text-inherit border border-white/10 hover:bg-white/[0.08]",
     danger: "bg-danger text-white shadow-[0_0_20px_rgba(248,113,113,0.3)]",
-    ghost: "bg-transparent text-text-dim hover:text-white hover:bg-white/5",
-    outline: "bg-transparent border-2 border-white/10 text-white hover:border-accent hover:text-accent"
+    ghost: "bg-transparent text-text-dim hover:text-inherit hover:bg-white/5",
+    outline: "bg-transparent border-2 border-accent/20 text-inherit hover:border-accent hover:text-accent hover:bg-accent/5"
   };
 
   const sizes = {
@@ -33,8 +33,9 @@ export const Button = ({ children, onClick, className, variant = 'primary', disa
       whileTap={{ scale: 0.94 }}
       disabled={disabled}
       onClick={onClick}
+      style={style}
       className={cn(
-        "rounded-2xl font-black uppercase tracking-[0.2em] flex items-center justify-center transition-all disabled:opacity-50 select-none overflow-hidden relative group",
+        "rounded-2xl font-[1000] uppercase tracking-[0.2em] flex items-center justify-center transition-all disabled:opacity-50 select-none overflow-hidden relative group shadow-2xl",
         variants[variant],
         sizes[size],
         className
@@ -46,7 +47,7 @@ export const Button = ({ children, onClick, className, variant = 'primary', disa
   );
 };
 
-export const Input = ({ value, onChange, label, type = "text", placeholder }) => (
+export const Input = ({ value, onChange, label, type = "text", placeholder, isDark }) => (
   <div className="flex flex-col space-y-3 w-full">
     {label && <span className="text-[10px] font-black text-text-dim tracking-[0.4em] uppercase ml-1">{label}</span>}
     <input
@@ -54,7 +55,10 @@ export const Input = ({ value, onChange, label, type = "text", placeholder }) =>
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="h-16 px-8 rounded-2xl bg-white/[0.02] border border-white/10 text-white focus:border-accent/40 focus:bg-white/[0.04] focus:outline-none transition-all placeholder:text-text-dim font-bold shadow-inner"
+      className={cn(
+        "h-16 px-8 rounded-2xl border focus:border-accent/40 focus:outline-none transition-all placeholder:text-text-dim font-bold shadow-inner",
+        isDark ? "bg-white/[0.02] border-white/10 text-white focus:bg-white/[0.04]" : "bg-black/[0.02] border-black/10 text-[#1D1D1F] focus:bg-black/[0.04]"
+      )}
     />
   </div>
 );
