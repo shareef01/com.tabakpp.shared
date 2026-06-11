@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Heart, BarChart3, Settings, LogOut,
   ChevronRight, Info, History, Plus, Minus, Edit2, Trash2,
-  TrendingUp, Wallet, Activity, Calendar, Clock, ArrowUp, ArrowDown, X
+  TrendingUp, Wallet, Activity, Calendar, Clock, ArrowUp, ArrowDown, X,
+  Save, AlertCircle, RefreshCcw
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -14,12 +15,12 @@ import { cn } from './utils/utils';
 
 // --- MAIN APP COMPONENT ---
 const App = () => {
-  const [user, setUser] = useState({ name: 'Shareef' });
+  const [user, setUser] = useState({ name: 'Shareef', goal: 'SAVE FOR VACATION' });
   const [activeTab, setActiveTab] = useState('tracker');
   const [logs, setLogs] = useState([
     { logDate: '2026-06-08', counts: { cigarettes: 12 } },
     { logDate: '2026-06-09', counts: { cigarettes: 15 } },
-    { logDate: '2026-06-10', counts: { cigarettes: 8 } },
+    { logDate: '2026-06-10', counts: { cigarettes: 22 } }, // Example over limit
   ]);
   const [configs, setConfigs] = useState([
     { id: 'cigarettes', name: 'Cigarettes', limit: 20, type: 'CIGARETTE', pricePerUnit: 0.5, excludeFromEconomics: false, displayOrder: 0 }
@@ -27,6 +28,7 @@ const App = () => {
 
   const [lastEntry, setLastEntry] = useState(Date.now() - 3600000 * 4);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editLogTarget, setEditLogTarget] = useState(null);
 
   const today = new Date().toISOString().split('T')[0];
   const todayLog = logs.find(l => l.logDate === today) || { logDate: today, counts: {} };
@@ -67,21 +69,13 @@ const App = () => {
     }
   };
 
-  const handleAddTracker = (name, limit) => {
-    const newConfig = {
-      id: Math.random().toString(36).substr(2, 9),
-      name,
-      limit: parseInt(limit) || 20,
-      type: 'SIMPLE',
-      pricePerUnit: 0,
-      excludeFromEconomics: false,
-      displayOrder: configs.length
-    };
-    setConfigs([...configs, newConfig]);
-    setShowAddModal(false);
+  const handleSaveLogEdit = (date, newCounts) => {
+    const updatedLogs = logs.map(l => l.logDate === date ? { ...l, counts: newCounts } : l);
+    setLogs(updatedLogs);
+    setEditLogTarget(null);
   };
 
-  if (!user) return <AuthScreen onLogin={() => setUser({ name: 'Shareef' })} />;
+  if (!user) return <AuthScreen onLogin={() => setUser({ name: 'Shareef', goal: 'SAVE FOR VACATION' })} />;
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-base text-white font-inter selection:bg-accent/30 overflow-hidden">
@@ -89,7 +83,7 @@ const App = () => {
         <div className="flex flex-col">
           <h1 className="text-4xl font-[900] tracking-[-0.05em] uppercase leading-none">tabak++</h1>
           <span className="text-[10px] font-black tracking-[0.4em] text-accent mt-2 uppercase">
-            {activeTab} Vault
+            {activeTab === 'tracker' ? 'Vault' : activeTab}
           </span>
         </div>
         <div className="hidden md:flex space-x-2">
@@ -108,10 +102,10 @@ const App = () => {
             <HealthScreen key="health" lastTimestamp={lastEntry} />
           )}
           {activeTab === 'history' && (
-            <HistoryScreen key="history" logs={logs} configs={configs} todayString={today} />
+            <HistoryScreen key="history" logs={logs} configs={configs} todayString={today} onEditLog={setEditLogTarget} />
           )}
           {activeTab === 'settings' && (
-            <SettingsScreen key="settings" configs={configs} setConfigs={setConfigs} user={user} onAddClick={() => setShowAddModal(true)} />
+            <SettingsScreen key="settings" configs={configs} setConfigs={setConfigs} user={user} setUser={setUser} onAddClick={() => setShowAddModal(true)} />
           )}
         </AnimatePresence>
       </main>
@@ -125,45 +119,82 @@ const App = () => {
         </div>
       </nav>
 
-      {/* Add Modal */}
+      {/* Modals Overlay */}
       <AnimatePresence>
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="w-full max-w-sm">
-              <Card className="space-y-6 relative">
-                <button onClick={() => setShowAddModal(false)} className="absolute top-4 right-4 p-2 text-text-dim hover:text-white"><X size={20} /></button>
-                <h3 className="text-2xl font-black tracking-tight">New Tracker</h3>
-                <AddTrackerForm onAdd={handleAddTracker} />
-              </Card>
-            </motion.div>
-          </div>
+          <Modal onClose={() => setShowAddModal(false)} title="New Tracker">
+            <AddTrackerForm onAdd={(n, l) => {
+              const newConfig = { id: Math.random().toString(36).substr(2, 9), name: n, limit: parseInt(l) || 20, type: 'SIMPLE', pricePerUnit: 0, excludeFromEconomics: false, displayOrder: configs.length };
+              setConfigs([...configs, newConfig]);
+              setShowAddModal(false);
+            }} />
+          </Modal>
+        )}
+        {editLogTarget && (
+          <Modal onClose={() => setEditLogTarget(null)} title="Correct Entry">
+            <EditLogForm log={editLogTarget} configs={configs} onSave={handleSaveLogEdit} />
+          </Modal>
         )}
       </AnimatePresence>
     </div>
   );
 };
 
-// --- SUB-COMPONENTS ---
+// --- CORE COMPONENTS ---
+
+const Modal = ({ children, onClose, title }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+    <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="w-full max-w-sm">
+      <Card className="space-y-6 relative border-accent/20 shadow-[0_0_60px_rgba(212,255,92,0.1)]">
+        <button onClick={onClose} className="absolute top-6 right-6 p-2 text-text-dim hover:text-white transition-colors"><X size={20} /></button>
+        <h3 className="text-2xl font-[900] tracking-tighter uppercase">{title}</h3>
+        {children}
+      </Card>
+    </motion.div>
+  </div>
+);
 
 const AddTrackerForm = ({ onAdd }) => {
   const [name, setName] = useState('');
   const [limit, setLimit] = useState('20');
   return (
     <div className="space-y-6">
-      <Input label="Label" value={name} onChange={setName} placeholder="e.g. Vapes" />
-      <Input label="Daily Target" value={limit} onChange={setLimit} type="number" />
-      <Button className="w-full h-16" onClick={() => onAdd(name, limit)}>Create Tracker</Button>
+      <Input label="Identity Label" value={name} onChange={setName} placeholder="e.g. Nicotine Pouches" />
+      <Input label="Daily Threshold" value={limit} onChange={setLimit} type="number" />
+      <Button className="w-full h-16 text-[11px]" onClick={() => onAdd(name, limit)}>Initialize Tracker</Button>
+    </div>
+  );
+};
+
+const EditLogForm = ({ log, configs, onSave }) => {
+  const [counts, setCounts] = useState({ ...log.counts });
+  return (
+    <div className="space-y-6">
+      <span className="text-[10px] font-black text-text-dim uppercase tracking-widest block mb-4">{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span>
+      {configs.map(c => (
+        <div key={c.id} className="space-y-2">
+           <Input
+             label={c.name}
+             value={counts[c.id] || 0}
+             type="number"
+             onChange={(v) => setCounts({ ...counts, [c.id]: parseInt(v) || 0 })}
+           />
+        </div>
+      ))}
+      <Button className="w-full h-16" onClick={() => onSave(log.logDate, counts)}>
+        <Save size={16} className="mr-2" /> Sync Corrections
+      </Button>
     </div>
   );
 };
 
 const TabItem = ({ Icon, label, active, onClick }) => (
-  <motion.div onClick={onClick} whileTap={{ scale: 0.9 }} className="flex flex-col items-center justify-center flex-1 py-2 cursor-pointer relative">
-    <Icon size={20} className={cn("mb-1 transition-colors duration-300", active ? "text-accent" : "text-text-dim")} />
+  <motion.div onClick={onClick} whileTap={{ scale: 0.9 }} className="flex flex-col items-center justify-center flex-1 py-2 cursor-pointer relative group">
+    <Icon size={20} className={cn("mb-1 transition-all duration-500", active ? "text-accent scale-110" : "text-text-dim group-hover:text-text-muted")} />
     <span className={cn("text-[9px] font-black tracking-widest uppercase transition-colors duration-300", active ? "text-white" : "text-text-dim")}>
       {label}
     </span>
-    {active && <motion.div layoutId="navDot" className="absolute -top-1 w-1 h-1 rounded-full bg-accent" />}
+    {active && <motion.div layoutId="navDot" className="absolute -top-1 w-1 h-1 rounded-full bg-accent shadow-[0_0_10px_#D4FF5C]" />}
   </motion.div>
 );
 
@@ -174,16 +205,17 @@ const AuthScreen = ({ onLogin }) => {
     <div className="min-h-screen bg-bg-base flex items-center justify-center p-6 font-inter">
       <div className="w-full max-w-md space-y-12">
         <div className="flex flex-col items-center text-center">
-           <div className="w-20 h-20 bg-accent rounded-[32px] flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(212,255,92,0.2)]">
-              <LayoutDashboard size={32} className="text-bg-base" />
+           <div className="w-24 h-24 bg-accent rounded-[32px] flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(212,255,92,0.25)] relative overflow-hidden group">
+              <LayoutDashboard size={36} className="text-bg-base relative z-10" />
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
            </div>
-           <h1 className="text-5xl font-[900] tracking-tighter uppercase mb-2">tabak++</h1>
-           <p className="text-text-muted font-bold tracking-widest text-[10px] uppercase">The Tracking Vault</p>
+           <h1 className="text-6xl font-[900] tracking-tighter uppercase mb-2 bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent">tabak++</h1>
+           <p className="text-accent font-black tracking-[0.5em] text-[9px] uppercase">The Tracking Vault</p>
         </div>
         <Card className="space-y-6">
-          <Input label="Vault ID" placeholder="email@address.com" value={email} onChange={setEmail} />
-          <Input label="Security Phrase" type="password" placeholder="••••••••" value={pass} onChange={setPass} />
-          <Button className="w-full h-16 text-sm" onClick={onLogin}>Access Vault</Button>
+          <Input label="Vault Identifier" placeholder="email@vault.com" value={email} onChange={setEmail} />
+          <Input label="Access Phrase" type="password" placeholder="••••••••" value={pass} onChange={setPass} />
+          <Button className="w-full h-16 text-xs" onClick={onLogin}>Access Records</Button>
         </Card>
       </div>
     </div>
@@ -193,20 +225,21 @@ const AuthScreen = ({ onLogin }) => {
 const TrackerScreen = ({ metrics, configs, todayLog, onIncrement, onDecrement, onAddClick }) => (
   <div className="flex flex-col space-y-12">
     <StaggeredItem index={0}>
-      <Card className="flex flex-col space-y-8 bg-bg-panel/50 border-accent/10">
-        <div className="flex justify-between items-end">
+      <Card className="flex flex-col space-y-8 bg-bg-panel/50 border-accent/10 relative overflow-hidden">
+        <div className="flex justify-between items-end relative z-10">
           <div>
-            <span className="text-[10px] font-black text-text-dim uppercase tracking-widest">Global Status</span>
-            <div className="text-4xl font-[900] leading-none mt-2">{Math.max(0, metrics.totalLimit - metrics.totalCount)} <span className="text-sm text-text-dim font-bold tracking-normal uppercase ml-2">Remaining</span></div>
+            <span className="text-[10px] font-black text-text-dim uppercase tracking-widest">Global Daily Status</span>
+            <div className="text-5xl font-[900] tracking-tighter mt-2">{Math.max(0, metrics.totalLimit - metrics.totalCount)} <span className="text-sm text-accent font-black tracking-widest uppercase ml-2">Remaining</span></div>
           </div>
           <div className="text-right">
-             <span className="text-[10px] font-black text-accent uppercase tracking-widest">{metrics.rank}</span>
-             <div className="text-2xl font-black text-text-muted leading-none mt-1">{metrics.xp} XP</div>
+             <span className="text-[10px] font-black text-accent uppercase tracking-widest flex items-center justify-end"><TrendingUp size={10} className="mr-1" /> {metrics.rank}</span>
+             <div className="text-2xl font-[900] text-text-muted mt-1">{metrics.xp} <span className="text-xs">XP</span></div>
           </div>
         </div>
-        <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-           <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(1, metrics.progress) * 100}%` }} className="h-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+        <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden relative">
+           <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(1, metrics.progress) * 100}%` }} className={cn("h-full transition-colors duration-700 shadow-[0_0_20px_rgba(255,255,255,0.3)]", metrics.progress >= 1 ? "bg-danger" : "bg-white")} />
         </div>
+        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-accent/5 rounded-full blur-[80px]" />
       </Card>
     </StaggeredItem>
 
@@ -217,11 +250,11 @@ const TrackerScreen = ({ metrics, configs, todayLog, onIncrement, onDecrement, o
         </StaggeredItem>
       ))}
       <StaggeredItem index={configs.length + 1}>
-         <button onClick={onAddClick} className="w-full h-full min-h-[300px] border-2 border-dashed border-white/5 rounded-card flex flex-col items-center justify-center space-y-4 hover:bg-white/[0.02] transition-colors group">
-            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-               <Plus className="text-text-dim group-hover:text-white" />
+         <button onClick={onAddClick} className="w-full h-full min-h-[350px] border-2 border-dashed border-white/5 rounded-[42px] flex flex-col items-center justify-center space-y-6 hover:bg-white/[0.02] hover:border-accent/20 transition-all group relative overflow-hidden">
+            <div className="w-16 h-16 rounded-[24px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-500">
+               <Plus className="text-text-dim group-hover:text-accent" size={28} />
             </div>
-            <span className="text-[10px] font-black text-text-dim uppercase tracking-widest group-hover:text-white">New Tracker</span>
+            <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.3em] group-hover:text-white">New Tracker Archetype</span>
          </button>
       </StaggeredItem>
     </div>
@@ -231,63 +264,88 @@ const TrackerScreen = ({ metrics, configs, todayLog, onIncrement, onDecrement, o
 const CounterCard = ({ config, count, onIncrement, onDecrement }) => {
   const isLimit = count >= config.limit;
   const progress = Math.min(1, count / config.limit);
-  const isBurnable = config.type === 'CIGARETTE';
+
+  // App matching logic: Once limit is hit, bar turns red and "over-burns"
+  const burnWidth = isLimit ? 0 : (1 - progress) * 100;
 
   return (
-    <Card className={cn("relative group overflow-hidden transition-colors duration-500 min-h-[400px] flex flex-col", isLimit && "border-danger/30 shadow-danger/5")}>
-      <div className="flex justify-between items-start mb-8">
+    <Card className={cn("relative group overflow-hidden transition-all duration-700 min-h-[450px] flex flex-col p-10", isLimit ? "border-danger/40 shadow-[0_0_40px_rgba(248,113,113,0.05)] bg-danger/[0.02]" : "hover:border-white/10")}>
+      <div className="flex justify-between items-start mb-8 relative z-10">
         <div className="flex flex-col">
-          <span className={cn("text-[10px] font-[900] tracking-[0.3em] uppercase", isLimit ? "text-danger" : "text-accent")}>{config.name}</span>
-          <span className="text-[9px] font-bold text-text-dim uppercase mt-1">Target: {config.limit}</span>
+          <span className={cn("text-[11px] font-[900] tracking-[0.4em] uppercase transition-colors duration-500", isLimit ? "text-danger" : "text-accent")}>{config.name}</span>
+          <span className="text-[9px] font-bold text-text-dim uppercase mt-1 tracking-widest">Vault Objective: {config.limit}</span>
         </div>
-        {isLimit && <motion.div animate={{ opacity: [1, 0.4, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}><Info size={14} className="text-danger" /></motion.div>}
+        {isLimit && <motion.div animate={{ opacity: [1, 0.4, 1], scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="p-2 bg-danger/10 rounded-full"><AlertCircle size={16} className="text-danger" /></motion.div>}
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center w-full">
-        {/* Advanced Burn Visual (Fixed to match App: Progress moves from Left to Right, Ember follows tip) */}
-        <div className={cn("relative w-full h-8 bg-white/[0.03] rounded-full overflow-hidden border border-white/5 mb-12 shadow-inner", isLimit && "bg-danger/5")}>
-          {/* White Body - Fixed to Right side, length shrinks from Left to Right */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full relative">
+        {/* Android Exact Matching Cigarette Shaders */}
+        <div className={cn("relative w-full h-10 rounded-full overflow-hidden border border-white/5 mb-14 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] transition-all duration-1000", isLimit ? "bg-danger/20" : "bg-white/[0.02]")}>
+
+          {/* White Body - Burns Left to Right */}
           <motion.div
-              animate={{ left: `${progress * 100}%` }}
-              className={cn("absolute inset-y-0 right-0 bg-white transition-colors", isLimit && "bg-danger/40")}
-              initial={false}
+              animate={{ width: `${burnWidth}%` }}
+              className={cn("absolute right-0 h-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.1)]", isLimit && "opacity-0")}
+              transition={{ type: 'spring', stiffness: 50, damping: 20 }}
           />
 
-          {/* Ember (The Burning Tip) - Moves from Left to Right with the burning edge */}
-          {count > 0 && !isLimit && (
+          {/* Ember (The Physics-based Flickering Tip) */}
+          {!isLimit && count > 0 && (
               <motion.div
-                animate={{ left: `calc(${progress * 100}% - 16px)` }}
-                className="absolute inset-y-0 w-8 z-20 flex items-center justify-center"
+                animate={{ right: `${burnWidth}%` }}
+                transition={{ type: 'spring', stiffness: 50, damping: 20 }}
+                className="absolute top-0 bottom-0 w-8 translate-x-1/2 z-20 flex items-center justify-center"
               >
-                  {/* Outer Glow */}
-                  <div className="absolute inset-0 bg-radial-gradient from-[#FF3D00]/60 to-transparent blur-md" />
-                  {/* Flicker Core */}
+                  {/* Heat Radius */}
                   <motion.div
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.8, 1, 0.8] }}
-                    transition={{ repeat: Infinity, duration: 0.2 }}
-                    className="w-4 h-full bg-[#FF3D00] rounded-full shadow-[0_0_15px_#FF3D00]"
+                    animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0.7, 0.4] }}
+                    transition={{ repeat: Infinity, duration: 0.15 }}
+                    className="absolute inset-0 bg-radial-gradient from-[#FF3D00] to-transparent blur-lg"
+                  />
+                  {/* Core Flame */}
+                  <motion.div
+                    animate={{
+                      scaleY: [1, 1.1, 0.9, 1],
+                      x: [-1, 1, -1, 1, 0],
+                      backgroundColor: ['#FF3D00', '#FFB74D', '#FF3D00']
+                    }}
+                    transition={{ repeat: Infinity, duration: 0.1, ease: 'linear' }}
+                    className="w-4 h-full rounded-full shadow-[0_0_20px_#FF3D00]"
                   />
               </motion.div>
           )}
 
-          {/* Orange Filter (The Roach) - Fixed on the right */}
-          <div className="absolute top-0 bottom-0 right-0 w-16 bg-[#D97706] rounded-r-full shadow-lg border-l border-black/10 z-10" />
+          {/* Over-Limit "Fully Burnt" State */}
+          {isLimit && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-gradient-to-r from-danger/60 via-danger to-danger/60 animate-pulse-slow" />
+          )}
 
-          {/* The "Burned" Ash/Empty Space (Background of the bar) */}
+          {/* The Filter (Roach) - Consumed if Over Limit */}
+          <motion.div
+            animate={{
+               width: isLimit ? '0%' : '25%',
+               opacity: isLimit ? 0 : 1
+            }}
+            className="absolute top-0 bottom-0 right-0 bg-[#D97706] border-l border-black/20 z-10 shadow-lg"
+          >
+             <div className="absolute inset-y-0 left-0 w-px bg-white/10" />
+          </motion.div>
+
+          {/* Background Ash */}
           <div className="absolute inset-0 bg-neutral-950 -z-10" />
         </div>
 
-        <motion.div key={count} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-8xl font-[900] tracking-tighter text-center mb-10 leading-none">
+        <motion.div key={count} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-9xl font-[900] tracking-tighter text-center mb-10 leading-none">
           {count}
         </motion.div>
       </div>
 
-      <div className="flex justify-center items-center space-x-8">
-        <motion.button whileTap={{ scale: 0.8 }} onClick={() => onDecrement(config.id)} className="w-16 h-16 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-text-dim hover:text-white transition-colors">
+      <div className="flex justify-center items-center space-x-10 relative z-10">
+        <motion.button whileTap={{ scale: 0.8 }} onClick={() => onDecrement(config.id)} className="w-16 h-16 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-text-dim hover:text-white transition-all hover:bg-white/10">
           <Minus size={24} />
         </motion.button>
-        <motion.button whileTap={{ scale: 0.9 }} onClick={() => onIncrement(config.id)} className={cn("w-24 h-24 rounded-full border-2 flex items-center justify-center shadow-xl", isLimit ? "border-danger text-danger bg-danger/5" : "border-white/10 text-white bg-white/5")}>
-          <Plus size={36} strokeWidth={3} />
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => onIncrement(config.id)} className={cn("w-28 h-28 rounded-full border-2 flex items-center justify-center shadow-2xl transition-all duration-500", isLimit ? "border-danger text-danger bg-danger/10" : "border-white/10 text-white bg-white/5 hover:border-accent hover:text-accent")}>
+          <Plus size={48} strokeWidth={3} />
         </motion.button>
       </div>
     </Card>
@@ -303,43 +361,43 @@ const HealthScreen = ({ lastTimestamp }) => {
   return (
     <div className="flex flex-col space-y-8">
       <StaggeredItem index={0}>
-        <Card className="bg-success/5 border-success/20 overflow-hidden relative">
-          <div className="flex justify-between items-center mb-6 relative z-10">
-            <div className="w-14 h-14 rounded-2xl bg-success/20 flex items-center justify-center">
-              <Heart className="text-success" size={24} fill="currentColor" />
+        <Card className="bg-success/5 border-success/20 overflow-hidden relative p-10">
+          <div className="flex justify-between items-center mb-10 relative z-10">
+            <div className="w-16 h-16 rounded-3xl bg-success/20 flex items-center justify-center border border-success/30">
+              <Heart className="text-success" size={32} fill="currentColor" />
             </div>
             <div className="text-right">
-              <span className="text-[9px] font-black text-text-dim uppercase tracking-widest">Vault Clean Time</span>
-              <div className="text-2xl font-black text-success tracking-tighter">{hours}H {mins}M</div>
+              <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.2em]">Vault Purity Time</span>
+              <div className="text-4xl font-[900] text-success tracking-tighter mt-1">{hours} <span className="text-lg">H</span> {mins} <span className="text-lg">M</span></div>
             </div>
           </div>
-          <h2 className="text-3xl font-[900] tracking-tight mb-2 relative z-10">Vitality Hub</h2>
-          <p className="text-xs text-text-muted font-medium leading-relaxed max-w-sm relative z-10">Restoring physiological markers based on clinical nonsmoker timelines.</p>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-success/5 rounded-full blur-[100px] -mr-32 -mt-32" />
+          <h2 className="text-4xl font-[900] tracking-tighter mb-2 relative z-10 uppercase">Biological Restoration</h2>
+          <p className="text-sm text-text-muted font-medium leading-relaxed max-w-md relative z-10">Clinical markers are actively repairing. Timelines are derived from nonsmoker recovery research.</p>
+          <div className="absolute top-0 right-0 w-80 h-80 bg-success/10 rounded-full blur-[100px] -mr-40 -mt-40" />
         </Card>
       </StaggeredItem>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
         {milestones.map((m, i) => (
           <StaggeredItem key={m.title} index={i + 1}>
-            <Card className="h-full flex flex-col hover:border-success/30 transition-colors group">
-              <div className="flex justify-between items-start mb-6">
+            <Card className="h-full flex flex-col hover:border-success/30 hover:bg-white/[0.01] transition-all group cursor-default">
+              <div className="flex justify-between items-start mb-8">
                  <div>
-                   <span className="text-[9px] font-black text-text-dim uppercase tracking-widest group-hover:text-success transition-colors">{m.progress >= 1 ? 'Phase Complete' : 'Active Repair'}</span>
-                   <h4 className="text-lg font-black tracking-tight mt-1">{m.title}</h4>
+                   <span className={cn("text-[9px] font-black uppercase tracking-widest transition-colors duration-500", m.progress >= 1 ? "text-success" : "text-text-dim group-hover:text-success/60")}>{m.progress >= 1 ? 'Phase Stabilized' : 'Cellular Repair'}</span>
+                   <h4 className="text-xl font-[900] tracking-tight mt-1 uppercase">{m.title}</h4>
                  </div>
-                 <div className="text-3xl font-black text-success tracking-tighter">{Math.floor(m.progress * 100)}%</div>
+                 <div className="text-4xl font-[900] text-success tracking-tighter transition-transform group-hover:scale-110 duration-500">{Math.floor(m.progress * 100)}%</div>
               </div>
-              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-6">
-                 <motion.div initial={{ width: 0 }} animate={{ width: `${m.progress * 100}%` }} className="h-full bg-success" />
+              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-8">
+                 <motion.div initial={{ width: 0 }} animate={{ width: `${m.progress * 100}%` }} className="h-full bg-success shadow-[0_0_10px_rgba(74,222,128,0.5)]" />
               </div>
-              <p className="text-xs text-text-muted font-medium leading-relaxed mb-6 flex-1">{m.desc}</p>
-              <div className="pt-4 border-t border-white/5 flex justify-between items-center text-text-dim">
+              <p className="text-sm text-text-muted font-medium leading-relaxed mb-8 flex-1">{m.desc}</p>
+              <div className="pt-6 border-t border-white/5 flex justify-between items-center text-text-dim">
                  <div className="flex items-center space-x-2">
-                    <History size={12} />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Audit Logic</span>
+                    <Activity size={14} className="text-success/40" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Audit Sequence</span>
                  </div>
-                 <ChevronRight size={14} />
+                 <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </div>
             </Card>
           </StaggeredItem>
@@ -349,31 +407,34 @@ const HealthScreen = ({ lastTimestamp }) => {
   );
 };
 
-const HistoryScreen = ({ logs, configs, todayString }) => {
+const HistoryScreen = ({ logs, configs, todayString, onEditLog }) => {
   const chartData = useMemo(() => {
     return [...logs].sort((a, b) => a.logDate.localeCompare(b.logDate)).slice(-7).map(l => ({
-      name: new Date(l.logDate).toLocaleDateString('en-US', { weekday: 'short' }),
+      name: new Date(l.logDate).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
       val: l.counts.cigarettes || 0
     }));
   }, [logs]);
 
-  const heatmap = useMemo(() => Array.from({ length: 24 }, (_, i) => ({ h: i, v: Math.floor(Math.random() * 10) })), []);
+  const heatmap = useMemo(() => Array.from({ length: 24 }, (_, i) => ({ h: i, v: Math.floor(Math.random() * 15) })), []);
 
   return (
     <div className="flex flex-col space-y-8 pb-12">
       <StaggeredItem index={0}>
-        <Card className="p-0 overflow-hidden">
-          <div className="p-8 pb-4">
-             <span className="text-[10px] font-black text-text-dim uppercase tracking-widest">Usage Trends</span>
-             <h3 className="text-2xl font-black text-accent mt-1 uppercase">Cigarettes</h3>
+        <Card className="p-0 overflow-hidden border-accent/20">
+          <div className="p-10 pb-6 flex justify-between items-start">
+             <div>
+               <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.3em]">Temporal Trends</span>
+               <h3 className="text-3xl font-[900] text-accent mt-1 uppercase tracking-tighter">Usage Volatility</h3>
+             </div>
+             <div className="p-3 bg-accent/10 rounded-2xl"><BarChart3 className="text-accent" /></div>
           </div>
-          <div className="h-[250px] w-full pr-8">
+          <div className="h-[280px] w-full pr-10 pl-4 pb-4">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="name" stroke="#666664" fontSize={10} axisLine={false} tickLine={false} dy={10} />
-                <Tooltip contentStyle={{ background: '#121214', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
-                <Line type="monotone" dataKey="val" stroke="#D4FF5C" strokeWidth={4} dot={{ r: 4, fill: '#D4FF5C', strokeWidth: 0 }} activeDot={{ r: 8 }} animationDuration={1500} />
+                <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis dataKey="name" stroke="#666664" fontSize={10} axisLine={false} tickLine={false} dy={15} fontVariant="black" />
+                <Tooltip contentStyle={{ background: '#121214', border: '1px solid rgba(212,255,92,0.2)', borderRadius: '16px', fontWeight: '900', fontSize: '12px' }} />
+                <Line type="stepAfter" dataKey="val" stroke="#D4FF5C" strokeWidth={5} dot={{ r: 5, fill: '#D4FF5C', strokeWidth: 2, stroke: '#020202' }} activeDot={{ r: 10, shadow: '0 0 20px #D4FF5C' }} animationDuration={2000} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -383,43 +444,56 @@ const HistoryScreen = ({ logs, configs, todayString }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <InsightCard Icon={TrendingUp} label="Streak" val="5" suffix="Days" color="text-orange-400" index={1} />
         <InsightCard Icon={Wallet} label="Spent" val="$142.50" suffix="Total" color="text-emerald-400" index={2} />
-        <InsightCard Icon={Activity} label="Health" val="12h 45m" suffix="Lost" color="text-rose-400" index={3} />
+        <InsightCard Icon={Activity} label="Impact" val="12h 45m" suffix="Minutes Lost" color="text-rose-400" index={3} />
       </div>
 
-      {/* Actual History Logs */}
-      <div className="space-y-4">
-         <h4 className="text-[10px] font-black text-text-dim uppercase tracking-widest ml-1">Recent Vault Activity</h4>
+      <div className="space-y-6 pt-6">
+         <h4 className="text-[11px] font-black text-accent uppercase tracking-[0.4em] ml-2">Historical Records</h4>
          {logs.sort((a,b) => b.logDate.localeCompare(a.logDate)).map((log, i) => (
-           <Card key={log.logDate} className="py-6 flex items-center justify-between">
-              <div className="flex flex-col">
-                 <span className="text-lg font-black tracking-tight">{log.logDate === todayString ? 'Today' : new Date(log.logDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'long'})}</span>
-                 <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{Object.values(log.counts).reduce((a,b) => a+b, 0)} logs recorded</span>
-              </div>
-              <div className="flex -space-x-2">
-                 {Object.entries(log.counts).map(([cid, count]) => (
-                   <div key={cid} className="w-10 h-10 rounded-full bg-accent text-bg-base border-4 border-bg-card flex items-center justify-center font-black text-xs">
-                      {count}
-                   </div>
-                 ))}
-              </div>
-           </Card>
+           <motion.div key={log.logDate} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.05 }}>
+             <Card className="py-8 flex items-center justify-between hover:bg-white/[0.01] transition-colors group px-10">
+                <div className="flex flex-col">
+                   <span className="text-xl font-[900] tracking-tight uppercase leading-none">{log.logDate === todayString ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'long'})}</span>
+                   <span className="text-[10px] font-bold text-text-dim uppercase tracking-widest mt-2 flex items-center">
+                     <History size={10} className="mr-1.5" /> {Object.values(log.counts).reduce((a,b) => a+b, 0)} logs registered
+                   </span>
+                </div>
+                <div className="flex items-center space-x-6">
+                  <div className="flex -space-x-3">
+                     {Object.entries(log.counts).map(([cid, count]) => (
+                       <div key={cid} className="w-12 h-12 rounded-full bg-bg-panel border-4 border-bg-card flex items-center justify-center font-black text-xs text-white shadow-xl">
+                          {count}
+                       </div>
+                     ))}
+                  </div>
+                  <button onClick={() => onEditLog(log)} className="p-3 rounded-2xl bg-white/5 text-text-dim hover:text-accent hover:bg-accent/10 transition-all opacity-0 group-hover:opacity-100"><Edit2 size={18} /></button>
+                </div>
+             </Card>
+           </motion.div>
          ))}
       </div>
 
       <StaggeredItem index={4}>
-        <Card>
-           <span className="text-[10px] font-black text-text-dim uppercase tracking-widest">Peak Activity</span>
-           <div className="flex items-end space-x-1 h-24 mt-8">
+        <Card className="p-10">
+           <div className="flex justify-between items-center mb-10">
+             <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.3em]">Peak Usage Intensity</span>
+             <Clock size={16} className="text-text-dim" />
+           </div>
+           <div className="flex items-end space-x-1.5 h-32">
               {heatmap.map((d, i) => (
-                <div key={i} className="flex-1 bg-accent/20 rounded-t-sm relative group" style={{ height: `${d.v * 10}%` }}>
-                   <div className="absolute inset-0 bg-accent scale-y-0 group-hover:scale-y-100 origin-bottom transition-transform duration-300" />
+                <div key={i} className="flex-1 bg-white/5 rounded-t-lg relative group h-full overflow-hidden">
+                   <motion.div
+                     initial={{ height: 0 }}
+                     animate={{ height: `${d.v * 6}%` }}
+                     className="absolute bottom-0 left-0 right-0 bg-accent group-hover:bg-white transition-colors duration-300 shadow-[0_0_15px_rgba(212,255,92,0.3)]"
+                   />
                 </div>
               ))}
            </div>
-           <div className="flex justify-between mt-4 text-[9px] font-black text-text-dim uppercase">
-              <span>12 AM</span>
-              <span>12 PM</span>
-              <span>11 PM</span>
+           <div className="flex justify-between mt-6 text-[10px] font-black text-text-dim uppercase tracking-widest">
+              <span>00:00</span>
+              <span>12:00</span>
+              <span>23:59</span>
            </div>
         </Card>
       </StaggeredItem>
@@ -429,70 +503,83 @@ const HistoryScreen = ({ logs, configs, todayString }) => {
 
 const InsightCard = ({ Icon, label, val, suffix, color, index }) => (
   <StaggeredItem index={index}>
-    <Card className="flex flex-col items-center text-center py-8">
-      <div className={cn("p-4 rounded-2xl bg-white/[0.03] mb-4", color)}>
-        <Icon size={24} />
+    <Card className="flex flex-col items-center text-center py-10 hover:border-accent/10 transition-colors">
+      <div className={cn("p-5 rounded-3xl bg-white/[0.02] mb-6 shadow-inner", color)}>
+        <Icon size={28} />
       </div>
-      <div className="text-2xl font-black leading-none">{val}</div>
-      <div className="text-[10px] font-bold text-text-muted mt-1 uppercase">{suffix}</div>
-      <div className="text-[9px] font-black text-text-dim mt-4 uppercase tracking-[0.2em]">{label}</div>
+      <div className="text-3xl font-[900] leading-none tracking-tighter">{val}</div>
+      <div className="text-[10px] font-bold text-text-muted mt-2 uppercase tracking-widest">{suffix}</div>
+      <div className="mt-8 pt-4 border-t border-white/5 w-full">
+        <span className="text-[9px] font-[900] text-text-dim uppercase tracking-[0.4em]">{label}</span>
+      </div>
     </Card>
   </StaggeredItem>
 );
 
-const SettingsScreen = ({ configs, setConfigs, user, onAddClick }) => {
+const SettingsScreen = ({ configs, setConfigs, user, setUser, onAddClick }) => {
   const [alias, setAlias] = useState(user.name);
-  const [goal, setGoal] = useState('SAVE FOR VACATION');
+  const [goal, setGoal] = useState(user.goal);
+  const [price, setPrice] = useState('0.5');
+
   return (
     <div className="flex flex-col space-y-8 pb-20">
       <StaggeredItem index={0}>
-        <Card>
-          <div className="flex items-center space-x-6 mb-10">
-             <div className="w-20 h-20 bg-accent/10 rounded-full border-2 border-accent/20 flex items-center justify-center text-3xl font-black text-accent uppercase">
+        <Card className="p-10">
+          <div className="flex items-center space-x-8 mb-12">
+             <div className="w-24 h-24 bg-gradient-to-br from-accent/20 to-accent/5 rounded-[32px] border-2 border-accent/20 flex items-center justify-center text-4xl font-[900] text-accent uppercase shadow-2xl">
                 {alias.charAt(0)}
              </div>
              <div>
-                <h4 className="text-2xl font-black tracking-tight">{alias}</h4>
-                <span className="text-[10px] font-black text-accent uppercase tracking-widest">Premium Member</span>
+                <h4 className="text-3xl font-[900] tracking-tighter uppercase leading-none">{alias}</h4>
+                <span className="text-[10px] font-black text-accent uppercase tracking-[0.3em] mt-2 block">Vault Commander</span>
              </div>
           </div>
-          <div className="space-y-6">
-             <Input label="Vault Alias" value={alias} onChange={setAlias} />
-             <Input label="Life Goal" value={goal} onChange={setGoal} />
-             <Button className="w-full h-16">Sync Identity</Button>
+          <div className="space-y-8">
+             <Input label="Vault Identifier Alias" value={alias} onChange={setAlias} />
+             <Input label="Strategic Life Goal" value={goal} onChange={setGoal} />
+             <Button className="w-full h-16 text-[11px]" onClick={() => setUser({ ...user, name: alias, goal: goal })}>Synchronize Identity</Button>
           </div>
         </Card>
       </StaggeredItem>
 
       <StaggeredItem index={1}>
-        <Card>
-          <h4 className="text-[10px] font-black text-text-dim uppercase tracking-[0.2em] mb-8">Vault Configuration</h4>
+        <Card className="p-10">
+          <div className="flex justify-between items-center mb-10">
+            <h4 className="text-[11px] font-black text-text-dim uppercase tracking-[0.4em]">Vault Configuration</h4>
+            <RefreshCcw size={14} className="text-text-dim" />
+          </div>
           <div className="space-y-4">
-             {configs.map(c => (
-               <div key={c.id} className="flex items-center justify-between p-4 bg-white/[0.02] rounded-2xl border border-white/5">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-black uppercase">{c.name}</span>
-                    <span className="text-[10px] font-bold text-text-dim uppercase">Limit: {c.limit}</span>
-                  </div>
-                  <div className="flex space-x-2">
-                    <button className="p-2 text-text-dim hover:text-white transition-colors"><Edit2 size={16} /></button>
-                    <button className="p-2 text-text-dim hover:text-danger transition-colors"><Trash2 size={16} /></button>
-                  </div>
-               </div>
-             ))}
-             <Button variant="secondary" className="w-full h-12 border-dashed border-2" onClick={onAddClick}>
-                <Plus size={14} className="mr-2" /> Add Tracker
+             <Input label="Global Unit Price ($)" value={price} onChange={setPrice} type="number" />
+             <div className="pt-4 space-y-3">
+               {configs.map(c => (
+                 <div key={c.id} className="flex items-center justify-between p-6 bg-white/[0.02] rounded-3xl border border-white/5 group hover:border-accent/10 transition-colors">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-black uppercase tracking-tight">{c.name}</span>
+                      <span className="text-[10px] font-bold text-text-dim uppercase tracking-widest mt-1">Threshold: {c.limit} units</span>
+                    </div>
+                    <div className="flex space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button className="p-3 rounded-2xl bg-white/5 text-text-dim hover:text-white transition-all"><Edit2 size={16} /></button>
+                      <button onClick={() => setConfigs(configs.filter(x => x.id !== c.id))} className="p-3 rounded-2xl bg-danger/5 text-danger/40 hover:text-danger hover:bg-danger/10 transition-all"><Trash2 size={16} /></button>
+                    </div>
+                 </div>
+               ))}
+             </div>
+             <Button variant="secondary" className="w-full h-14 border-dashed border-2 mt-4" onClick={onAddClick}>
+                <Plus size={16} className="mr-2" /> Initialize New Tracker
              </Button>
           </div>
         </Card>
       </StaggeredItem>
 
       <StaggeredItem index={2}>
-        <Card danger className="bg-danger/5">
-          <h4 className="text-[10px] font-black text-danger uppercase tracking-[0.2em] mb-6 text-center">Session Termination</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="danger" className="h-12 text-[10px]">Log Out</Button>
-            <Button variant="outline" className="h-12 text-[10px] border-danger/30 text-danger hover:bg-danger/10">Wipe Vault</Button>
+        <Card danger className="bg-danger/[0.03] p-10">
+          <div className="flex flex-col items-center text-center space-y-6">
+             <div className="w-16 h-16 rounded-full bg-danger/10 flex items-center justify-center text-danger"><AlertCircle size={28} /></div>
+             <h4 className="text-[11px] font-black text-danger uppercase tracking-[0.5em]">Critical session commands</h4>
+             <div className="grid grid-cols-2 gap-4 w-full">
+                <Button variant="danger" className="h-14 text-[10px]" onClick={() => setUser(null)}>Terminate</Button>
+                <Button variant="outline" className="h-14 text-[10px] border-danger/30 text-danger hover:bg-danger/10">Wipe Data</Button>
+             </div>
           </div>
         </Card>
       </StaggeredItem>
