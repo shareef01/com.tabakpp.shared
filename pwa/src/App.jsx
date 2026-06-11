@@ -5,7 +5,7 @@ import {
   ChevronRight, Info, History, Plus, Minus, Edit2, Trash2,
   TrendingUp, Wallet, Activity, Calendar, Clock, ArrowUp, ArrowDown, X,
   Save, AlertCircle, RefreshCcw, Camera, Target, Layout, Type, Grid,
-  Database, ShieldCheck, Flame, Loader2, InfoIcon, User, UserCircle, Moon
+  Database, ShieldCheck, Flame, Loader2, InfoIcon, User, UserCircle, Moon, Check
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -254,7 +254,7 @@ const AuthScreen = () => {
   return (
     <div className="min-h-screen bg-[#020202] flex items-center justify-center p-6 text-white font-inter">
       <div className="w-full max-w-md space-y-12">
-        <div className="flex flex-col items-center text-center"><div className="w-24 h-24 bg-accent rounded-[32px] flex items-center justify-center mb-8 shadow-2xl text-bg-base shadow-accent/20"><LayoutDashboard size={40} /></div><h1 className="text-5xl font-[950] tracking-tighter uppercase leading-none text-white">tabak++</h1></div>
+        <div className="flex flex-col items-center text-center"><div className="w-24 h-24 bg-accent rounded-[32px] flex items-center justify-center mb-8 shadow-2xl text-bg-base shadow-accent/20"><LayoutDashboard size={40} /></div><h1 className="text-5xl font-[1000] tracking-tighter uppercase leading-none text-white">tabak++</h1></div>
         <Card className="space-y-6 bg-white/[0.03] border-white/5 p-10 backdrop-blur-lg shadow-2xl">
           {err && <div className="p-4 bg-danger/10 border border-danger/20 rounded-2xl text-danger text-[10px] font-black uppercase tracking-widest">{err}</div>}
           {!isL && <Input label="Vault Commander" value={n} onChange={setN} placeholder="Your Alias" />}
@@ -470,6 +470,7 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
              <Button variant="outline" className={cn("w-full border-dashed border-2 rounded-[56px] h-28 hover:bg-accent/5 hover:border-accent group transition-all", !s.isDark && "text-black border-black/20")} onClick={onAdd}><Plus className="mr-6 group-hover:rotate-90 transition-transform duration-1000 text-accent scale-110" size={40} /><span className="text-base font-[1000] tracking-[0.3em]">Initialize Tracker</span></Button>
           </div>
        </Card>
+       <Button variant="danger" className="w-full h-24 rounded-[42px] shadow-2xl hover:scale-[1.01] active:scale-[0.98] text-sm font-black transition-all shadow-black/80" onClick={() => signOut(auth)}>Emergency Session Termination</Button>
     </div>
   );
 };
@@ -515,7 +516,7 @@ const EditForm = ({ log, configs, onSave, isDark }) => {
     <div className="space-y-14">
        <div className={cn("flex items-center space-x-8 p-8 rounded-[42px] border shadow-inner", isDark ? "bg-black/40 border-white/5" : "bg-black/5 border-black/5")}><div className="p-5 bg-accent/10 rounded-[28px] border border-accent/20"><Calendar size={32} className="text-accent" /></div><span className={cn("text-lg font-black uppercase tracking-[0.4em] opacity-90", !isDark && "text-black")}>{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span></div>
        <div className="max-h-[400px] overflow-y-auto pr-8 space-y-12 scrollbar-thin scrollbar-thumb-accent/40 pb-10">{configs.map(x => <Input key={x.id} label={x.name} value={c[x.id] || 0} type="number" onChange={v => setC({...c, [x.id]: parseInt(v) || 0})} />)}</div>
-       <Button size="lg" className="w-full h-24 rounded-[42px] shadow-2xl text-base font-[1000] transition-all hover:scale-[1.02] active:scale-95" onClick={() => onSave(log.logDate, c)}><Save size={32} className="mr-6" /> Register Override</Button>
+       <Button size="lg" className="w-full h-24 rounded-[42px] shadow-2xl text-base font-[1000] transition-all hover:scale-[1.02] active:scale-95" onClick={() => onSave(log.logDate, c)}>Register Override</Button>
     </div>
   );
 };
