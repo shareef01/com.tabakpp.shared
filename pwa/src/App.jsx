@@ -4,17 +4,40 @@ import {
   LayoutDashboard, Heart, BarChart3, Settings, LogOut,
   ChevronRight, Info, History, Plus, Minus, Edit2, Trash2,
   TrendingUp, Wallet, Activity, Calendar, Clock, ArrowUp, ArrowDown, X,
-  Save, AlertCircle, RefreshCcw, Camera, Type, Moon, Sun,
-  Layout, Grid, CheckCircle2, ChevronDown
+  Save, AlertCircle, RefreshCcw, Camera, Target, Layout, Type, DollarSign,
+  Moon, Check, GripVertical, CheckCircle2, Loader2
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+
+// --- FIREBASE IMPORTS ---
+import { auth, db } from './firebase';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInAnonymously,
+  signOut,
+  updateProfile
+} from 'firebase/auth';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+  updateDoc
+} from 'firebase/firestore';
+
 import { SmokingCalculator } from './utils/smokingCalculator';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 import { cn } from './utils/utils';
 
-// --- CONFIG ---
+// --- THEME CONSTANTS ---
 const ACCENTS = [
   { n: 'Lime', v: '#D4FF5C' },
   { n: 'Emerald', v: '#4ADE80' },
@@ -24,33 +47,69 @@ const ACCENTS = [
   { n: 'Pink', v: '#F472B6' }
 ];
 
-// --- MAIN APP ---
+// --- MAIN APP COMPONENT ---
 const App = () => {
-  const [user, setUser] = useState({ name: 'Shareef', goal: 'SAVE FOR VACATION' });
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tracker');
-  const [accent, setAccent] = useState('#D4FF5C');
-  const [isDark, setIsDark] = useState(true);
-  const [layout, setLayout] = useState('LARGE'); // LARGE or COMPACT
-  const [fontScale, setFontScale] = useState(1);
-  const [nightOwl, setNightOwl] = useState(false);
-  const [globalPrice, setGlobalPrice] = useState('0.5');
 
-  const [logs, setLogs] = useState([
-    { logDate: '2026-06-09', counts: { cigarettes: 12 } },
-    { logDate: '2026-06-10', counts: { cigarettes: 15 } },
-  ]);
-
-  const [configs, setConfigs] = useState([
-    { id: 'cigarettes', name: 'Cigarettes', limit: 20, type: 'CIGARETTE', price: 0, order: 0 }
-  ]);
-
-  const [showAdd, setShowAdd] = useState(false);
-  const [editLog, setEditLog] = useState(null);
+  // Real Data State
+  const [logs, setLogs] = useState([]);
+  const [configs, setConfigs] = useState([]);
+  const [settings, setSettings] = useState({
+    accent: '#D4FF5C',
+    isDark: true,
+    layout: 'LARGE',
+    fontScale: 1,
+    nightOwl: false,
+    globalPrice: '0.5'
+  });
 
   const today = new Date().toISOString().split('T')[0];
-  const todayLog = logs.find(l => l.logDate === today) || { logDate: today, counts: {} };
+
+  // 1. Auth Listener
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthLoading(false);
+      if (!u) {
+        setLogs([]);
+        setConfigs([]);
+      }
+    });
+    return unsub;
+  }, []);
+
+  // 2. Data Sync (Only if authenticated)
+  useEffect(() => {
+    if (!user) return;
+
+    // Sync Configs
+    const configsUnsub = onSnapshot(collection(db, 'users', user.uid, 'configs'), (snap) => {
+      const c = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setConfigs(c.length > 0 ? c : [{ id: 'cigarettes', name: 'Cigarettes', limit: 20, type: 'CIGARETTE', price: 0, order: 0 }]);
+    });
+
+    // Sync Logs
+    const logsQuery = query(collection(db, 'users', user.uid, 'logs'), orderBy('logDate', 'desc'), limit(30));
+    const logsUnsub = onSnapshot(logsQuery, (snap) => {
+      setLogs(snap.docs.map(d => d.data()));
+    });
+
+    // Sync Settings
+    const settingsUnsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+      if (snap.exists()) setSettings(prev => ({ ...prev, ...snap.data() }));
+    });
+
+    return () => {
+      configsUnsub();
+      logsUnsub();
+      settingsUnsub();
+    };
+  }, [user]);
 
   const metrics = useMemo(() => {
+    const todayLog = logs.find(l => l.logDate === today) || { logDate: today, counts: {} };
     const c = SmokingCalculator.getTotalCount(todayLog, configs);
     const l = SmokingCalculator.getTotalLimit(configs);
     const s = SmokingCalculator.calculateStreak(logs, configs);
@@ -59,36 +118,41 @@ const App = () => {
       count: c, limit: l, streak: s, xp: x,
       rank: SmokingCalculator.getRank(x),
       progress: c / l,
-      savings: SmokingCalculator.calculateSavings(logs, configs, parseFloat(globalPrice) || 0),
-      lost: SmokingCalculator.calculateLifeLostMinutes(logs)
+      savings: SmokingCalculator.calculateSavings(logs, configs, parseFloat(settings.globalPrice) || 0),
+      lost: SmokingCalculator.calculateLifeLostMinutes(logs),
+      todayLog
     };
-  }, [logs, configs, todayLog, globalPrice]);
+  }, [logs, configs, settings.globalPrice, today]);
 
-  const onInc = (id) => {
-    const newLogs = [...logs];
-    let idx = newLogs.findIndex(l => l.logDate === today);
-    if (idx === -1) { newLogs.push({ logDate: today, counts: { [id]: 1 } }); }
-    else { newLogs[idx].counts[id] = (newLogs[idx].counts[id] || 0) + 1; }
-    setLogs(newLogs);
+  // Actions
+  const onInc = async (id) => {
+    if (!user) return;
+    const logRef = doc(db, 'users', user.uid, 'logs', today);
+    const currentCount = metrics.todayLog.counts[id] || 0;
+    await setDoc(logRef, {
+      logDate: today,
+      counts: { ...metrics.todayLog.counts, [id]: currentCount + 1 }
+    }, { merge: true });
   };
 
-  const onDec = (id) => {
-    const newLogs = [...logs];
-    const idx = newLogs.findIndex(l => l.logDate === today);
-    if (idx !== -1 && newLogs[idx].counts[id] > 0) {
-      newLogs[idx].counts[id] -= 1;
-      setLogs(newLogs);
-    }
+  const onDec = async (id) => {
+    if (!user) return;
+    const currentCount = metrics.todayLog.counts[id] || 0;
+    if (currentCount <= 0) return;
+    const logRef = doc(db, 'users', user.uid, 'logs', today);
+    await setDoc(logRef, {
+      counts: { ...metrics.todayLog.counts, [id]: currentCount - 1 }
+    }, { merge: true });
   };
 
-  if (!user.name) return <AuthScreen onLogin={() => setUser({ name: 'Shareef', goal: 'SAVE FOR VACATION' })} />;
+  if (authLoading) return <LoadingScreen />;
+  if (!user) return <AuthScreen />;
 
   return (
     <div
-      className={cn("flex flex-col min-h-screen bg-bg-base text-white font-inter selection:bg-accent/30 transition-all duration-700", !isDark && "invert-[0.9] hue-rotate-180")}
-      style={{ '--accent': accent, fontSize: `${fontScale}rem` }}
+      className={cn("flex flex-col min-h-screen bg-bg-base text-white font-inter selection:bg-accent/30 transition-all duration-700", !settings.isDark && "invert-[0.9] hue-rotate-180")}
+      style={{ '--accent': settings.accent, fontSize: `${settings.fontScale}rem` }}
     >
-      {/* Dynamic Header */}
       <header className="fixed top-0 left-0 right-0 z-40 pt-[env(safe-area-inset-top)] px-8 md:px-12 py-8 bg-gradient-to-b from-black via-black/80 to-transparent flex justify-between items-center">
         <div className="flex flex-col">
           <h1 className="text-4xl md:text-5xl font-[950] tracking-[-0.05em] uppercase leading-none">tabak++</h1>
@@ -102,94 +166,138 @@ const App = () => {
               <span className="text-[9px] font-black text-text-dim uppercase tracking-widest">{metrics.rank}</span>
               <span className="text-sm font-black text-white">{metrics.xp} XP</span>
            </div>
-           <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-[950] text-xl shadow-2xl">
-              {user.name.charAt(0)}
+           <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-[950] text-xl shadow-2xl overflow-hidden">
+              {user.photoURL ? <img src={user.photoURL} alt="p" className="w-full h-full object-cover" /> : user.displayName?.charAt(0) || 'U'}
            </div>
         </div>
       </header>
 
-      {/* Responsive Main Container */}
       <main className="flex-1 overflow-y-auto pt-40 pb-40 px-6 md:px-12 max-w-7xl mx-auto w-full">
         <AnimatePresence mode="wait">
-          {activeTab === 'tracker' && <TrackerScreen key="t" m={metrics} c={configs} l={todayLog} onInc={onInc} onDec={onDec} onAdd={() => setShowAdd(true)} view={layout} />}
+          {activeTab === 'tracker' && <TrackerScreen key="t" m={metrics} c={configs} onInc={onInc} onDec={onDec} onAdd={() => setActiveTab('settings')} view={settings.layout} />}
           {activeTab === 'health' && <HealthScreen key="h" last={Date.now() - 3600000 * 5} />}
-          {activeTab === 'history' && <HistoryScreen key="y" logs={logs} configs={configs} m={metrics} onEdit={setEditLog} />}
-          {activeTab === 'settings' && <SettingsScreen key="s" c={configs} setC={setConfigs} u={user} setU={setUser} onAdd={() => setShowAdd(true)} acc={accent} setAcc={setAccent} dark={isDark} setDark={setIsDark} view={layout} setView={setLayout} scale={fontScale} setScale={setFontScale} owl={nightOwl} setOwl={setNightOwl} price={globalPrice} setPrice={setGlobalPrice} />}
+          {activeTab === 'history' && <HistoryScreen key="y" logs={logs} configs={configs} m={metrics} todayString={today} />}
+          {activeTab === 'settings' && <SettingsScreen key="s" c={configs} u={user} s={settings} />}
         </AnimatePresence>
       </main>
 
-      {/* Floating Modern Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 md:bottom-10 md:left-1/2 md:-translate-x-1/2 md:w-[600px] pb-[env(safe-area-inset-bottom)] md:pb-0 z-40 px-4">
         <div className="bg-black/80 backdrop-blur-3xl border border-white/5 rounded-t-[40px] md:rounded-[40px] flex justify-around items-center h-24 md:h-22 px-6 shadow-[0_30px_60px_rgba(0,0,0,0.8)]">
-          <NavItem id="tracker" icon={LayoutDashboard} active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} label="Vault" />
-          <NavItem id="health" icon={Heart} active={activeTab === 'health'} onClick={() => setActiveTab('health')} label="Health" />
-          <NavItem id="history" icon={BarChart3} active={activeTab === 'history'} onClick={() => setActiveTab('history')} label="History" />
-          <NavItem id="settings" icon={Settings} active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} label="Control" />
+          <TabItem id="tracker" icon={LayoutDashboard} active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} label="Vault" />
+          <TabItem id="health" icon={Heart} active={activeTab === 'health'} onClick={() => setActiveTab('health')} label="Health" />
+          <TabItem id="history" icon={BarChart3} active={activeTab === 'history'} onClick={() => setActiveTab('history')} label="History" />
+          <TabItem id="settings" icon={Settings} active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} label="Control" />
         </div>
       </nav>
-
-      {/* Modal Engine */}
-      <AnimatePresence>
-        {showAdd && (
-          <Overlay onClose={() => setShowAdd(false)} title="New Protocol">
-            <AddForm onAdd={(n, t, l) => {
-              setConfigs([...configs, { id: Math.random().toString(36).substr(2, 9), name: n, limit: parseInt(l) || 20, type: t, price: 0, order: configs.length }]);
-              setShowAdd(false);
-            }} />
-          </Overlay>
-        )}
-        {editLog && (
-          <Overlay onClose={() => setEditLog(null)} title="Override Entry">
-            <EditForm log={editLog} configs={configs} onSave={(d, c) => {
-              setLogs(logs.map(l => l.logDate === d ? { ...l, counts: c } : l));
-              setEditLog(null);
-            }} />
-          </Overlay>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
 
-// --- SCREENS ---
+// --- COMPONENTS ---
 
-const TrackerScreen = ({ m, c, l, onInc, onDec, onAdd, view }) => (
+const LoadingScreen = () => (
+  <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center space-y-6">
+     <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+        <Loader2 className="text-accent" size={48} />
+     </motion.div>
+     <span className="text-[10px] font-black text-accent tracking-[0.5em] uppercase">Syncing Vault...</span>
+  </div>
+);
+
+const AuthScreen = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [pass, setPass] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleAuth = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      if (isLogin) {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } else {
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        await updateProfile(cred.user, { displayName: name });
+        await setDoc(doc(db, 'users', cred.user.uid), { name, goal: 'STAY HEALTHY' });
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-bg-base flex items-center justify-center p-6 font-inter">
+      <div className="w-full max-w-md space-y-16">
+        <div className="flex flex-col items-center text-center">
+           <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_60px_rgba(212,255,92,0.3)]">
+              <LayoutDashboard size={40} className="text-bg-base" />
+           </div>
+           <h1 className="text-6xl font-[950] tracking-tighter uppercase mb-3 text-white">tabak++</h1>
+           <p className="text-accent font-black tracking-[0.5em] text-[10px] uppercase">Identity Verification Required</p>
+        </div>
+        <Card className="space-y-8 p-10 bg-bg-panel/50 border-white/5 backdrop-blur-sm">
+          {error && <div className="p-4 bg-danger/10 border border-danger/20 rounded-2xl text-danger text-[10px] font-bold uppercase tracking-widest">{error}</div>}
+          {!isLogin && <Input label="Vault Commander Name" placeholder="Shareef" value={name} onChange={setName} />}
+          <Input label="Access Identifier" placeholder="email@vault.com" value={email} onChange={setEmail} />
+          <Input label="Security Phrase" type="password" placeholder="••••••••" value={pass} onChange={setPass} />
+          <Button className="w-full h-18 text-sm" onClick={handleAuth} disabled={loading}>
+            {loading ? <Loader2 className="animate-spin mr-2" size={18} /> : (isLogin ? 'Access Records' : 'Initialize Vault')}
+          </Button>
+          <div className="flex flex-col space-y-4 items-center">
+             <button onClick={() => setIsLogin(!isLogin)} className="text-[10px] font-black text-text-dim uppercase tracking-[0.2em] hover:text-accent transition-colors">
+                {isLogin ? "Create New Vault" : "Return to Access point"}
+             </button>
+             <button onClick={() => signInAnonymously(auth)} className="text-[10px] font-black text-accent/60 uppercase tracking-[0.2em] hover:text-accent transition-colors underline decoration-2 underline-offset-4">
+                Enter as Guest Observer
+             </button>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+const TrackerScreen = ({ m, c, onInc, onDec, onAdd, view }) => (
   <div className="flex flex-col space-y-12">
     <StaggeredItem index={0}>
-       <Card className="flex flex-col md:flex-row md:items-center md:justify-between space-y-10 md:space-y-0 bg-bg-panel/40 border-accent/10 relative overflow-hidden group">
+       <Card className="flex flex-col md:flex-row md:items-center md:justify-between space-y-10 md:space-y-0 bg-bg-panel/40 border-accent/10 relative overflow-hidden group p-10">
           <div className="flex-1 space-y-2">
-             <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em]">Combined Remaining Capacity</span>
+             <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em]">Vault Capacity Integrity</span>
              <div className="text-6xl md:text-7xl font-[950] tracking-tighter leading-none flex items-baseline">
                 {Math.max(0, m.limit - m.count)}
-                <span className="text-sm font-black text-accent uppercase tracking-widest ml-4">Units</span>
+                <span className="text-sm font-black text-accent uppercase tracking-widest ml-4">Remaining</span>
              </div>
           </div>
           <div className="flex flex-col md:items-end space-y-6 md:w-80">
-             <div className="flex justify-between w-full text-[10px] font-black uppercase tracking-widest">
-                <span className="text-text-dim italic">Progress</span>
-                <span className="text-accent">{Math.round(m.progress * 100)}%</span>
+             <div className="flex justify-between w-full text-[10px] font-black uppercase tracking-widest text-text-muted">
+                <span>Rank: {m.rank}</span>
+                <span>{m.xp} XP</span>
              </div>
-             <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5 shadow-inner">
-                <motion.div animate={{ width: `${Math.min(1, m.progress) * 100}%` }} className={cn("h-full rounded-full transition-colors duration-1000 shadow-[0_0_20px_rgba(var(--accent-rgb),0.5)]", m.progress >= 1 ? "bg-danger" : "bg-accent")} />
+             <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
+                <motion.div animate={{ width: `${Math.min(1, m.progress) * 100}%` }} className={cn("h-full rounded-full transition-colors duration-1000", m.progress >= 1 ? "bg-danger shadow-[0_0_30px_#F87171]" : "bg-white shadow-[0_0_20px_white]")} />
              </div>
           </div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[100px] -mr-32 -mt-32 group-hover:bg-accent/10 transition-colors duration-1000" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[100px] -mr-32 -mt-32" />
        </Card>
     </StaggeredItem>
 
     <div className={cn("grid gap-8", view === 'COMPACT' ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 lg:grid-cols-2")}>
       {c.sort((a,b) => a.order - b.order).map((config, i) => (
         <StaggeredItem key={config.id} index={i+1}>
-          <CounterCard config={config} count={l.counts[config.id] || 0} onInc={onInc} onDec={onDec} compact={view === 'COMPACT'} />
+          <CounterCard config={config} count={m.todayLog.counts[config.id] || 0} onInc={onInc} onDec={onDec} compact={view === 'COMPACT'} />
         </StaggeredItem>
       ))}
       <StaggeredItem index={c.length + 1}>
         <button onClick={onAdd} className={cn("w-full h-full border-2 border-dashed border-white/5 rounded-[48px] flex flex-col items-center justify-center space-y-6 hover:bg-white/[0.02] hover:border-accent/20 transition-all group relative overflow-hidden", view === 'COMPACT' ? "min-h-[300px]" : "min-h-[500px]")}>
-          <div className="w-20 h-20 rounded-[32px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-700 shadow-inner">
+          <div className="w-20 h-20 rounded-[32px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all shadow-inner">
              <Plus className="text-text-dim group-hover:text-accent" size={32} />
           </div>
-          <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em] group-hover:text-white transition-colors">Initialize Logic</span>
-          <div className="absolute inset-0 bg-accent/5 translate-y-full group-hover:translate-y-0 transition-transform duration-700" />
+          <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em] group-hover:text-white transition-colors">Deploy Protocol</span>
         </button>
       </StaggeredItem>
     </div>
@@ -199,55 +307,47 @@ const TrackerScreen = ({ m, c, l, onInc, onDec, onAdd, view }) => (
 const CounterCard = ({ config, count, onInc, onDec, compact }) => {
   const isL = count >= config.limit;
   const p = Math.min(1, count / config.limit);
-
-  // Real App Visual Logic: Burns L to R.
-  // White body length is (1-p).
   const bodyW = isL ? 0 : (1 - p) * 100;
-  const showEmber = !isL && count > 0;
 
   return (
     <Card className={cn("relative overflow-hidden flex flex-col transition-all duration-1000", isL ? "bg-danger/[0.03] border-danger/40 shadow-[0_0_50px_rgba(248,113,113,0.1)]" : "hover:shadow-2xl", compact ? "p-8 min-h-[350px]" : "p-12 min-h-[500px]")}>
        <div className="flex justify-between items-start relative z-20">
           <div className="space-y-1">
-             <span className={cn("text-[11px] font-[950] tracking-[0.5em] uppercase transition-colors duration-700", isL ? "text-danger" : "text-accent")}>{config.name}</span>
-             {!compact && <span className="text-[9px] font-black text-text-dim uppercase tracking-widest block">Daily Cap: {config.limit}</span>}
+             <span className={cn("text-[11px] font-[950] tracking-[0.5em] uppercase", isL ? "text-danger" : "text-accent")}>{config.name}</span>
+             {!compact && <span className="text-[9px] font-black text-text-dim uppercase tracking-widest block">Daily Protocol: {config.limit}</span>}
           </div>
-          {isL && <motion.div animate={{ scale: [1,1.2,1], opacity: [1,0.5,1] }} transition={{ repeat: Infinity, duration: 1 }} className="p-2 bg-danger/10 rounded-xl border border-danger/20"><AlertCircle size={14} className="text-danger" /></motion.div>}
+          {isL && <motion.div animate={{ scale: [1,1.2,1], opacity: [1,0.5,1] }} transition={{ repeat: Infinity, duration: 1 }} className="p-2 bg-danger/10 rounded-xl border border-danger/20 text-danger"><AlertCircle size={14} /></motion.div>}
        </div>
 
        <div className="flex-1 flex flex-col items-center justify-center w-full relative z-10 py-10">
-          {/* HIGH FIDELITY BURNING CIGARETTE */}
-          <div className={cn("relative w-full h-12 rounded-full overflow-hidden border border-white/5 mb-14 shadow-[inset_0_4px_20px_rgba(0,0,0,0.6)] transition-all duration-1000", isL ? "bg-danger/40 shadow-[0_0_40px_#F87171]" : "bg-white/[0.02]")}>
-             {/* White Body */}
+          {/* HIGH FIDELITY BURNING CIGARETTE - CORRECT DIRECTION */}
+          <div className={cn("relative w-full h-12 rounded-full overflow-hidden border border-white/5 mb-14 shadow-[inset_0_4px_20px_rgba(0,0,0,0.6)] transition-all duration-1000", isL ? "bg-danger shadow-[0_0_40px_#F87171]" : "bg-bg-panel/90")}>
+             {/* White Body - Burns Left to Right */}
              <motion.div
                animate={{ width: `${bodyW}%` }}
-               className="absolute right-0 inset-y-0 bg-gradient-to-l from-white to-neutral-200 shadow-[-10px_0_20px_rgba(255,255,255,0.2)] z-10"
+               className="absolute right-0 inset-y-0 bg-gradient-to-l from-white to-neutral-200 z-10"
                transition={{ type: 'spring', stiffness: 35, damping: 12 }}
              />
 
              {/* Ember Tip */}
-             {showEmber && (
+             {!isL && count > 0 && (
                <motion.div
                  animate={{ right: `${bodyW}%` }}
-                 className="absolute inset-y-0 w-10 translate-x-1/2 z-20 flex items-center justify-center"
+                 className="absolute inset-y-0 w-12 translate-x-1/2 z-20 flex items-center justify-center"
                  transition={{ type: 'spring', stiffness: 35, damping: 12 }}
                >
                   <motion.div animate={{ scale: [1,1.5,1], opacity: [0.3,0.6,0.3] }} transition={{ repeat: Infinity, duration: 0.15 }} className="absolute inset-0 bg-radial-gradient from-[#FF3D00] to-transparent blur-xl" />
-                  <motion.div animate={{ scaleY: [1,1.2,0.9,1], x: [-1,1,0] }} transition={{ repeat: Infinity, duration: 0.08 }} className="w-4 h-full bg-[#FF3D00] rounded-full shadow-[0_0_25px_#FF3D00] border-x border-white/10" />
+                  <motion.div animate={{ scale: [0.9,1.2,0.9], x: [-1,1,0] }} transition={{ repeat: Infinity, duration: 0.08 }} className="w-5 h-full bg-[#FF3D00] rounded-full shadow-[0_0_30px_#FF3D00]" />
                </motion.div>
              )}
 
-             {/* The Roach (Filter) - Consumed at limit */}
+             {/* Filter (Roach) - Eaten at limit */}
              <motion.div
                animate={{ width: isL ? '0%' : '28%', opacity: isL ? 0 : 1 }}
-               className="absolute inset-y-0 right-0 bg-[#D97706] border-l border-black/20 z-[11] shadow-2xl origin-right transition-all duration-1000"
-             >
-                <div className="absolute inset-y-0 left-0 w-1 bg-black/20" />
-                <div className="absolute inset-y-0 right-3 w-px bg-white/5" />
-             </motion.div>
+               className="absolute inset-y-0 right-0 bg-[#D97706] z-[11] shadow-2xl origin-right transition-all duration-1000"
+             />
 
-             {/* Background Ash Texture */}
-             <div className="absolute inset-0 bg-neutral-950/80 -z-10" />
+             <div className="absolute inset-0 bg-neutral-950/90 -z-10" />
           </div>
 
           <motion.div key={count} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={cn("font-[950] tracking-[-0.08em] leading-none", compact ? "text-8xl" : "text-[10rem]")}>
@@ -256,10 +356,10 @@ const CounterCard = ({ config, count, onInc, onDec, compact }) => {
        </div>
 
        <div className="flex justify-center items-center space-x-10 relative z-20">
-          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onDec(config.id)} className="w-16 h-16 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-text-dim hover:text-white transition-all hover:bg-white/10 shadow-xl">
+          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onDec(config.id)} className="w-16 h-16 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-text-dim hover:text-white transition-all shadow-xl">
              <Minus size={24} />
           </motion.button>
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => onInc(config.id)} className={cn("rounded-[36px] flex items-center justify-center shadow-2xl transition-all duration-700 border-2", compact ? "w-28 h-20" : "w-40 h-28", isL ? "border-danger text-danger bg-danger/10" : "border-white/10 text-white bg-bg-panel hover:border-accent hover:text-accent")}>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => onInc(config.id)} className={cn("rounded-[36px] flex items-center justify-center shadow-2xl transition-all duration-700 border-2", compact ? "w-28 h-20" : "w-40 h-28", isL ? "border-danger text-danger bg-danger/10 shadow-danger/20" : "border-white/10 text-white bg-bg-panel hover:border-accent hover:text-accent")}>
              <Plus size={compact ? 36 : 56} strokeWidth={4} />
           </motion.button>
        </div>
@@ -279,34 +379,30 @@ const HealthScreen = ({ last }) => {
              <div className="flex justify-between items-center mb-12 relative z-10">
                 <div className="w-20 h-20 rounded-[32px] bg-success/20 flex items-center justify-center border border-success/30 shadow-2xl text-success"><Heart size={40} fill="currentColor" /></div>
                 <div className="text-right">
-                   <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em]">Vault Security Duration</span>
+                   <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em]">Vault Security State</span>
                    <div className="text-5xl font-[950] text-success tracking-tighter mt-2">{h}H {m}M</div>
                 </div>
              </div>
-             <h2 className="text-4xl font-[950] tracking-tighter uppercase leading-none mb-3 relative z-10">Repair Protocol</h2>
-             <p className="text-sm text-text-muted font-bold leading-relaxed max-w-lg relative z-10 opacity-80">Biological sequences are currently re-aligning. Cellular regeneration is active.</p>
+             <h2 className="text-4xl font-[950] tracking-tighter uppercase mb-3 relative z-10">Biological Repair</h2>
+             <p className="text-sm text-text-muted font-bold leading-relaxed max-w-lg relative z-10">Sequences are actively re-aligning. Cellular regeneration verified.</p>
              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-success/10 rounded-full blur-[150px] -mr-64 -mt-64" />
           </Card>
        </StaggeredItem>
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {miles.map((m, i) => (
              <StaggeredItem key={m.title} index={i+1}>
-                <Card className="h-full flex flex-col hover:border-success/40 transition-all duration-700 group p-10 border-white/5 shadow-inner">
+                <Card className="h-full flex flex-col group p-10 border-white/5 shadow-inner">
                    <div className="flex justify-between items-start mb-10">
                       <div className="space-y-1">
-                         <span className={cn("text-[10px] font-black uppercase tracking-[0.4em] duration-700", m.progress >= 1 ? "text-success" : "text-text-dim")}>{m.progress >= 1 ? 'Stabilized' : 'Repairing'}</span>
+                         <span className={cn("text-[10px] font-black uppercase tracking-[0.4em]", m.progress >= 1 ? "text-success" : "text-text-dim")}>{m.progress >= 1 ? 'Stabilized' : 'Repairing'}</span>
                          <h4 className="text-2xl font-[950] tracking-tighter uppercase leading-none mt-2">{m.title}</h4>
                       </div>
                       <div className="text-5xl font-[950] text-success tracking-tighter">{Math.floor(m.progress * 100)}%</div>
                    </div>
-                   <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden mb-10 p-0.5 border border-white/5">
-                      <motion.div animate={{ width: `${m.progress * 100}%` }} className="h-full bg-success shadow-[0_0_20px_rgba(74,222,128,0.6)] rounded-full" />
+                   <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden mb-10 border border-white/5">
+                      <motion.div animate={{ width: `${m.progress * 100}%` }} className="h-full bg-success shadow-[0_0_20px_rgba(74,222,128,0.6)]" />
                    </div>
                    <p className="text-sm text-text-muted font-bold leading-relaxed mb-10 flex-1 border-l-2 border-white/5 pl-6">{m.desc}</p>
-                   <div className="pt-8 border-t border-white/5 flex justify-between items-center text-text-dim">
-                      <div className="flex items-center space-x-3"><Activity size={14} /><span className="text-[10px] font-black uppercase tracking-[0.3em]">Integrity Verified</span></div>
-                      <ChevronRight size={20} />
-                   </div>
                 </Card>
              </StaggeredItem>
           ))}
@@ -331,15 +427,15 @@ const HistoryScreen = ({ logs, configs, todayString, onEdit, m }) => {
                    <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em]">Analytics Engine</span>
                    <h3 className="text-4xl font-[950] text-accent mt-1 uppercase tracking-tighter leading-none">Usage Volatility</h3>
                 </div>
-                <div className="p-4 bg-accent/10 rounded-3xl shadow-inner"><BarChart3 className="text-accent" size={32} /></div>
+                <div className="p-4 bg-accent/10 rounded-3xl"><BarChart3 className="text-accent" size={32} /></div>
              </div>
              <div className="h-[300px] w-full pr-12 pl-4 pb-8">
                 <ResponsiveContainer width="100%" height="100%">
                    <LineChart data={chartData}>
                       <CartesianGrid strokeDasharray="6 6" stroke="rgba(255,255,255,0.02)" vertical={false} />
-                      <XAxis dataKey="name" stroke="#666664" fontSize={10} axisLine={false} tickLine={false} dy={20} fontVariant="black" />
-                      <Tooltip contentStyle={{ background: '#0D0D0E', border: '1px solid rgba(212,255,92,0.3)', borderRadius: '20px', fontWeight: '950', fontSize: '14px', textTransform: 'uppercase' }} />
-                      <Line type="stepAfter" dataKey="val" stroke="#D4FF5C" strokeWidth={6} dot={{ r: 6, fill: '#D4FF5C', strokeWidth: 3, stroke: '#020202' }} activeDot={{ r: 12, fill: '#FFF' }} animationDuration={2000} />
+                      <XAxis dataKey="name" stroke="#666664" fontSize={10} axisLine={false} tickLine={false} dy={20} />
+                      <Tooltip contentStyle={{ background: '#0D0D0E', border: '1px solid rgba(212,255,92,0.3)', borderRadius: '20px', fontWeight: '950', fontSize: '14px' }} />
+                      <Line type="stepAfter" dataKey="val" stroke="#D4FF5C" strokeWidth={6} dot={{ r: 6, fill: '#D4FF5C' }} animationDuration={2000} />
                    </LineChart>
                 </ResponsiveContainer>
              </div>
@@ -347,39 +443,32 @@ const HistoryScreen = ({ logs, configs, todayString, onEdit, m }) => {
        </StaggeredItem>
 
        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <InsightCard Icon={TrendingUp} label="Current Streak" val={m.streak} suffix="Active Days" color="text-orange-400" index={1} />
-          <InsightCard Icon={Wallet} label="Vault Savings" val={`$${m.savings.toFixed(2)}`} suffix="Financial Gain" color="text-emerald-400" index={2} />
-          <InsightCard Icon={Activity} label="Health Impact" val={`${Math.floor(m.lost/60)}H ${m.lost%60}M`} suffix="Recovery Cost" color="text-rose-400" index={3} />
+          <InsightCard Icon={TrendingUp} label="Current Streak" val={m.streak} suffix="Days Active" color="text-orange-400" index={1} />
+          <InsightCard Icon={Wallet} label="Vault Savings" val={`$${m.savings.toFixed(2)}`} suffix="Total Financial" color="text-emerald-400" index={2} />
+          <InsightCard Icon={Activity} label="Health Impact" val={`${Math.floor(m.lost/60)}H ${m.lost%60}M`} suffix="Lost Capacity" color="text-rose-400" index={3} />
        </div>
 
-       <div className="space-y-8 pt-10">
-          <div className="flex items-center justify-between px-2">
-             <h4 className="text-[12px] font-black text-accent uppercase tracking-[0.5em]">Historical Ledger</h4>
-             <div className="h-px flex-1 bg-accent/20 mx-8" />
-             <History size={16} className="text-accent/40" />
-          </div>
-          <div className="grid gap-4">
-            {logs.sort((a,b) => b.logDate.localeCompare(a.logDate)).map((log, i) => (
-               <motion.div key={log.logDate} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i*0.05 }}>
-                  <Card className="py-10 flex items-center justify-between hover:bg-white/[0.02] duration-500 group px-12 border-white/5 hover:border-accent/20">
-                     <div className="flex flex-col space-y-1">
-                        <span className="text-2xl font-[950] tracking-tight uppercase leading-none">{log.logDate === todayString ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'long'})}</span>
-                        <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em] mt-2 flex items-center">
-                           <History size={12} className="mr-2 opacity-40" /> {Object.values(log.counts).reduce((a,b)=>a+b, 0)} logs committed
-                        </span>
-                     </div>
-                     <div className="flex items-center space-x-8">
-                        <div className="flex -space-x-4">
-                           {Object.entries(log.counts).map(([cid, count]) => (
-                             <div key={cid} className="w-14 h-14 rounded-full bg-bg-panel border-4 border-bg-card flex items-center justify-center font-[950] text-sm shadow-2xl group-hover:-translate-y-1 transition-transform duration-500">{count}</div>
-                           ))}
-                        </div>
-                        <button onClick={() => onEdit(log)} className="p-4 rounded-2xl bg-white/5 text-text-dim hover:text-accent hover:bg-accent/10 opacity-0 group-hover:opacity-100 transition-all border border-white/5"><Edit2 size={18} /></button>
-                     </div>
-                  </Card>
-               </motion.div>
-            ))}
-          </div>
+       <div className="space-y-8 pt-10 px-2">
+          {logs.sort((a,b) => b.logDate.localeCompare(a.logDate)).map((log, i) => (
+             <motion.div key={log.logDate} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i*0.05 }}>
+                <Card className="py-10 flex items-center justify-between group border-white/5 hover:border-accent/20">
+                   <div className="flex flex-col space-y-1">
+                      <span className="text-2xl font-[950] tracking-tight uppercase leading-none">{log.logDate === todayString ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'long'})}</span>
+                      <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em] mt-2 flex items-center">
+                         <History size={12} className="mr-2" /> {Object.values(log.counts).reduce((a,b)=>a+b, 0)} logs committed
+                      </span>
+                   </div>
+                   <div className="flex items-center space-x-8">
+                      <div className="flex -space-x-4">
+                         {Object.entries(log.counts).map(([cid, count]) => (
+                           <div key={cid} className="w-14 h-14 rounded-full bg-bg-panel border-4 border-bg-card flex items-center justify-center font-[950] text-sm shadow-2xl">{count}</div>
+                         ))}
+                      </div>
+                      <button onClick={() => onEdit(log)} className="p-4 rounded-2xl bg-white/5 text-text-dim hover:text-accent opacity-0 group-hover:opacity-100 transition-all border border-white/5"><Edit2 size={18} /></button>
+                   </div>
+                </Card>
+             </motion.div>
+          ))}
        </div>
     </div>
   );
@@ -387,78 +476,59 @@ const HistoryScreen = ({ logs, configs, todayString, onEdit, m }) => {
 
 const SettingsScreen = ({ c, setC, u, setU, onAdd, acc, setAcc, dark, setDark, view, setView, scale, setScale, owl, setOwl, price, setPrice }) => {
   const [alias, setAlias] = useState(u.name);
-  const [goal, setGoal] = useState(u.goal);
   return (
-    <div className="flex flex-col space-y-10 pb-32">
-       <StaggeredItem index={0}>
-          <Card className="p-12 relative overflow-hidden bg-bg-panel/40 border-white/5 shadow-2xl">
-             <div className="flex items-center space-x-10 mb-14 relative z-10">
-                <div className="w-28 h-28 bg-gradient-to-br from-accent/30 to-accent/5 rounded-[42px] border-2 border-accent/20 flex items-center justify-center text-5xl font-[950] text-accent uppercase shadow-2xl group relative cursor-pointer overflow-hidden">
-                   {u.profileImage ? <img src={u.profileImage} className="w-full h-full object-cover" /> : alias.charAt(0)}
-                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center duration-500"><Camera size={32} /></div>
-                </div>
-                <div>
-                   <h4 className="text-4xl font-[950] tracking-tighter uppercase leading-none">{alias}</h4>
-                   <div className="flex items-center mt-3 space-x-3"><div className="h-2 w-2 rounded-full bg-accent animate-pulse" /><span className="text-[10px] font-black text-accent uppercase tracking-[0.5em]">Vault Commander</span></div>
-                </div>
+    <div className="flex flex-col space-y-12 pb-32">
+       <Card className="p-12 relative overflow-hidden bg-bg-panel/40 border-white/5 shadow-2xl">
+          <div className="flex items-center space-x-10 mb-14 relative z-10">
+             <div className="w-28 h-28 bg-gradient-to-br from-accent/30 to-accent/5 rounded-[42px] border-2 border-accent/20 flex items-center justify-center text-5xl font-[950] text-accent uppercase shadow-2xl">
+                {alias.charAt(0)}
              </div>
-             <div className="space-y-10 relative z-10">
-                <Input label="Vault Identifier Alias" value={alias} onChange={setAlias} />
-                <Input label="Strategic Objective" value={goal} onChange={setGoal} />
-                <Button className="w-full h-20 shadow-2xl" onClick={() => setU({...u, name: alias, goal: goal})}>Update Identity Parameters</Button>
-             </div>
-          </Card>
-       </StaggeredItem>
+             <div><h4 className="text-4xl font-[950] tracking-tighter uppercase leading-none">{alias}</h4><span className="text-[10px] font-black text-accent uppercase tracking-[0.5em] mt-2 block italic">Vault Commander</span></div>
+          </div>
+          <div className="space-y-10 relative z-10">
+             <Input label="Vault Identifier Alias" value={alias} onChange={setAlias} />
+             <Button className="w-full h-20 shadow-2xl" onClick={() => setU({...u, name: alias})}>Update Parameters</Button>
+          </div>
+       </Card>
 
-       <StaggeredItem index={1}>
-          <Card className="p-12 space-y-12">
-             <div className="flex justify-between items-center"><h4 className="text-[11px] font-black text-text-dim uppercase tracking-[0.5em]">System Configuration</h4><Settings size={16} className="text-text-dim opacity-40" /></div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <Toggle icon={Moon} label="Obsidian Mode" sub="OLED Black Theme" active={dark} onClick={() => setDark(!dark)} />
-                <Toggle icon={Clock} label="Night Owl Mode" sub="Manual Date Reset" active={owl} onClick={() => setOwl(!owl)} />
-                <Toggle icon={Grid} label="Dashboard Matrix" sub="Standard / Grid" active={view === 'COMPACT'} onClick={() => setView(view === 'LARGE' ? 'COMPACT' : 'LARGE')} />
-                <div className="p-6 bg-white/[0.02] rounded-3xl border border-white/5 space-y-6">
-                   <div className="flex items-center space-x-4"><div className="p-3 bg-white/5 rounded-2xl text-accent"><Activity size={20} /></div><span className="text-xs font-black uppercase tracking-widest">Accent Spectrum</span></div>
-                   <div className="flex flex-wrap gap-4">{ACCENTS.map(x => (
-                     <button key={x.v} onClick={() => setAcc(x.v)} className={cn("w-12 h-12 rounded-2xl border-4 transition-all duration-500 shadow-xl", acc === x.v ? "border-white scale-110 shadow-accent/40" : "border-transparent opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }} />
-                   ))}</div>
-                </div>
-             </div>
-             <div className="pt-4"><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.5em] mb-8 block">Typography Scale : {Math.round(scale*100)}%</span><input type="range" min="0.8" max="1.3" step="0.1" value={scale} onChange={e => setScale(parseFloat(e.target.value))} className="w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-accent" /></div>
-          </Card>
-       </StaggeredItem>
-
-       <StaggeredItem index={2}>
-          <Card className="p-12">
-             <div className="flex justify-between items-center mb-14">
-                <div className="space-y-1"><h4 className="text-2xl font-[950] uppercase tracking-tighter leading-none">Vault Configuration</h4><p className="text-[10px] font-bold text-text-dim uppercase tracking-widest mt-2">Manage tracking protocols & economics</p></div>
-                <div className="p-3 bg-white/5 rounded-2xl shadow-inner"><RefreshCcw size={20} className="text-text-dim" /></div>
-             </div>
-             <div className="space-y-10">
-                <Input label="Global Unit Price ($)" value={price} onChange={setPrice} type="number" />
-                <div className="space-y-4 pt-6">{c.map(x => (
-                  <div key={x.id} className="flex items-center justify-between p-8 bg-white/[0.02] rounded-[36px] border border-white/5 group hover:border-accent/20 transition-all duration-700">
-                     <div className="flex flex-col space-y-2">
-                        <span className="text-lg font-[950] uppercase leading-none group-hover:text-accent transition-colors">{x.name}</span>
-                        <span className="text-[10px] font-black text-text-dim uppercase tracking-widest">Protocol: {x.limit} UNITS • {x.type}</span>
-                     </div>
-                     <div className="flex space-x-3 opacity-0 group-hover:opacity-100 duration-500 translate-x-4 group-hover:translate-x-0 transition-all">
-                        <button className="p-4 rounded-2xl bg-white/5 text-text-dim hover:text-white border border-white/5 shadow-xl"><Edit2 size={18} /></button>
-                        <button onClick={() => setC(c.filter(y => y.id !== x.id))} className="p-4 rounded-2xl bg-danger/5 text-danger/40 hover:text-danger border border-danger/5 shadow-xl"><Trash2 size={18} /></button>
-                     </div>
-                  </div>
+       <Card className="p-12 space-y-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <Toggle icon={Moon} label="Obsidian Mode" active={dark} onClick={() => setDark(!dark)} />
+             <Toggle icon={Clock} label="Night Owl Mode" active={owl} onClick={() => setOwl(!owl)} />
+             <Toggle icon={Grid} label="Matrix Layout" active={view === 'COMPACT'} onClick={() => setView(view === 'LARGE' ? 'COMPACT' : 'LARGE')} />
+             <div className="p-6 bg-white/[0.02] rounded-3xl border border-white/5 space-y-6">
+                <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em] ml-1">Accent Spectrum</span>
+                <div className="flex flex-wrap gap-4">{ACCENTS.map(x => (
+                   <button key={x.v} onClick={() => setAcc(x.v)} className={cn("w-12 h-12 rounded-2xl border-4 transition-all duration-500", acc === x.v ? "border-white scale-110" : "border-transparent opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }} />
                 ))}</div>
-                <Button variant="outline" size="lg" className="w-full border-dashed border-2 rounded-[36px] h-24 hover:bg-accent/5 hover:border-accent group" onClick={onAdd}>
-                   <Plus className="mr-4 group-hover:rotate-90 transition-transform duration-700" size={28} /> Initialize Operational Tracker
-                </Button>
              </div>
-          </Card>
-       </StaggeredItem>
+          </div>
+          <div className="pt-4"><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em] mb-8 block">Typography Scale: {Math.round(scale*100)}%</span><input type="range" min="0.8" max="1.3" step="0.1" value={scale} onChange={e => setScale(parseFloat(e.target.value))} className="w-full h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-accent shadow-inner" /></div>
+       </Card>
+
+       <Card className="p-12">
+          <h4 className="text-2xl font-[950] uppercase tracking-tighter leading-none mb-10">System Protocols</h4>
+          <div className="space-y-10">
+             <Input label="Global Unit Price ($)" value={price} onChange={setPrice} type="number" />
+             <div className="space-y-4 pt-6">{c.map(x => (
+                <div key={x.id} className="flex items-center justify-between p-8 bg-white/[0.02] rounded-[36px] border border-white/5 group hover:border-accent/20 transition-all duration-700">
+                   <div className="flex flex-col space-y-2">
+                      <span className="text-lg font-[950] uppercase leading-none group-hover:text-accent transition-colors">{x.name}</span>
+                      <span className="text-[10px] font-black text-text-dim uppercase tracking-widest">Protocol: {x.limit} units • {x.type}</span>
+                   </div>
+                   <button onClick={() => setC(c.filter(y => y.id !== x.id))} className="p-4 rounded-2xl bg-danger/5 text-danger/40 hover:text-danger border border-danger/5 shadow-xl opacity-0 group-hover:opacity-100 duration-500"><Trash2 size={18} /></button>
+                </div>
+             ))}</div>
+             <Button variant="secondary" className="w-full border-dashed border-2 rounded-[36px] h-20" onClick={onAdd}><Plus className="mr-4" size={24} /> Deploy Tracker</Button>
+          </div>
+       </Card>
+
+       <Button variant="danger" className="w-full h-20 shadow-2xl" onClick={() => signOut(auth)}>Terminate Current Session</Button>
     </div>
   );
 };
 
-// --- HELPER COMPONENTS ---
+// --- HELPERS ---
 
 const NavItem = ({ icon: Icon, active, onClick, label }) => (
   <motion.div onClick={onClick} whileTap={{ scale: 0.85 }} className="flex flex-col items-center justify-center flex-1 py-4 cursor-pointer relative group">
@@ -468,30 +538,24 @@ const NavItem = ({ icon: Icon, active, onClick, label }) => (
   </motion.div>
 );
 
-const Toggle = ({ icon: Icon, label, sub, active, onClick }) => (
-  <div className="flex items-center justify-between p-6 bg-white/[0.02] rounded-3xl border border-white/5 shadow-inner">
+const Toggle = ({ icon: Icon, label, active, onClick }) => (
+  <div className="flex items-center justify-between p-8 bg-white/[0.02] rounded-[36px] border border-white/5 shadow-inner">
      <div className="flex items-center space-x-5">
-        <div className="p-4 bg-white/5 rounded-[20px] text-text-muted shadow-lg"><Icon size={22} /></div>
-        <div className="flex flex-col">
-           <span className="text-[11px] font-black uppercase tracking-widest leading-none">{label}</span>
-           <span className="text-[9px] font-black text-text-dim uppercase tracking-widest mt-2">{sub}</span>
-        </div>
+        <div className="p-4 bg-white/5 rounded-2xl text-text-muted shadow-lg"><Icon size={24} /></div>
+        <span className="text-[11px] font-[950] uppercase tracking-[0.4em] leading-none">{label}</span>
      </div>
-     <button onClick={onClick} className={cn("w-14 h-8 rounded-full p-1 transition-all duration-700 border border-white/5", active ? "bg-accent shadow-[0_0_15px_rgba(212,255,92,0.5)]" : "bg-white/10")}>
-        <div className={cn("w-6 h-6 rounded-full bg-white transition-all duration-700 shadow-2xl", active ? "translate-x-6" : "translate-x-0")} />
+     <button onClick={onClick} className={cn("w-16 h-9 rounded-full p-1.5 transition-all duration-700 border border-white/5 shadow-inner", active ? "bg-accent" : "bg-white/10")}>
+        <div className={cn("w-6 h-6 rounded-full bg-white transition-all duration-700 shadow-2xl", active ? "translate-x-7" : "translate-x-0")} />
      </button>
   </div>
 );
 
 const Overlay = ({ children, onClose, title }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/90 backdrop-blur-2xl">
-     <motion.div initial={{ y: 100, scale: 0.9, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 100, scale: 0.9, opacity: 0 }} transition={{ type: 'spring', damping: 20, stiffness: 100 }} className="w-full max-w-lg">
-        <Card className="p-12 relative border-accent/30 shadow-[0_0_100px_rgba(212,255,92,0.15)] bg-bg-panel/95">
+     <motion.div initial={{ y: 100, scale: 0.95, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 100, scale: 0.95, opacity: 0 }} className="w-full max-w-lg">
+        <Card className="p-12 relative border-accent/40 shadow-[0_0_120px_rgba(212,255,92,0.15)] bg-bg-panel/95">
            <button onClick={onClose} className="absolute top-10 right-10 p-4 rounded-3xl bg-white/5 text-text-dim hover:text-white transition-all border border-white/5 shadow-2xl"><X size={24} /></button>
-           <div className="flex items-center space-x-5 text-accent mb-12">
-              <div className="p-4 bg-accent/10 rounded-[20px] border border-accent/20 shadow-inner"><Activity size={28} /></div>
-              <h3 className="text-3xl font-[950] tracking-tighter uppercase leading-none">{title}</h3>
-           </div>
+           <h3 className="text-3xl font-[950] tracking-tighter uppercase leading-none text-accent mb-12">{title}</h3>
            {children}
         </Card>
      </motion.div>
@@ -501,56 +565,16 @@ const Overlay = ({ children, onClose, title }) => (
 const InsightCard = ({ Icon, label, val, suffix, color, index }) => (
   <StaggeredItem index={index}>
     <Card className="flex flex-col items-center text-center py-12 bg-bg-panel/40 border-white/5 shadow-2xl group relative overflow-hidden">
-      <div className={cn("p-6 rounded-[32px] bg-white/[0.03] mb-8 transition-all duration-1000 group-hover:scale-110 group-hover:bg-accent/5", color)}>
+      <div className={cn("p-6 rounded-[32px] bg-white/[0.03] mb-8 transition-all duration-1000 group-hover:scale-110", color)}>
         <Icon size={36} />
       </div>
       <div className="text-5xl font-[950] leading-none tracking-tighter mb-2 transition-all duration-700 group-hover:scale-105">{val}</div>
       <div className="text-[10px] font-black text-text-muted uppercase tracking-[0.4em]">{suffix}</div>
-      <div className="mt-12 pt-8 border-t border-white/5 w-full flex items-center justify-center space-x-4 opacity-40">
-        <div className="h-px w-6 bg-white/20" />
+      <div className="mt-12 pt-8 border-t border-white/5 w-full flex items-center justify-center opacity-40">
         <span className="text-[9px] font-[950] text-text-dim uppercase tracking-[0.5em]">{label}</span>
-        <div className="h-px w-6 bg-white/20" />
       </div>
-      <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/[0.02] rounded-full blur-3xl" />
     </Card>
   </StaggeredItem>
 );
-
-const AddForm = ({ onAdd }) => {
-  const [n, setN] = useState('');
-  const [l, setL] = useState('20');
-  const [t, setT] = useState('CIGARETTE');
-  return (
-    <div className="space-y-10">
-       <Input label="Protocol Assignment" value={n} onChange={setN} placeholder="VAULT_UNIT_ALPHA" />
-       <Input label="Operational Threshold" value={l} onChange={setL} type="number" />
-       <div className="space-y-4">
-          <span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em] ml-1">Visual Schema</span>
-          <div className="grid grid-cols-2 gap-4">
-             {['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => (
-                <button key={x} onClick={() => setT(x)} className={cn("h-14 rounded-2xl border font-black text-[10px] uppercase tracking-widest transition-all duration-500 shadow-lg", t === x ? "bg-accent text-bg-base border-accent shadow-[0_0_30px_rgba(212,255,92,0.4)] scale-105" : "bg-white/5 border-white/5 text-text-dim hover:border-white/20")}>{x.replace('_', ' ')}</button>
-             ))}
-          </div>
-       </div>
-       <Button size="lg" className="w-full shadow-[0_20px_50px_rgba(0,0,0,0.4)]" onClick={() => onAdd(n, t, l)}>Commit Deployment</Button>
-    </div>
-  );
-};
-
-const EditForm = ({ log, configs, onSave }) => {
-  const [c, setC] = useState({ ...log.counts });
-  return (
-    <div className="space-y-10">
-       <div className="flex items-center space-x-4 p-5 bg-white/5 rounded-[24px] border border-white/5 shadow-inner">
-          <Calendar size={20} className="text-accent" />
-          <span className="text-sm font-black text-white uppercase tracking-[0.2em]">{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span>
-       </div>
-       <div className="max-h-[350px] overflow-y-auto pr-4 space-y-8 scrollbar-thin scrollbar-thumb-white/10">
-          {configs.map(x => <Input key={x.id} label={x.name} value={c[x.id] || 0} type="number" onChange={v => setC({...c, [x.id]: parseInt(v) || 0})} />)}
-       </div>
-       <Button size="lg" className="w-full shadow-2xl" onClick={() => onSave(log.logDate, c)}><Save className="mr-4" size={24} /> Register Correction</Button>
-    </div>
-  );
-};
 
 export default App;
