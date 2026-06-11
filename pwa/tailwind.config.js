@@ -7,11 +7,15 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Dynamic Accent using CSS Variables
+        'accent': 'var(--accent)',
+        'accent-soft': 'rgba(var(--accent-rgb), 0.1)',
+        'accent-glow': 'rgba(var(--accent-rgb), 0.4)',
+
+        // Base Colors
         'bg-base': '#020202',
         'bg-panel': '#0D0D0E',
         'bg-card': '#121214',
-        'accent': '#D4FF5C',
-        'accent-fg': '#0C0C00',
         'danger': '#F87171',
         'success': '#4ADE80',
         'text-main': '#FFFFFF',
