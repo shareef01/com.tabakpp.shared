@@ -5,7 +5,7 @@ import {
   ChevronRight, Info, History, Plus, Minus, Edit2, Trash2,
   TrendingUp, Wallet, Activity, Calendar, Clock, ArrowUp, ArrowDown, X,
   Save, AlertCircle, RefreshCcw, Camera, Target, Layout, Type, Grid,
-  Database, ShieldCheck, Flame, Loader2, InfoIcon, User, UserCircle
+  Database, ShieldCheck, Flame, Loader2, InfoIcon, User, UserCircle, Moon
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -34,7 +34,7 @@ class ErrorBoundary extends Component {
       return (
         <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
           <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
-          <h2 className="text-3xl font-[950] uppercase tracking-tighter leading-none">System Malfunction</h2>
+          <h2 className="text-3xl font-[950] uppercase tracking-tighter leading-none">System Failure</h2>
           <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed">{this.state.error?.message}</p>
           <Button onClick={() => window.location.reload()} className="w-64 h-16 rounded-full shadow-2xl">Re-Initialize Vault</Button>
         </div>
@@ -128,7 +128,7 @@ const App = () => {
   function generateCoach(count, limit, streak) {
     const p = limit > 0 ? count / limit : 0;
     if (count === 0 && streak > 0) return `Perfect start! You're on a ${streak}-day streak.`;
-    if (p >= 1.0) return "Threshold reached. Security protocol active.";
+    if (p >= 1.0) return "Threshold reached. Security mode active.";
     return "Every session tracked is a step toward optimization.";
   }
 
@@ -188,7 +188,7 @@ const App = () => {
                 className={cn("absolute right-0 mt-4 w-48 rounded-3xl p-2 shadow-2xl border backdrop-blur-3xl z-[100]", settings.isDark ? "bg-black/90 border-white/10" : "bg-white border-black/5")}
               >
                 <button onClick={() => { setActiveTab('settings'); setShowProfileMenu(false); }} className="w-full flex items-center space-x-3 p-4 rounded-2xl hover:bg-accent/10 transition-colors text-sm font-bold uppercase tracking-widest"><Settings size={18} /><span>Profile</span></button>
-                <button onClick={() => { signOut(auth); }} className="w-full flex items-center space-x-3 p-4 rounded-2xl hover:bg-danger/10 text-danger transition-colors text-sm font-bold uppercase tracking-widest border-t border-white/5 mt-1"><LogOut size={18} /><span>Log Out</span></button>
+                <button onClick={() => signOut(auth)} className="w-full flex items-center space-x-3 p-4 rounded-2xl hover:bg-danger/10 text-danger transition-colors text-sm font-bold uppercase tracking-widest border-t border-white/5 mt-1"><LogOut size={18} /><span>Log Out</span></button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -198,7 +198,7 @@ const App = () => {
       {/* CONTENT */}
       <main className="flex-1 overflow-y-auto pt-40 pb-44 px-6 max-w-6xl mx-auto w-full transition-all duration-500">
         <AnimatePresence mode="wait">
-          {activeTab === 'tracker' && <TrackerScreen key="t" m={metrics} c={configs} onInc={onInc} onDec={onDec} onAdd={() => setShowAdd(true)} view={settings.layout} isDark={settings.isDark} />}
+          {activeTab === 'tracker' && <TrackerScreen key="t" m={metrics} c={configs} onInc={onInc} onDec={onDec} onAdd={() => setActiveTab('settings')} view={settings.layout} isDark={settings.isDark} />}
           {activeTab === 'health' && <HealthScreen key="h" last={Date.now() - 3600000 * 4} isDark={settings.isDark} />}
           {activeTab === 'history' && <HistoryScreen key="y" logs={logs} configs={configs} m={metrics} todayString={today} onEdit={setEditTarget} isDark={settings.isDark} />}
           {activeTab === 'settings' && <SettingsScreen key="s" c={configs} u={user} s={settings} onAdd={() => setShowAdd(true)} onUpd={(upd) => updateDoc(doc(db, 'users', user.uid), upd)} onReo={async (id, dir) => {
@@ -218,7 +218,7 @@ const App = () => {
         <div className={cn("backdrop-blur-3xl border rounded-t-[40px] md:rounded-[40px] flex justify-around items-center h-24 md:h-22 px-6 shadow-2xl transition-all duration-500", settings.isDark ? "bg-black/80 border-white/5" : "bg-white/80 border-black/5 shadow-black/5")}>
           <NavItem id="tracker" icon={LayoutDashboard} active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} label="tracker" isDark={settings.isDark} />
           <NavItem id="health" icon={Heart} active={activeTab === 'health'} onClick={() => setActiveTab('health')} label="health" isDark={settings.isDark} />
-          <NavItem id="history" icon={Database} active={activeTab === 'history'} onClick={() => setActiveTab('history')} label="vault" isDark={settings.isDark} />
+          <NavItem id="history" icon={BarChart3} active={activeTab === 'history'} onClick={() => setActiveTab('history')} label="vault" isDark={settings.isDark} />
           <NavItem id="settings" icon={Settings} active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} label="control" isDark={settings.isDark} />
         </div>
       </nav>
@@ -288,9 +288,18 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark }) => {
              <div className={cn("relative w-full h-14 rounded-full overflow-hidden transition-all duration-1000 border", isL ? "bg-danger border-danger/40 shadow-[0_0_50px_#F87171]" : (isDark ? "bg-[#111] border-white/5 shadow-[inset_0_4px_20px_rgba(0,0,0,0.8)]" : "bg-[#EEE] border-black/5 shadow-inner"))}>
                 {/* Ash Side (Spent) */}
                 <div
-                   className={cn("absolute left-0 inset-y-0 bg-[#1a1a1a] transition-all duration-700", isL && "bg-danger/20 w-full")}
+                   className={cn("absolute left-0 inset-y-0 bg-[#1a1a1a] transition-all duration-700", isL && "bg-danger w-full")}
                    style={{ width: isL ? '100%' : `${p * 72}%` }}
                 />
+
+                {/* STATIC RED EMBER - Positioned at the burning boundary */}
+                {!isL && count > 0 && (
+                   <div
+                      className="absolute inset-y-0 w-3 bg-[#FF3D00] shadow-[0_0_20px_#FF3D00] z-20"
+                      style={{ left: `calc(${p * 72}% - 1.5px)` }}
+                   />
+                )}
+
                 {/* White/Green Body (Unspent) */}
                 {!isL && (
                   <div
@@ -298,15 +307,33 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark }) => {
                     style={{ left: `${p * 72}%` }}
                   />
                 )}
+
                 {/* Fixed Filter/Roach */}
                 <div
-                   className={cn("absolute inset-y-0 right-0 w-[28%] border-l border-black/20 z-[11]", isL ? "bg-danger shadow-[0_0_20px_rgba(248,113,113,0.5)]" : (isCig ? "bg-[#D97706]" : "bg-[#333]"))}
+                   className={cn("absolute inset-y-0 right-0 w-[28%] border-l border-black/20 z-[11]", isL ? "bg-danger" : (isCig ? "bg-[#D97706]" : "bg-[#333]"))}
                 />
              </div>
           ) : (
-             <div className={cn("font-[1000] tracking-[-0.08em] leading-none mb-10 transition-all drop-shadow-2xl", isC ? "text-8xl" : "text-[12rem]", isL ? "text-danger" : (isDark ? "text-white" : "text-black"))}>{count}</div>
+             /* Premium Gauge for Simple Counter */
+             <div className="relative w-56 h-56 mb-10 flex items-center justify-center">
+                <svg className="w-full h-full -rotate-90">
+                   <circle cx="112" cy="112" r="100" className={cn("fill-transparent stroke-[12]", isDark ? "stroke-white/5" : "stroke-black/5")} />
+                   <motion.circle
+                      cx="112" cy="112" r="100"
+                      className={cn("fill-transparent stroke-[12] transition-all duration-1000", isL ? "stroke-danger" : "stroke-accent")}
+                      strokeDasharray="628"
+                      initial={{ strokeDashoffset: 628 }}
+                      animate={{ strokeDashoffset: 628 - (Math.min(1, p) * 628) }}
+                      strokeLinecap="round"
+                   />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                   <div className={cn("text-7xl font-[1000] tracking-tighter", isL ? "text-danger" : (isDark ? "text-white" : "text-black"))}>{count}</div>
+                   <Activity size={24} className={cn("mt-2", isL ? "text-danger" : "text-accent")} />
+                </div>
+             </div>
           )}
-          {(isCig || isJoint) && <div className={cn("font-[1000] tracking-[-0.08em] leading-none mt-10 transition-all", isC ? "text-7xl" : "text-[10rem]", isL ? "text-danger" : (isDark ? "text-white" : "text-black"))}>{count}</div>}
+          {(isCig || isJoint) && <div className={cn("font-[1000] tracking-[-0.08em] leading-none mt-10 transition-all", isC ? "text-8xl" : "text-[10rem]", isL ? "text-danger" : (isDark ? "text-white" : "text-black"))}>{count}</div>}
        </div>
 
        <div className="flex justify-center items-center space-x-12 relative z-20 pt-8">
@@ -348,7 +375,7 @@ const HistoryScreen = ({ logs, configs, todayString, onEdit, m, isDark }) => {
   }), [logs]);
   return (
     <div className="flex flex-col space-y-12 pb-20 max-w-5xl mx-auto">
-       <StaggeredItem index={0}><Card className={cn("p-0 overflow-hidden shadow-2xl", isDark ? "bg-white/[0.03] border-accent/20" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="p-14 pb-10 flex justify-between items-start"><div className="space-y-2"><span className="text-[11px] font-[1000] text-text-dim uppercase tracking-[0.5em]">Analytics Engine</span><h3 className={cn("text-5xl font-[1000] text-accent mt-2 uppercase tracking-tighter leading-none font-black font-inter")}>Usage Volatility</h3></div><div className="p-5 bg-accent/10 rounded-[32px] border border-accent/20 shadow-2xl text-accent"><BarChart3 size={40} /></div></div><div className="h-[350px] w-full pr-14 pl-6 pb-14"><ResponsiveContainer width="100%" height="100%"><LineChart data={chart}><CartesianGrid strokeDasharray="8 8" stroke="rgba(128,128,128,0.1)" vertical={false} /><XAxis dataKey="name" stroke="#888" fontSize={11} axisLine={false} tickLine={false} dy={25} fontVariant="black" /><Tooltip contentStyle={{ background: isDark ? '#0D0D0E' : '#FFF', border: '1px solid var(--accent)', borderRadius: '24px', fontWeight: '950', fontSize: '15px', textTransform:'uppercase', boxShadow:'0 20px 50px rgba(0,0,0,0.4)' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 4, stroke: isDark ? '#020202' : '#FFF' }} activeDot={{ r: 16, fill: '#FFF', shadow: '0 0 30px var(--accent)' }} animationDuration={2500} /></LineChart></ResponsiveContainer></div></Card></StaggeredItem>
+       <StaggeredItem index={0}><Card className={cn("p-0 overflow-hidden shadow-2xl", isDark ? "bg-white/[0.03] border-accent/20" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="p-14 pb-10 flex justify-between items-start"><div className="space-y-2"><span className="text-[11px] font-[1000] text-text-dim uppercase tracking-[0.5em]">Analytics Engine</span><h3 className={cn("text-5xl font-[1000] text-accent mt-2 uppercase tracking-tighter leading-none font-black font-inter")}>Usage Volatility</h3></div><div className="p-5 bg-accent/10 rounded-[32px] border border-accent/20 shadow-2xl text-accent font-black"><BarChart3 size={40} /></div></div><div className="h-[350px] w-full pr-14 pl-6 pb-14"><ResponsiveContainer width="100%" height="100%"><LineChart data={chart}><CartesianGrid strokeDasharray="8 8" stroke="rgba(128,128,128,0.1)" vertical={false} /><XAxis dataKey="name" stroke="#888" fontSize={11} axisLine={false} tickLine={false} dy={25} fontVariant="black" /><Tooltip contentStyle={{ background: isDark ? '#0D0D0E' : '#FFF', border: '1px solid var(--accent)', borderRadius: '24px', fontWeight: '950', fontSize: '15px', textTransform:'uppercase', boxShadow:'0 20px 50px rgba(0,0,0,0.4)' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 4, stroke: isDark ? '#020202' : '#FFF' }} activeDot={{ r: 16, fill: '#FFF', shadow: '0 0 30px var(--accent)' }} animationDuration={2500} /></LineChart></ResponsiveContainer></div></Card></StaggeredItem>
        <div className="grid grid-cols-1 md:grid-cols-3 gap-10"><InsightCard Icon={TrendingUp} label="Streak" val={m.streak} suffix="Active Units" color="text-orange-400" index={1} isDark={isDark} /><InsightCard Icon={Wallet} label="Savings" val={`$${m.savings.toFixed(2)}`} suffix="Financial Gain" color="text-emerald-400" index={2} isDark={isDark} /><InsightCard Icon={Activity} label="Health Cost" val={`${Math.floor(m.lost/60)}H`} suffix="Time Impact" color="text-rose-400" index={3} isDark={isDark} /></div>
        <div className="space-y-10 pt-16 px-4"><div className="flex items-center justify-between px-2"><h4 className="text-[14px] font-[1000] text-accent uppercase tracking-[0.6em]">Activity Ledger</h4><History size={20} className="text-accent/30" /></div><div className="grid gap-6">{logs.sort((a,b)=>b.logDate.localeCompare(a.logDate)).map((log, i) => <StaggeredItem key={log.logDate} index={i+5}><Card className={cn("py-12 flex items-center justify-between group p-14 transition-all duration-700 shadow-2xl", isDark ? "bg-white/[0.03] border-white/5" : "bg-white border-black/5 shadow-black/5")}><div className="flex flex-col space-y-2"><span className={cn("text-3xl font-[1000] tracking-tighter uppercase leading-none", !isDark && "text-black")}>{log.logDate === todayString ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-[900] text-text-dim uppercase tracking-[0.4em] mt-3 flex items-center"><History size={16} className="mr-3 opacity-40" /> {Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} logs committed</span></div><div className="flex items-center space-x-12"><div className="flex -space-x-5">{Object.entries(log.counts || {}).map(([cid, count]) => <div key={cid} className={cn("w-16 h-16 rounded-full border-[5px] flex items-center justify-center font-[1000] text-base shadow-2xl transition-all group-hover:-translate-y-3", isDark ? "bg-black border-white/5 text-white" : "bg-white border-black/5 text-black")}>{count}</div>)}</div><button onClick={() => onEdit(log)} className={cn("p-5 rounded-[24px] transition-all hover:scale-110", isDark ? "bg-white/5 text-text-dim hover:text-accent" : "bg-black/5 text-black/40 hover:text-accent shadow-inner")}><Edit2 size={24} /></button></div></Card></StaggeredItem>)}</div></div>
     </div>
@@ -414,7 +441,7 @@ const Toggle = ({ icon: Icon, label, active, onClick, isDark }) => (
 
 const Overlay = ({ children, onClose, title, isDark }) => (
   <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/95 backdrop-blur-3xl overflow-y-auto">
-     <motion.div initial={{ y: 200, scale: 0.95, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 200, scale: 0.95, opacity: 0 }} className="w-full max-w-xl my-auto">
+     <motion.div initial={{ y: 200, scale: 0.95, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 200, scale: 0.95, opacity: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 120 }} className="w-full max-w-xl my-auto">
         <Card className={cn("p-16 relative border-2 shadow-2xl shadow-black", isDark ? "bg-[#0A0A0A] border-accent/40" : "bg-white border-black/5")}><button onClick={onClose} className={cn("absolute top-14 right-14 p-6 rounded-[32px] transition-all group", isDark ? "bg-white/5 text-text-dim hover:text-white" : "bg-black/5 text-black/40 hover:text-black")}><X size={32} className="group-hover:rotate-90 transition-transform duration-700" /></button><div className="flex items-center space-x-8 text-accent mb-20 border-b border-white/10 pb-12"><div className="p-6 bg-accent/10 rounded-[32px] border border-accent/20 shadow-2xl text-accent"><Activity size={40} className="animate-pulse" /></div><h3 className={cn("text-5xl font-[1000] tracking-tighter uppercase leading-none", !isDark && "text-black")}>{title}</h3></div><div>{children}</div></Card>
      </motion.div>
   </div>
@@ -426,7 +453,7 @@ const AddForm = ({ onAdd }) => {
     <div className="space-y-14">
        <Input label="Protocol Identifier" value={n} onChange={setN} placeholder="ASSIGN_TRACKER_ID" />
        <Input label="Target Capacity" value={l} onChange={setL} type="number" />
-       <div className="space-y-8"><span className="text-[12px] font-black text-text-dim uppercase tracking-[0.6em] ml-1">Visual Schema</span><div className="grid grid-cols-2 gap-6">{['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => <button key={x} onClick={() => setT(x)} className={cn("h-20 rounded-[32px] border font-[1000] text-[11px] uppercase tracking-[0.4em] transition-all duration-1000 shadow-2xl active:scale-95", t === x ? "bg-accent text-bg-base border-accent shadow-[0_0_60px_var(--accent)]" : "bg-black/5 border-black/5 text-text-dim")} >{x.replace('_', ' ')}</button>)}</div></div>
+       <div className="space-y-8"><span className="text-[12px] font-black text-text-dim uppercase tracking-[0.6em] ml-1">Visual Schema</span><div className="grid grid-cols-2 gap-6">{['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => <button key={x} onClick={() => setT(x)} className={cn("h-20 rounded-[32px] border font-[1000] text-[11px] uppercase tracking-[0.4em] transition-all duration-1000 shadow-2xl active:scale-95", t === x ? "bg-accent text-bg-base border-accent shadow-[0_0_60px_var(--accent)] scale-110" : "bg-black/5 border-black/5 text-text-dim")} >{x.replace('_', ' ')}</button>)}</div></div>
        <Button size="lg" className="w-full shadow-2xl h-24 rounded-[42px] text-base font-[1000] uppercase active:scale-95" onClick={() => onAdd(n, t, l)}>Commit Neural Link</Button>
     </div>
   );
@@ -454,7 +481,7 @@ const InsightCard = ({ Icon, label, val, suffix, color, index, isDark }) => (
   </StaggeredItem>
 );
 
-const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white"><AlertCircle className="text-danger mb-6" size={48} /><h2 className="text-2xl font-black uppercase tracking-tighter leading-none mb-2 text-white">Identity Failure</h2><p className="text-text-dim text-sm max-w-xs">{msg}</p><Button onClick={() => window.location.reload()} className="mt-8 rounded-full">Re-Initialize</Button></div>;
-const LoadingView = () => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center space-y-6 text-accent"><Loader2 className="animate-spin" size={48} /><span className="text-[10px] font-black tracking-[0.5em] uppercase text-accent">Syncing Neural Link...</span></div>;
+const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter"><AlertCircle className="text-danger mb-6" size={48} /><h2 className="text-2xl font-black uppercase tracking-tighter leading-none mb-2 text-white">System Error</h2><p className="text-text-dim text-sm max-w-xs">{msg}</p><Button onClick={() => window.location.reload()} className="mt-8 rounded-full">Re-Initialize Vault</Button></div>;
+const LoadingView = () => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center space-y-6 text-accent font-inter"><Loader2 className="animate-spin" size={48} /><span className="text-[10px] font-black tracking-[0.5em] uppercase text-accent">Syncing Neural Link...</span></div>;
 
 export default App;
