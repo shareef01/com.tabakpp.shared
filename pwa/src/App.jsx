@@ -34,7 +34,7 @@ class ErrorBoundary extends Component {
       return (
         <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
           <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
-          <h2 className="text-3xl font-[950] uppercase tracking-tighter leading-none">System Failure</h2>
+          <h2 className="text-3xl font-[950] uppercase tracking-tighter leading-none">System Malfunction</h2>
           <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed">{this.state.error?.message}</p>
           <Button onClick={() => window.location.reload()} className="w-64 h-16 rounded-full shadow-2xl">Re-Initialize Vault</Button>
         </div>
@@ -72,13 +72,23 @@ const App = () => {
 
   const today = new Date().toISOString().split('T')[0];
 
+  // 1. Auth Listener - CRITICAL FIX: Ensure setAuthLoading(false) always runs
   useEffect(() => {
-    return onAuthStateChanged(auth, (u) => {
-      setUser(u); setAuthLoading(false);
-      if (!u) { setLogs([]); setConfigs([]); }
-    }, (err) => setAppError("Auth denied: " + err.message));
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthLoading(false);
+      if (!u) {
+        setLogs([]);
+        setConfigs([]);
+      }
+    }, (err) => {
+      setAppError("Auth connection lost: " + err.message);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
+  // 2. Data Sync
   useEffect(() => {
     if (!user) return;
     try {
@@ -150,8 +160,9 @@ const App = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
 
+  // AUTH BRANCHING - CRITICAL CHECK
   if (appError) return <ErrorView msg={appError} />;
-  if (authLoading) return <LoadingView />;
+  if (authLoading) return <LoadingView />; // If stuck here, auth listener didn't fire
   if (!user) return <AuthScreen />;
 
   const themeClass = settings.isDark ? "bg-[#020202] text-white" : "bg-[#F5F5F5] text-[#111]";
@@ -188,7 +199,7 @@ const App = () => {
                 className={cn("absolute right-0 mt-4 w-48 rounded-3xl p-2 shadow-2xl border backdrop-blur-3xl z-[100]", settings.isDark ? "bg-black/90 border-white/10" : "bg-white border-black/5")}
               >
                 <button onClick={() => { setActiveTab('settings'); setShowProfileMenu(false); }} className="w-full flex items-center space-x-3 p-4 rounded-2xl hover:bg-accent/10 transition-colors text-sm font-bold uppercase tracking-widest"><Settings size={18} /><span>Profile</span></button>
-                <button onClick={() => signOut(auth)} className="w-full flex items-center space-x-3 p-4 rounded-2xl hover:bg-danger/10 text-danger transition-colors text-sm font-bold uppercase tracking-widest border-t border-white/5 mt-1"><LogOut size={18} /><span>Log Out</span></button>
+                <button onClick={() => { signOut(auth); setShowProfileMenu(false); }} className="w-full flex items-center space-x-3 p-4 rounded-2xl hover:bg-danger/10 text-danger transition-colors text-sm font-bold uppercase tracking-widest border-t border-white/5 mt-1"><LogOut size={18} /><span>Log Out</span></button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -234,6 +245,37 @@ const App = () => {
 };
 
 // --- SUB-COMPONENTS ---
+
+const AuthScreen = () => {
+  const [isL, setIsL] = useState(true);
+  const [e, setE] = useState(''); const [p, setP] = useState(''); const [n, setN] = useState('');
+  const [loading, setLoading] = useState(false); const [err, setErr] = useState('');
+  const handle = async () => {
+    setLoading(true); setErr('');
+    try {
+      if (isL) { await signInWithEmailAndPassword(auth, e, p); }
+      else { const c = await createUserWithEmailAndPassword(auth, e, p); await updateProfile(c.user, { displayName: n }); await setDoc(doc(db, 'users', c.user.uid), { name: n, accent: '#D4FF5C', isDark: true, goal: 'SAVE FOR VACATION' }); }
+    } catch (e) { setErr(e.message); } finally { setLoading(false); }
+  };
+  return (
+    <div className="min-h-screen bg-[#020202] flex items-center justify-center p-6 text-white font-inter">
+      <div className="w-full max-w-md space-y-12">
+        <div className="flex flex-col items-center text-center"><div className="w-24 h-24 bg-accent rounded-[32px] flex items-center justify-center mb-8 shadow-2xl text-bg-base shadow-accent/20"><LayoutDashboard size={40} /></div><h1 className="text-5xl font-[950] tracking-tighter uppercase leading-none text-white">tabak++</h1></div>
+        <Card className="space-y-6 bg-white/[0.03] border-white/5 p-10 backdrop-blur-lg shadow-2xl">
+          {err && <div className="p-4 bg-danger/10 border border-danger/20 rounded-2xl text-danger text-[10px] font-black uppercase tracking-widest">{err}</div>}
+          {!isL && <Input label="Vault Commander" value={n} onChange={setN} placeholder="Your Alias" />}
+          <Input label="Vault ID" value={e} onChange={setE} placeholder="email@address.com" />
+          <Input label="Security Phrase" type="password" value={p} onChange={setP} placeholder="••••••••" />
+          <Button className="w-full h-18 text-xs shadow-2xl font-black uppercase tracking-[0.2em]" onClick={handle} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : (isL ? 'Access Records' : 'Initialize Vault')}</Button>
+          <div className="flex flex-col space-y-4 items-center pt-2">
+             <button onClick={() => setIsL(!isL)} className="text-[10px] font-black text-text-dim uppercase tracking-widest hover:text-accent transition-all underline underline-offset-8 decoration-white/10">{isL ? "Request New Vault" : "Return to Login"}</button>
+             <button onClick={() => signInAnonymously(auth)} className="text-[10px] font-black text-accent/60 uppercase tracking-widest hover:text-accent transition-all">Guest entry</button>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+};
 
 const NavItem = ({ icon: Icon, active, onClick, label, isDark }) => (
   <motion.div onClick={onClick} whileTap={{ scale: 0.8 }} className="flex flex-col items-center justify-center flex-1 py-5 cursor-pointer relative group">
@@ -288,7 +330,7 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark }) => {
              <div className={cn("relative w-full h-14 rounded-full overflow-hidden transition-all duration-1000 border", isL ? "bg-danger border-danger/40 shadow-[0_0_50px_#F87171]" : (isDark ? "bg-[#111] border-white/5 shadow-[inset_0_4px_20px_rgba(0,0,0,0.8)]" : "bg-[#EEE] border-black/5 shadow-inner"))}>
                 {/* Ash Side (Spent) */}
                 <div
-                   className={cn("absolute left-0 inset-y-0 bg-[#1a1a1a] transition-all duration-700", isL && "bg-danger w-full")}
+                   className={cn("absolute left-0 inset-y-0 bg-[#1a1a1a] transition-all duration-700", isL && "bg-danger/20 w-full")}
                    style={{ width: isL ? '100%' : `${p * 72}%` }}
                 />
 
