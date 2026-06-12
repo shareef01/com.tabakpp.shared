@@ -25,7 +25,7 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
-const APP_VERSION = "11.5.0-VISUAL-MASTER";
+const APP_VERSION = "12.0.0-UNIFIED-BURN";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -244,9 +244,10 @@ const TrackerCard = ({ config, count, onInc, onDec, index }) => {
       <span className="text-[11px] font-[1000] text-[#6b7280] tracking-[0.4em] uppercase relative z-10 font-inter">Target: {config.limit}</span>
       <div className="flex-1 w-full flex flex-col items-center justify-center space-y-12 relative z-10 py-8">
         <div className="w-full flex justify-center h-24 items-center">
-          {config.type === 'CIGARETTE' && <CigaretteProgress count={count} limit={config.limit} />}
+          {config.type === 'CIGARETTE' && <SmokingProgress count={count} limit={config.limit} variant="CIGARETTE" />}
           {config.type === 'SIMPLE' && <RingProgress count={count} limit={config.limit} />}
-          {(isKing || isQueen) && <JointProgress count={count} limit={config.limit} isKing={isKing} />}
+          {isKing && <SmokingProgress count={count} limit={config.limit} variant="KING" />}
+          {isQueen && <SmokingProgress count={count} limit={config.limit} variant="QUEEN" />}
           {(!['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].includes(config.type)) && <GenericBarProgress count={count} limit={config.limit} />}
         </div>
         <div className="flex flex-col items-center">
@@ -265,26 +266,43 @@ const TrackerCard = ({ config, count, onInc, onDec, index }) => {
   );
 };
 
-const CigaretteProgress = ({ count, limit }) => {
+const SmokingProgress = ({ count, limit, variant }) => {
   const isL = count >= limit;
   const tobaccoPct = Math.max(0, 1 - (count / limit));
-  return (
-    <div className={cn("relative w-56 h-11 rounded-full overflow-hidden border-2 transition-all duration-1000 flex items-center", isL ? "bg-danger border-danger shadow-[0_0_40px_rgba(255,0,0,0.5)]" : "bg-white/5 border-white/10 shadow-inner")}>
-      {!isL && <div className="absolute h-full bg-white shadow-[0_0_20px_white] transition-all duration-1000 ease-out" style={{ width: `${tobaccoPct * 72}%`, right: '28%' }} />}
-      {!isL && count > 0 && <div className="absolute h-full w-3 bg-[#ff4b2b] shadow-[0_0_20px_#ff4b2b] z-20 transition-all duration-1000 ease-out" style={{ right: `calc(28% + ${tobaccoPct * 72}% - 1.5px)` }} />}
-      <div className={cn("absolute right-0 h-full w-[28%] border-l-2 transition-all duration-1000", isL ? "bg-danger border-white/20" : "bg-[#f39c12] border-black/20")} />
-    </div>
-  );
-};
+  const isJoint = variant === 'KING' || variant === 'QUEEN';
 
-const JointProgress = ({ count, limit, isKing }) => {
-  const isL = count >= limit;
-  const tobaccoPct = Math.max(0, 1 - (count / limit));
   return (
-    <div className={cn("relative h-11 rounded-full overflow-hidden border-2 transition-all duration-1000 flex items-center", isKing ? "w-56" : "w-44", isL ? "bg-danger border-danger shadow-[0_0_40px_rgba(255,0,0,0.5)]" : "bg-white/5 border-white/10 shadow-inner")}>
-       {!isL && <div className="absolute h-full bg-gradient-to-r from-[#ff4b2b] to-[#f39c12] rounded-l-full shadow-[0_0_20px_rgba(255,75,43,0.4)] transition-all duration-1000 ease-out" style={{ width: `${(1-tobaccoPct) * 85}%`, left: 0 }} />}
-       {!isL && count > 0 && <div className="absolute h-full w-3 bg-[#ff4b2b] shadow-[0_0_20px_#ff4b2b] z-20 transition-all duration-1000 ease-out" style={{ left: `calc(${(1-tobaccoPct) * 85}% - 1.5px)` }} />}
-       <div className={cn("absolute right-0 h-full w-[15%] border-l-2 transition-all duration-1000", isL ? "bg-danger border-white/20" : "bg-[#333]/80 border-white/5")} />
+    <div className={cn(
+      "relative h-11 rounded-full overflow-hidden border-2 transition-all duration-1000 flex items-center",
+      variant === 'KING' ? "w-64" : (variant === 'QUEEN' ? "w-48" : "w-56"),
+      isL ? "bg-danger border-danger shadow-[0_0_40px_rgba(255,0,0,0.5)]" : "bg-white/5 border-white/10 shadow-inner"
+    )}>
+      {/* Tobacco/Body portion (burns from left to right) */}
+      {!isL && (
+        <div
+          className={cn(
+            "absolute h-full transition-all duration-1000 ease-out",
+            isJoint ? "bg-gradient-to-r from-[#e0e0e0] to-[#f5f5f5]" : "bg-white shadow-[0_0_20px_white]"
+          )}
+          style={{ width: `${tobaccoPct * 72}%`, right: '28%' }}
+        />
+      )}
+
+      {/* The Ember (the burning tip) */}
+      {!isL && count > 0 && (
+        <div
+          className="absolute h-full w-3 bg-[#ff4b2b] shadow-[0_0_20px_#ff4b2b] z-20 transition-all duration-1000 ease-out"
+          style={{ right: `calc(28% + ${tobaccoPct * 72}% - 1.5px)` }}
+        />
+      )}
+
+      {/* Filter/Roach portion */}
+      <div
+        className={cn(
+          "absolute right-0 h-full w-[28%] border-l-2 transition-all duration-1000",
+          isL ? "bg-danger border-white/20" : (isJoint ? "bg-[#333]/80 border-white/5" : "bg-[#f39c12] border-black/20")
+        )}
+      />
     </div>
   );
 };
