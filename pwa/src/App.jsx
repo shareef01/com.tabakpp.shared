@@ -25,7 +25,7 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 import { cn } from './utils/utils';
 
-const APP_VERSION = "7.2.0-STABLE";
+const APP_VERSION = "7.8.0-ULTRA";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -37,8 +37,8 @@ class ErrorBoundary extends Component {
         <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
           <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
           <h2 className="text-3xl font-[950] uppercase tracking-tighter leading-none">System Fault</h2>
-          <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed">{this.state.error?.message || "Logic scope collision detected."}</p>
-          <Button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-64 h-18 rounded-full shadow-2xl font-black uppercase tracking-widest bg-white text-black">Reset Environment</Button>
+          <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed">{this.state.error?.message || "UI Link Collision."}</p>
+          <Button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-64 h-18 rounded-full shadow-2xl font-black uppercase tracking-widest bg-white text-black">Reset Identity</Button>
         </div>
       );
     }
@@ -124,7 +124,7 @@ const App = () => {
         }
       });
       return () => { cUnsub(); lUnsub(); sUnsub(); };
-    } catch (err) { setAppError("Sync Error: " + err.message); }
+    } catch (err) { setAppError("Registry sync failure: " + err.message); }
   }, [user]);
 
   const metrics = useMemo(() => {
@@ -149,9 +149,9 @@ const App = () => {
 
   function generateCoach(count, limit, streak) {
     const p = limit > 0 ? count / limit : 0;
-    if (count === 0 && streak > 0) return `On a ${streak}-day streak!`;
-    if (p >= 1.0) return "Daily threshold reached.";
-    return "Track every session to analyze trends.";
+    if (count === 0 && streak > 0) return `On a ${streak}-day streak. Keep pushing.`;
+    if (p >= 1.0) return "Threshold reached.";
+    return "Track sessions to analyze performance.";
   }
 
   const onInc = useCallback(async (id) => {
@@ -194,7 +194,7 @@ const App = () => {
             <span className="text-[9px] font-black tracking-[0.4em] uppercase opacity-60">{activeTab}</span>
           </div>
         </div>
-        <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="relative w-11 h-11 md:w-12 md:h-12 rounded-[18px] bg-accent/10 border-2 border-accent/20 flex items-center justify-center text-accent overflow-hidden shadow-2xl transition-all active:scale-90 hover:border-accent/50 group">
+        <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="relative w-11 h-11 md:w-12 md:h-12 rounded-[18px] bg-accent/10 border-2 border-accent/20 flex items-center justify-center text-accent overflow-hidden shadow-2xl transition-all active:scale-90 hover:border-accent/50 group shrink-0">
           {user.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <User size={24} />}
           <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/10 transition-colors" />
         </button>
@@ -204,11 +204,11 @@ const App = () => {
               <div className="fixed inset-0 z-[90]" onClick={() => setShowProfileMenu(false)} />
               <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className={cn("absolute right-6 top-24 w-64 rounded-[40px] p-2 shadow-2xl border backdrop-blur-3xl z-[100]", settings.isDark ? "bg-black/95 border-white/10" : "bg-white/95 border-black/5 shadow-black/10")}>
                 <div className="flex items-center space-x-4 p-5 mb-2 border-b border-white/5">
-                  <div className="w-12 h-12 rounded-[20px] bg-accent/10 border-2 border-accent/20 flex items-center justify-center text-accent overflow-hidden">
+                  <div className="w-12 h-12 rounded-[20px] bg-accent/10 border-2 border-accent/20 flex items-center justify-center text-accent overflow-hidden shrink-0">
                      {user.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <UserCircle size={24} />}
                   </div>
-                  <div className="flex flex-col truncate">
-                     <span className="text-sm font-[1000] uppercase tracking-widest truncate">{user.displayName || 'User Registry'}</span>
+                  <div className="flex flex-col truncate min-w-0">
+                     <span className="text-sm font-[1000] uppercase tracking-widest truncate">{user.displayName || 'Registry User'}</span>
                      <span className="text-[10px] font-bold opacity-40 uppercase tracking-tighter truncate">{user.email}</span>
                   </div>
                 </div>
@@ -269,28 +269,28 @@ const AuthScreen = ({ accent }) => {
   return (
     <div className="min-h-screen bg-[#020202] flex items-center justify-center p-6 text-white font-inter relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-full opacity-20">
-         <div className="absolute top-[-20%] left-[-20%] w-[100%] h-[100%] bg-accent/10 rounded-full blur-[160px] animate-pulse" style={{'--accent': accent}} />
-         <div className="absolute bottom-[-20%] right-[-20%] w-[100%] h-[100%] bg-accent/5 rounded-full blur-[160px] animate-pulse" style={{animationDelay:'4s', '--accent': accent}} />
+         <div className="absolute top-[-15%] left-[-15%] w-[80%] h-[80%] bg-accent/10 rounded-full blur-[160px] animate-pulse" style={{'--accent': accent}} />
+         <div className="absolute bottom-[-15%] right-[-15%] w-[80%] h-[80%] bg-accent/5 rounded-full blur-[160px] animate-pulse" style={{animationDelay:'3s', '--accent': accent}} />
       </div>
 
       <div className="w-full max-w-md space-y-12 relative z-10">
         <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', damping: 20 }} className="flex flex-col items-center text-center">
-          <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_120px_var(--accent-rgb)] text-bg-base transition-all hover:scale-110 duration-1000" style={{'--accent': accent, '--accent-rgb': `rgba(${rgb}, 0.6)`}}>
+          <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_100px_var(--accent)] text-bg-base transition-all hover:scale-110 duration-1000" style={{'--accent': accent}}>
             <Zap size={52} fill="currentColor" strokeWidth={1.5} />
           </div>
           <h1 className="text-7xl font-[1000] tracking-tighter uppercase leading-none text-white drop-shadow-2xl">tabak++</h1>
-          <p className="mt-8 text-accent/50 font-black tracking-[0.5em] uppercase text-[10px]">Private Progress Registry</p>
+          <p className="mt-8 text-accent/50 font-black tracking-[0.6em] uppercase text-[10px]">Private Logging Registry</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 120 }}>
-          <Card className="space-y-6 bg-white/[0.04] border-white/5 p-12 backdrop-blur-3xl shadow-2xl shadow-black rounded-[64px] border-t border-t-white/10">
+          <Card className="space-y-6 bg-white/[0.04] border-white/5 p-12 backdrop-blur-3xl shadow-2xl shadow-black rounded-[60px] border-t border-t-white/10">
             <div className="flex flex-col space-y-8">
               {err && <div className="p-6 bg-danger/10 border border-danger/20 rounded-[32px] text-danger text-[11px] font-black uppercase tracking-widest leading-relaxed text-center shadow-2xl">{err}</div>}
-              {!isL && <Input label="Full Name" value={n} onChange={setN} placeholder="How should we address you?" isDark={true} />}
+              {!isL && <Input label="Registry Identity" value={n} onChange={setN} placeholder="How should we address you?" isDark={true} />}
               <Input label="Email Identity" value={e} onChange={setE} placeholder="id@domain.com" isDark={true} />
-              <Input label="Secure Phrase" type="password" value={p} onChange={setP} placeholder="••••••••" isDark={true} />
+              <Input label="Registry Key" type="password" value={p} onChange={setP} placeholder="••••••••" isDark={true} />
               <button className="w-full h-22 text-[12px] bg-accent text-bg-base shadow-[0_20px_60px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.5em] rounded-[32px] mt-8 transition-all hover:scale-[1.02] active:scale-[0.98] active:brightness-90 flex items-center justify-center" onClick={handle} disabled={loading} style={{'--accent': accent, '--accent-rgb': `rgba(${rgb}, 0.3)`}}>
-                {loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Registry' : 'Initialize Vault')}
+                {loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Profile' : 'Initialize Vault')}
               </button>
               <div className="flex flex-col space-y-6 items-center pt-8 border-t border-white/5 mt-6">
                 <button onClick={() => setIsL(!isL)} className="text-[11px] font-[1000] text-text-dim uppercase tracking-[0.3em] hover:text-accent transition-all decoration-accent underline-offset-8">
@@ -304,7 +304,7 @@ const AuthScreen = ({ accent }) => {
           </Card>
         </motion.div>
         <div className="text-center opacity-30 pt-10">
-           <span className="text-[10px] font-black uppercase tracking-[2em] text-white ml-[2em]">ACTIVE LINK</span>
+           <span className="text-[10px] font-black uppercase tracking-[1.5em] text-white">SYSTEM ACTIVE</span>
         </div>
       </div>
     </div>
@@ -324,7 +324,7 @@ const TrackerScreen = ({ m, c, onInc, onDec, view, isDark, onAdd, accent }) => (
     <StaggeredItem index={0}><Card className={cn("p-10 relative overflow-hidden group shadow-2xl transition-all duration-700 rounded-[48px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}><div className="flex justify-between items-end relative z-10 text-white"><div className="space-y-1.5"><span className="text-[9px] font-black text-text-dim uppercase tracking-[0.4em]">Remaining Units</span><div className={cn("text-6xl font-[1000] tracking-tighter leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{Math.max(0, m.limit - m.count)} <span className="text-sm text-accent uppercase tracking-widest font-black ml-3 leading-none">Left</span></div></div><div className="text-right space-y-2 hidden md:block"><div className="px-4 py-1.5 bg-accent-soft rounded-xl text-accent text-[9px] font-black uppercase border border-accent/20">{m.rank}</div><div className={cn("text-3xl font-[1000] opacity-40 leading-none tracking-tighter", !isDark && "text-[#1D1D1F]")}>{m.xp} XP</div></div></div><div className="w-full h-4 bg-black/10 rounded-full overflow-hidden mt-10 p-0.5 border border-white/5 relative z-10 shadow-inner"><motion.div animate={{ width: `${Math.min(1, m.progress) * 100}%` }} className={cn("h-full rounded-full transition-all duration-1000 shadow-2xl", m.progress >= 1 ? "bg-danger shadow-[0_0_30px_#F87171]" : "bg-accent shadow-[0_0_20px_var(--accent)]")} /></div></Card></StaggeredItem>
     <div className={cn("grid gap-6 md:gap-10", view === 'COMPACT' ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 lg:grid-cols-2")}>
        {c.sort((a,b) => a.order - b.order).map((config, i) => <StaggeredItem key={config.id} index={i+1}><CounterCard config={config} count={(m.todayLog.counts || {})[config.id] || 0} onInc={() => onInc(config.id)} onDec={() => onDec(config.id)} isC={view === 'COMPACT'} isDark={isDark} accent={accent} /></StaggeredItem>)}
-       <StaggeredItem index={c.length + 1}><button onClick={onAdd} className={cn("w-full border-2 border-dashed border-white/10 rounded-[48px] flex flex-col items-center justify-center space-y-4 hover:bg-white/[0.02] hover:border-accent/20 transition-all group relative overflow-hidden shadow-2xl shadow-black/10", view === 'COMPACT' ? "h-[320px]" : "h-[450px] md:h-[580px]")}><div className="w-20 h-20 rounded-[40px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-700 shadow-inner shadow-black/40 text-text-dim group-hover:text-accent border border-white/5"><Plus size={32} /></div><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.5em] group-hover:text-white transition-colors">Add Tracker</span></button></StaggeredItem>
+       <StaggeredItem index={c.length + 1}><button onClick={onAdd} className={cn("w-full border-2 border-dashed border-white/10 rounded-[48px] flex flex-col items-center justify-center space-y-4 hover:bg-white/[0.02] hover:border-accent/20 transition-all group relative overflow-hidden shadow-2xl shadow-black/10", view === 'COMPACT' ? "h-[320px]" : "h-[450px] md:h-[580px]")}><div className="w-20 h-20 rounded-[40px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-700 shadow-inner shadow-black/40 text-text-dim group-hover:text-accent border border-white/5 shrink-0"><Plus size={32} /></div><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.5em] group-hover:text-white transition-colors">Add Protocol</span></button></StaggeredItem>
     </div>
   </div>
 );
@@ -335,7 +335,7 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark, accent }) => {
   const rgb = hexToRgb(accent);
   return (
     <Card className={cn("relative flex flex-col group transition-all duration-1000 p-10 md:p-14 overflow-hidden shadow-2xl rounded-[64px]", isL ? "bg-danger/[0.04] border-danger/50 shadow-[0_0_80px_rgba(248,113,113,0.15)]" : (isDark ? "bg-white/[0.03] border-white/5 shadow-black/20" : "bg-white border-black/5 shadow-black/5 shadow-2xl"), isC ? "min-h-[400px]" : "min-h-[500px] md:min-h-[600px]")}>
-       <div className="flex flex-col items-center text-center space-y-1 mb-10 relative z-20"><span className={cn("text-[13px] font-[1000] tracking-[0.6em] uppercase transition-all duration-700", isL ? "text-danger" : "text-accent")}>{config.name}</span><span className="text-[9px] font-black text-text-dim uppercase tracking-[0.3em] opacity-40">Target: {config.limit}</span></div>
+       <div className="flex flex-col items-center text-center space-y-2 mb-10 relative z-20"><span className={cn("text-[13px] font-[1000] tracking-[0.6em] uppercase transition-all duration-700", isL ? "text-danger" : "text-accent")}>{config.name}</span><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.3em] opacity-40">Target: {config.limit}</span></div>
        <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-10">
           {(isCig || isJoint) ? (
              <div className={cn("relative w-full h-14 md:h-16 rounded-full overflow-hidden transition-all duration-1000 border-2 shadow-2xl mt-4", isL ? "bg-danger border-danger/40" : (isDark ? "bg-[#111] border-white/10 shadow-[inset_0_4px_30px_rgba(0,0,0,0.9)]" : "bg-[#DDD] border-black/5 shadow-inner"))}>
@@ -347,8 +347,8 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark, accent }) => {
           ) : (
              <div className="relative w-40 h-40 md:w-56 md:h-56 mb-6 flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="44" className={cn("fill-transparent stroke-[12]", isDark ? "stroke-white/5" : "stroke-black/5")} />
-                  <motion.circle cx="50" cy="50" r="44" className={cn("fill-transparent stroke-[12] transition-all duration-1000 drop-shadow-2xl", isL ? "stroke-danger" : "stroke-accent")} strokeDasharray="276" initial={{ strokeDashoffset: 276 }} animate={{ strokeDashoffset: 276 - (Math.min(1, p) * 276) }} strokeLinecap="round" />
+                  <circle cx="50" cy="50" r="42" className={cn("fill-transparent stroke-[12]", isDark ? "stroke-white/5" : "stroke-black/5")} />
+                  <motion.circle cx="50" cy="50" r="42" className={cn("fill-transparent stroke-[12] transition-all duration-1000 drop-shadow-2xl", isL ? "stroke-danger" : "stroke-accent")} strokeDasharray="264" initial={{ strokeDashoffset: 264 }} animate={{ strokeDashoffset: 264 - (Math.min(1, p) * 264) }} strokeLinecap="round" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                    <div className={cn("text-6xl md:text-8xl font-[1000] tracking-tighter leading-none transition-all", isL ? "text-danger" : (isDark ? "text-white" : "text-[#1D1D1F]"))}>{count}</div>
@@ -359,10 +359,10 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark, accent }) => {
           {(isCig || isJoint) && <div className={cn("font-[1000] tracking-[-0.1em] leading-none mt-12 transition-all drop-shadow-2xl", isC ? "text-8xl" : "text-[10rem] md:text-[14rem]", isL ? "text-danger" : (isDark ? "text-white" : "text-[#1D1D1F]"))}>{count}</div>}
        </div>
        <div className="flex justify-center items-center space-x-12 md:space-x-20 relative z-20 pt-8">
-          <motion.button whileTap={{ scale: 0.6 }} onClick={() => onDec(config.id)} className={cn("w-20 h-20 md:w-24 md:h-24 rounded-full border-4 flex items-center justify-center transition-all shadow-2xl active:scale-90", isDark ? "bg-white/5 border-white/10 text-white/30 hover:text-white" : "bg-[#F5F5F7] border-black/10 text-black/20 hover:text-black shadow-inner")}>
+          <motion.button whileTap={{ scale: 0.6 }} onClick={() => onDec(config.id)} className={cn("w-20 h-20 md:w-24 md:h-24 rounded-full border-4 flex items-center justify-center transition-all shadow-2xl active:scale-90 shrink-0 aspect-square", isDark ? "bg-white/5 border-white/10 text-white/30 hover:text-white" : "bg-[#F5F5F7] border-black/10 text-black/20 hover:text-black shadow-inner")}>
             <Minus size={36} strokeWidth={3} />
           </motion.button>
-          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onInc(config.id)} className={cn("w-20 h-20 md:w-24 md:h-24 rounded-full border-4 flex items-center justify-center transition-all shadow-2xl active:scale-95", isL ? "border-danger text-danger bg-danger/10" : "bg-accent text-bg-base border-white/20")} style={{'boxShadow': isL ? '0 25px 80px rgba(248,113,113,0.4)' : `0 30px 100px rgba(${rgb}, 0.6)`}}>
+          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onInc(config.id)} className={cn("w-20 h-20 md:w-24 md:h-24 rounded-full border-4 flex items-center justify-center transition-all shadow-2xl active:scale-95 shrink-0 aspect-square", isL ? "border-danger text-danger bg-danger/10" : "bg-accent text-bg-base border-white/20")} style={{'boxShadow': isL ? '0 25px 80px rgba(248,113,113,0.4)' : `0 30px 100px rgba(${rgb}, 0.6)`}}>
             <Plus size={44} strokeWidth={3} />
           </motion.button>
        </div>
@@ -439,7 +439,7 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
           </div>
           <div className="space-y-12 relative z-10">
              <Input label="Registry Identity" value={al} onChange={setAl} isDark={s.isDark} />
-             <button className="w-full h-22 rounded-full bg-accent text-bg-base shadow-[0_20px_60px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.5em] active:scale-95 transition-all text-xs flex items-center justify-center" onClick={() => onUpd({ displayName: al })} style={{'--accent-rgb': `rgba(${hexToRgb(settings.accent)}, 0.4)`}}>Commit Update</button>
+             <button className="w-full h-22 rounded-full bg-accent text-bg-base shadow-[0_20px_60px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.4em] active:scale-95 transition-all text-xs flex items-center justify-center" onClick={() => onUpd({ displayName: al })} style={{'--accent-rgb': `rgba(${hexToRgb(s.accent)}, 0.4)`}}>Commit Update</button>
           </div>
        </Card>
 
@@ -457,7 +457,7 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
                 </div>
                 <div className="flex flex-wrap gap-6 justify-center">
                    {ACCENTS.map(x => (
-                      <button key={x.v} onClick={() => setLa(x.v)} className={cn("w-16 h-16 md:w-18 md:h-18 rounded-[28px] border-[5px] transition-all duration-700 shadow-2xl active:scale-90 relative", la === x.v ? "border-white scale-115 shadow-accent/60" : "border-transparent opacity-30 hover:opacity-100")} style={{ backgroundColor: x.v }}>
+                      <button key={x.v} onClick={() => setLa(x.v)} className={cn("w-16 h-16 md:w-18 md:h-18 rounded-[24px] border-[5px] transition-all duration-700 shadow-2xl active:scale-90 relative", la === x.v ? "border-white scale-115 shadow-accent/60" : "border-transparent opacity-30 hover:opacity-100")} style={{ backgroundColor: x.v }}>
                          {la === x.v && <motion.div layoutId="colorCheck" className="absolute inset-0 flex items-center justify-center text-white"><Check size={28} strokeWidth={5} /></motion.div>}
                       </button>
                    ))}
