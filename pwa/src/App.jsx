@@ -26,10 +26,75 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
-const APP_VERSION = "15.0.0-PRO-MAX";
+const APP_VERSION = "15.5.0-MASTER-FIX";
+
+// --- REUSABLE UI COMPONENTS (iOS OPTIMIZED) ---
+
+/**
+ * <TopBanner />
+ * REBUILT: Ultra-modern, notch-safe header with glassmorphism.
+ * Replaces the missing/faulty TopBanner and resolves the ReferenceError.
+ */
+function TopBanner({ user, onProfileClick }) {
+  return (
+    <header
+      className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03] transition-all"
+      style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}
+    >
+      <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" />
+            <h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-inter">TABAK<span className="text-accent">++</span></h1>
+          </div>
+          <span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Registry Portal</span>
+        </div>
+
+        <button
+          onClick={onProfileClick}
+          className="group relative w-11 h-11 rounded-[18px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/40 hover:text-accent hover:border-accent/30 hover:bg-accent/10 active:scale-90 transition-all shadow-2xl overflow-hidden"
+          aria-label="Profile"
+        >
+          {user?.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <User size={20} />}
+          <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/5 transition-colors" />
+        </button>
+      </div>
+    </header>
+  );
+}
+
+/**
+ * <MetricBanner />
+ * Displays daily progress units. (Used inside the track tab)
+ */
+function MetricBanner({ m }) {
+  return (
+    <section className="bg-white/[0.02] rounded-[48px] p-10 border border-white/[0.03] relative overflow-hidden group shadow-[0_40px_100px_rgba(0,0,0,0.3)]">
+      <div className="absolute top-0 right-0 w-80 h-80 bg-accent/5 rounded-full blur-[100px] -mr-40 -mt-40 transition-all duration-1000 group-hover:bg-accent/10" />
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 relative z-10">
+        <div className="space-y-3">
+          <h3 className="text-[11px] font-[1000] text-white/20 tracking-[0.6em] uppercase font-inter">Remaining Units</h3>
+          <div className="flex items-baseline gap-4">
+            <span className="text-7xl font-[1000] tracking-tighter tabular-nums font-inter leading-none">{Math.max(0, m.limit - m.count)}</span>
+            <span className="text-sm font-black text-accent uppercase tracking-[0.4em] leading-none font-inter">Left</span>
+          </div>
+        </div>
+        <div className="flex flex-col md:items-end gap-3">
+          <div className="flex items-center gap-4">
+            <div className="px-5 py-2 rounded-[16px] bg-accent/10 border border-accent/20 text-accent text-[11px] font-[1000] tracking-[0.3em] uppercase font-inter shadow-2xl">{m.rank}</div>
+            <span className="text-3xl font-[1000] text-white/20 tracking-tighter tabular-nums font-inter">{m.xp} <span className="text-sm font-bold opacity-50 uppercase tracking-widest font-inter">XP</span></span>
+          </div>
+        </div>
+      </div>
+      <div className="mt-12 w-full h-2 bg-white/[0.03] rounded-full overflow-hidden p-0.5 border border-white/[0.05] shadow-inner">
+        <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(1, m.progress) * 100}%` }} transition={{ duration: 1.5, type: 'spring' }} className={cn("h-full rounded-full transition-all duration-700", m.progress >= 1 ? "bg-danger shadow-[0_0_20px_rgba(248,113,113,0.8)]" : "bg-accent shadow-[0_0_20px_var(--accent)]")} />
+      </div>
+    </section>
+  );
+}
 
 // --- GLOBAL ERROR BOUNDARY ---
-class ErrorBoundary extends Component {
+class ErrorBoundaryUI extends Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
   render() {
@@ -47,128 +112,11 @@ class ErrorBoundary extends Component {
   }
 }
 
-const hexToRgb = (hex) => {
-  const h = hex || '#00d2ff';
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
-  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 210, 255';
-};
-
-const ACCENTS = [
-  { n: 'Cyan', v: '#00d2ff' }, { n: 'Lime', v: '#D4FF5C' }, { n: 'Emerald', v: '#4ADE80' },
-  { n: 'Violet', v: '#A78BFA' }, { n: 'Amber', v: '#FBBF24' }, { n: 'Rose', v: '#FB7185' }
-];
-
 // --- MAIN WRAPPER ---
 const AppWrapper = () => (
-  <ErrorBoundary>
+  <ErrorBoundaryUI>
     <App />
-  </ErrorBoundary>
-);
-
-/**
- * <iPhoneTrackingCard />
- * REBUILT: Highly-optimized list item for iPhone 15 Pro Max Safari.
- * Uses strict flex-row layout to prevent button overflow and respects Apple HIG touch targets.
- */
-const IPhoneTrackingCard = ({ config, idx, total, onReo, onEdit, onDelete }) => (
-  <div className="flex flex-row justify-between items-center w-full p-6 bg-white/[0.03] rounded-[32px] border border-white/[0.05] group hover:border-accent/30 transition-all duration-500 shadow-xl overflow-hidden min-h-[100px]">
-    {/* Left: Info Section */}
-    <div className="flex flex-row items-center gap-6 min-w-0 flex-1">
-      {/* Reorder: 44x44px target area */}
-      <div className="flex flex-col gap-2 shrink-0">
-        <button
-          onClick={() => onReo(config.id, 'up')}
-          disabled={idx === 0}
-          className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75 shrink-0"
-          aria-label="Move Up"
-        >
-          <ArrowUp size={18} strokeWidth={3} />
-        </button>
-        <button
-          onClick={() => onReo(config.id, 'down')}
-          disabled={idx === total - 1}
-          className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75 shrink-0"
-          aria-label="Move Down"
-        >
-          <ArrowDown size={18} strokeWidth={3} />
-        </button>
-      </div>
-
-      {/* Visual Icon */}
-      <div className="w-14 h-14 bg-white/[0.03] border border-white/5 rounded-[18px] flex items-center justify-center text-accent/50 group-hover:text-accent transition-all shrink-0">
-        {config.type.startsWith('JOINT') ? <Crown size={28} /> : <Activity size={28} />}
-      </div>
-
-      {/* Label Group */}
-      <div className="flex flex-col gap-0.5 min-w-0">
-        <span className="text-xl font-[900] tracking-tight uppercase group-hover:text-white transition-colors truncate">{config.name}</span>
-        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] leading-relaxed">Target: {config.limit}</span>
-      </div>
-    </div>
-
-    {/* Right: Action Buttons (Contained via Flex) */}
-    <div className="flex flex-row items-center gap-4 ml-4 shrink-0">
-      <button
-        onClick={() => onEdit(config)}
-        className="w-11 h-11 rounded-[14px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-accent hover:border-accent/20 transition-all shadow-md"
-        aria-label="Edit"
-      >
-        <Edit2 size={18} />
-      </button>
-      <button
-        onClick={() => onDelete(config.id)}
-        className="w-11 h-11 rounded-[14px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-danger hover:border-danger/20 transition-all shadow-md"
-        aria-label="Delete"
-      >
-        <Trash2 size={18} />
-      </button>
-    </div>
-  </div>
-);
-
-/**
- * <IPhoneModifyModal />
- * REBUILT: Production-ready modal with Safari-specific safe-area support and fixed text wrapping.
- */
-const IPhoneModifyModal = ({ isOpen, onClose, title, actionLabel, onAction, children }) => (
-  <AnimatePresence>
-    {isOpen && (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/85 backdrop-blur-2xl">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 100 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 100 }}
-          className="bg-[#121318] border border-white/10 rounded-[56px] w-full max-w-lg p-10 flex flex-col shadow-2xl relative overflow-hidden font-inter"
-          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 2rem)' }}
-        >
-          {/* Header */}
-          <div className="flex justify-between items-center mb-10">
-            <h3 className="text-3xl font-[1000] uppercase tracking-tighter truncate pr-6">{title}</h3>
-            <button
-              onClick={onClose}
-              className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all shrink-0 active:scale-90"
-              aria-label="Close"
-            >
-              <X size={24} />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto mb-10 space-y-10 scrollbar-thin scrollbar-thumb-white/5 pr-2">
-            {children}
-          </div>
-
-          {/* Footer Action */}
-          <button
-            onClick={onAction}
-            className="w-full h-18 md:h-20 bg-accent text-black font-[1000] uppercase tracking-[0.4em] rounded-[24px] shadow-2xl active:scale-95 transition-all flex items-center justify-center px-6"
-          >
-            <span className="whitespace-nowrap text-xs md:text-sm">{actionLabel}</span>
-          </button>
-        </motion.div>
-      </div>
-    )}
-  </AnimatePresence>
+  </ErrorBoundaryUI>
 );
 
 const App = () => {
@@ -300,31 +248,13 @@ const App = () => {
       className="min-h-screen bg-[#020202] text-white font-inter selection:bg-accent/30 overflow-x-hidden flex flex-col"
       style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent), fontSize: `${settings.fontScale}rem` }}
     >
-      {/* iOS NATIVE HEADER */}
-      <header className="fixed top-0 left-0 right-0 z-[100] bg-[#020202]/60 backdrop-blur-3xl border-b border-white/[0.03] pt-[env(safe-area-inset-top)] pb-5 px-6">
-        <div className="max-w-7xl mx-auto flex justify-between items-center mt-2">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2.5">
-              <div className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" />
-              <h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-inter">TABAK<span className="text-accent">++</span></h1>
-            </div>
-            <span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Registry Portal</span>
-          </div>
+      <TopBanner user={user} onProfileClick={() => setShowProfile(true)} />
 
-          <button
-            onClick={() => setShowProfile(true)}
-            className="group relative w-11 h-11 rounded-[18px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/40 hover:text-accent hover:border-accent/30 hover:bg-accent/10 active:scale-90 transition-all shadow-2xl overflow-hidden"
-          >
-            {user.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <User size={20} />}
-          </button>
-        </div>
-      </header>
-
-      <main className="flex-1 overflow-y-auto pt-[calc(env(safe-area-inset-top)+6.5rem)] pb-[calc(env(safe-area-inset-bottom)+12rem)] px-5 max-w-7xl mx-auto w-full transition-all duration-500 overflow-x-hidden">
+      <main className="flex-1 overflow-y-auto pt-10 pb-[calc(env(safe-area-inset-bottom)+12rem)] px-5 max-w-7xl mx-auto w-full transition-all duration-500 overflow-x-hidden">
         <AnimatePresence mode="wait">
           {activeTab === 'track' && (
             <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} transition={{ type: 'spring', damping: 20, stiffness: 100 }} className="space-y-10">
-              <TopBanner m={metrics} />
+              <MetricBanner m={metrics} />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                  {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
                    <TrackerCard key={c.id} config={c} count={(metrics.todayLog.counts || {})[c.id] || 0} onInc={() => onInc(c.id)} onDec={() => onDec(c.id)} index={i} />
@@ -389,23 +319,53 @@ const App = () => {
   );
 };
 
-/**
- * <ProtocolFormOverlay />
- * REBUILT: Combines Add/Edit logic using the optimized <IPhoneModifyModal /> architecture.
- */
+// --- REUSABLE REACT COMPONENTS ---
+
+const IPhoneTrackingCard = ({ config, idx, total, onReo, onEdit, onDelete }) => (
+  <div className="flex flex-row justify-between items-center w-full p-6 bg-white/[0.03] rounded-[32px] border border-white/[0.05] group hover:border-accent/30 transition-all duration-500 shadow-xl overflow-hidden min-h-[100px]">
+    <div className="flex flex-row items-center gap-6 min-w-0 flex-1">
+      <div className="flex flex-col gap-2 shrink-0">
+        <button onClick={() => onReo(config.id, 'up')} disabled={idx === 0} className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75 shrink-0"><ArrowUp size={18} strokeWidth={3} /></button>
+        <button onClick={() => onReo(config.id, 'down')} disabled={idx === total - 1} className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75 shrink-0"><ArrowDown size={18} strokeWidth={3} /></button>
+      </div>
+      <div className="w-14 h-14 bg-white/[0.03] border border-white/5 rounded-[18px] flex items-center justify-center text-accent/50 group-hover:text-accent transition-all shrink-0">
+        {config.type.startsWith('JOINT') ? <Crown size={28} /> : <Activity size={28} />}
+      </div>
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <span className="text-xl font-[900] tracking-tight uppercase group-hover:text-white transition-colors truncate">{config.name}</span>
+        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] leading-relaxed">Target: {config.limit}</span>
+      </div>
+    </div>
+    <div className="flex flex-row items-center gap-4 ml-4 shrink-0">
+      <button onClick={() => onEdit(config)} className="w-11 h-11 rounded-[14px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-accent hover:border-accent/20 transition-all shadow-md"><Edit2 size={18} /></button>
+      <button onClick={() => onDelete(config.id)} className="w-11 h-11 rounded-[14px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-danger hover:border-danger/20 transition-all shadow-md"><Trash2 size={18} /></button>
+    </div>
+  </div>
+);
+
+const IPhoneModifyModal = ({ isOpen, onClose, title, actionLabel, onAction, children }) => (
+  <AnimatePresence>
+    {isOpen && (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/85 backdrop-blur-2xl">
+        <motion.div initial={{ opacity: 0, scale: 0.9, y: 100 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 100 }} className="bg-[#121318] border border-white/10 rounded-[56px] w-full max-w-lg p-10 flex flex-col shadow-2xl relative overflow-hidden font-inter" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 2rem)' }}>
+          <div className="flex justify-between items-center mb-10">
+            <h3 className="text-3xl font-[1000] uppercase tracking-tighter truncate pr-6">{title}</h3>
+            <button onClick={onClose} className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all shrink-0 active:scale-90"><X size={24} /></button>
+          </div>
+          <div className="flex-1 overflow-y-auto mb-10 space-y-10 scrollbar-thin scrollbar-thumb-white/5 pr-2">{children}</div>
+          <button onClick={onAction} className="w-full h-18 md:h-20 bg-accent text-black font-[1000] uppercase tracking-[0.4em] rounded-[24px] shadow-2xl active:scale-95 transition-all flex items-center justify-center px-6"><span className="whitespace-nowrap text-xs md:text-sm">{actionLabel}</span></button>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
+);
+
 const ProtocolFormOverlay = ({ isOpen, onClose, onApply, title, initialData = null }) => {
   const [n, setN] = useState(initialData?.name || '');
   const [l, setL] = useState(initialData?.limit || '20');
   const [t, setT] = useState(initialData?.type || 'CIGARETTE');
-
   return (
-    <IPhoneModifyModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={title}
-      actionLabel={initialData ? "Apply Modification" : "Authorize logic"}
-      onAction={() => onApply({ name: n, limit: parseInt(l) || 20, type: t })}
-    >
+    <IPhoneModifyModal isOpen={isOpen} onClose={onClose} title={title} actionLabel={initialData ? "Apply Modification" : "Authorize logic"} onAction={() => onApply({ name: n, limit: parseInt(l) || 20, type: t })}>
       <div className="space-y-10">
         <div className="relative group">
           <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest opacity-40">Descriptor</span>
@@ -419,16 +379,7 @@ const ProtocolFormOverlay = ({ isOpen, onClose, onApply, title, initialData = nu
           <span className="text-[10px] font-black uppercase tracking-[0.8em] text-white/20 ml-2">Visual Schematic</span>
           <div className="grid grid-cols-2 gap-5">
             {['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => (
-              <button
-                key={x}
-                onClick={() => setT(x)}
-                className={cn(
-                  "h-18 rounded-[32px] border-2 font-black text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-4 active:scale-95",
-                  t === x ? "border-accent bg-accent/10 text-accent shadow-[0_0_30px_rgba(0,210,255,0.2)]" : "border-white/5 text-white/20 hover:border-white/10"
-                )}
-              >
-                {x.includes('KING') && <Crown size={18} />} {x.replace('_',' ')}
-              </button>
+              <button key={x} onClick={() => setT(x)} className={cn("h-18 rounded-[32px] border-2 font-black text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-4 active:scale-95", t === x ? "border-accent bg-accent/10 text-accent shadow-[0_0_30px_rgba(0,210,255,0.2)]" : "border-white/5 text-white/20 hover:border-white/10")}>{x.includes('KING') && <Crown size={18} />} {x.replace('_',' ')}</button>
             ))}
           </div>
         </div>
