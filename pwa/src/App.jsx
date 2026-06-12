@@ -193,24 +193,59 @@ const TrackerCard = ({ config, count, onInc, onDec, index }) => {
   );
 };
 
+/**
+ * <IPhoneTrackingCard />
+ * REFACTORED: Optimized list item following Apple HIG.
+ * Prevents action button overflow via strict flexbox and spacer logic.
+ */
 const IPhoneTrackingCard = ({ config, idx, total, onReo, onEdit, onDelete }) => (
   <div className="flex flex-row justify-between items-center w-full p-6 bg-white/[0.03] rounded-[32px] border border-white/[0.05] group hover:border-accent/30 transition-all duration-500 shadow-xl overflow-hidden min-h-[100px]">
+    {/* Component 1 & 2 & 3: Controls, Icon, Text (Grouped on Left) */}
     <div className="flex flex-row items-center gap-6 min-w-0 flex-1">
+      {/* Component 1: Controls (Up/Down) */}
       <div className="flex flex-col gap-2 shrink-0">
-        <button onClick={() => onReo(config.id, 'up')} disabled={idx === 0} className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75 shrink-0"><ArrowUp size={18} strokeWidth={3} /></button>
-        <button onClick={() => onReo(config.id, 'down')} disabled={idx === total - 1} className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75 shrink-0"><ArrowDown size={18} strokeWidth={3} /></button>
+        <button
+          onClick={() => onReo(config.id, 'up')}
+          disabled={idx === 0}
+          className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75 shrink-0"
+        >
+          <ArrowUp size={18} strokeWidth={3} />
+        </button>
+        <button
+          onClick={() => onReo(config.id, 'down')}
+          disabled={idx === total - 1}
+          className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75 shrink-0"
+        >
+          <ArrowDown size={18} strokeWidth={3} />
+        </button>
       </div>
+
+      {/* Component 2: Icon */}
       <div className="w-14 h-14 bg-white/[0.03] border border-white/5 rounded-[18px] flex items-center justify-center text-accent/50 group-hover:text-accent transition-all shrink-0">
         {config.type.startsWith('JOINT') ? <Crown size={28} /> : <Activity size={28} />}
       </div>
+
+      {/* Component 3: Text (Flexible spacer) */}
       <div className="flex flex-col gap-0.5 min-w-0">
         <span className="text-xl font-[900] tracking-tight uppercase group-hover:text-white transition-colors truncate">{config.name}</span>
         <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] leading-relaxed">Target: {config.limit}</span>
       </div>
     </div>
+
+    {/* Component 4: Action Buttons (Right Aligned) */}
     <div className="flex flex-row items-center gap-4 ml-4 shrink-0">
-      <button onClick={() => onEdit(config)} className="w-11 h-11 rounded-[14px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-accent hover:border-accent/20 transition-all shadow-md"><Edit2 size={18} /></button>
-      <button onClick={() => onDelete(config.id)} className="w-11 h-11 rounded-[14px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-danger hover:border-danger/20 transition-all shadow-md"><Trash2 size={18} /></button>
+      <button
+        onClick={() => onEdit(config)}
+        className="w-11 h-11 rounded-[14px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-accent hover:border-accent/20 transition-all shadow-md"
+      >
+        <Edit2 size={18} />
+      </button>
+      <button
+        onClick={() => onDelete(config.id)}
+        className="w-11 h-11 rounded-[14px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-danger hover:border-danger/20 transition-all shadow-md"
+      >
+        <Trash2 size={18} />
+      </button>
     </div>
   </div>
 );
