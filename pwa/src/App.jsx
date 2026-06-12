@@ -26,7 +26,7 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
-const APP_VERSION = "14.0.0-IOS-NATIVE";
+const APP_VERSION = "14.5.0-REACT-PRO";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -181,16 +181,13 @@ const App = () => {
       className="min-h-screen bg-[#020202] text-white font-inter selection:bg-accent/30 overflow-x-hidden flex flex-col"
       style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent), fontSize: `${settings.fontScale}rem` }}
     >
-      {/*
-        FIX 1: iOS NATIVE HEADER
-        Using backdrop-blur-3xl and pt-[env(safe-area-inset-top)] to prevent Dynamic Island overlap.
-      */}
+      {/* iOS NATIVE HEADER */}
       <header className="fixed top-0 left-0 right-0 z-[100] bg-[#020202]/60 backdrop-blur-3xl border-b border-white/[0.03] pt-[env(safe-area-inset-top)] pb-5 px-6">
         <div className="max-w-7xl mx-auto flex justify-between items-center mt-2">
           <div className="flex flex-col">
             <div className="flex items-center gap-2.5">
               <div className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" />
-              <h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none">TABAK<span className="text-accent">++</span></h1>
+              <h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-inter">TABAK<span className="text-accent">++</span></h1>
             </div>
             <span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Registry Portal</span>
           </div>
@@ -204,22 +201,11 @@ const App = () => {
         </div>
       </header>
 
-      {/*
-        FIX 2: ANTI-OVERLAP SCROLLING
-        Using calculated bottom padding to ensure content clears the fixed bottom nav.
-        pb-[calc(env(safe-area-inset-bottom)+8rem)] guarantees 100% visibility.
-      */}
       <main className="flex-1 overflow-y-auto pt-[calc(env(safe-area-inset-top)+6.5rem)] pb-[calc(env(safe-area-inset-bottom)+12rem)] px-5 max-w-7xl mx-auto w-full transition-all duration-500 overflow-x-hidden">
         <AnimatePresence mode="wait">
           {activeTab === 'track' && (
-            <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-10">
+            <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} transition={{ type: 'spring', damping: 20, stiffness: 100 }} className="space-y-10">
               <TopBanner m={metrics} />
-
-              <div className="flex items-center justify-between px-2 mb-[-1.5rem]">
-                 <h4 className="text-[10px] font-black text-white/20 tracking-[0.8em] uppercase">Active Schematics</h4>
-                 <div className="w-1.5 h-1.5 rounded-full bg-accent/40" />
-              </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                  {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
                    <TrackerCard key={c.id} config={c} count={(metrics.todayLog.counts || {})[c.id] || 0} onInc={() => onInc(c.id)} onDec={() => onDec(c.id)} index={i} />
@@ -236,10 +222,6 @@ const App = () => {
         </AnimatePresence>
       </main>
 
-      {/*
-        FIX 3: FULL-WIDTH iOS BOTTOM NAV
-        Anchored to absolute bottom-0 with pb-[env(safe-area-inset-bottom)] for a native Home Indicator clear.
-      */}
       <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6">
         <div className="max-w-xl mx-auto flex items-center justify-around h-20">
           <NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} />
@@ -257,6 +239,63 @@ const App = () => {
     </div>
   );
 };
+
+// --- REUSABLE REACT COMPONENTS (iOS OPTIMIZED) ---
+
+/**
+ * <ProtocolListItem />
+ * Refactored using strict flexbox to fix overflow bugs on the Control screen.
+ */
+const ProtocolListItem = ({ config, idx, total, onReo, onEdit, onDel }) => (
+  <div className="flex flex-row justify-between items-center w-full p-6 md:p-10 bg-white/[0.03] rounded-[48px] border border-white/[0.05] group hover:border-accent/30 transition-all duration-500 shadow-xl overflow-hidden">
+    <div className="flex flex-row items-center gap-6 md:gap-10 min-w-0 flex-1">
+      {/* Reorder Controls */}
+      <div className="flex flex-col gap-3 shrink-0">
+        <button
+          onClick={() => onReo(config.id, 'up')}
+          disabled={idx === 0}
+          className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75"
+        >
+          <ArrowUp size={18} strokeWidth={3} />
+        </button>
+        <button
+          onClick={() => onReo(config.id, 'down')}
+          disabled={idx === total - 1}
+          className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75"
+        >
+          <ArrowDown size={18} strokeWidth={3} />
+        </button>
+      </div>
+
+      {/* Visual Identity */}
+      <div className="w-14 h-14 md:w-18 md:h-18 bg-white/[0.03] border border-white/5 rounded-[20px] flex items-center justify-center text-accent/50 group-hover:text-accent transition-all shrink-0 shadow-inner">
+        {config.type.startsWith('JOINT') ? <Crown size={28} /> : <Activity size={28} />}
+      </div>
+
+      {/* Label & Target */}
+      <div className="flex flex-col gap-1 min-w-0">
+        <span className="text-xl md:text-2xl font-[1000] tracking-tight uppercase group-hover:text-white transition-colors truncate">{config.name}</span>
+        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Target: {config.limit}</span>
+      </div>
+    </div>
+
+    {/* Action Buttons (Correctly contained via flexbox) */}
+    <div className="flex flex-row items-center gap-3 md:gap-6 ml-4 shrink-0">
+      <button
+        onClick={() => onEdit(config)}
+        className="w-12 h-12 md:w-16 md:h-16 rounded-[18px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-accent hover:border-accent/20 transition-all shadow-xl"
+      >
+        <Edit2 size={20} />
+      </button>
+      <button
+        onClick={() => onDel(config)}
+        className="w-12 h-12 md:w-16 md:h-16 rounded-[18px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-danger hover:border-danger/20 transition-all shadow-xl"
+      >
+        <Trash2 size={20} />
+      </button>
+    </div>
+  </div>
+);
 
 // --- SUB-COMPONENTS ---
 
@@ -658,7 +697,7 @@ const EditOverlay = ({ log, configs, onClose, user }) => {
              {configs.map(x => (
                 <div key={x.id} className="relative group">
                   <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest">{x.name} Units</span>
-                  <input type="number" value={c[x.id] || 0} onChange={e=>setC({...c, [x.id]: parseInt(e.target.value) || 0})} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-2xl font-[1000] focus:border-accent/40 outline-none transition-all font-inter" />
+                  <input type="number" value={c[x.id] || 0} onChange={e=>setC({...c, [x.id]: parseInt(e.target.value) || 0})} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-2xl font-[1000] focus:border-accent/40 outline-none transition-all" />
                 </div>
              ))}
           </div>
