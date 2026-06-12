@@ -25,7 +25,7 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
-const APP_VERSION = "11.0.0-STABLE-GOLD";
+const APP_VERSION = "11.5.0-VISUAL-MASTER";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -37,7 +37,7 @@ class ErrorBoundary extends Component {
         <div className="min-h-screen bg-[#0a0a0b] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
           <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
           <h2 className="text-3xl font-[950] uppercase tracking-tighter leading-none">System Reset</h2>
-          <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed">{this.state.error?.message || "UI Logic Crash Detected."}</p>
+          <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed font-inter">{this.state.error?.message || "UI Logic Crash."}</p>
           <Button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-64 h-18 rounded-full shadow-2xl font-black uppercase tracking-widest bg-white text-black">Re-Initialize</Button>
         </div>
       );
@@ -163,7 +163,7 @@ const App = () => {
               <div className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_var(--accent)]" />
               <h1 className="text-xl font-[1000] tracking-tighter uppercase">TABAK<span className="text-accent">++</span></h1>
             </div>
-            <span className="text-[10px] font-bold text-[#6b7280] tracking-[0.3em] uppercase ml-4">Master Registry</span>
+            <span className="text-[10px] font-bold text-[#6b7280] tracking-[0.3em] uppercase ml-4">Registry Master</span>
           </div>
           <button onClick={() => setShowProfile(true)} className="w-11 h-11 rounded-full border border-accent/30 flex items-center justify-center text-accent hover:bg-accent/10 active:scale-95 transition-all shadow-[0_0_15px_var(--accent-rgb)] overflow-hidden">
             {user.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <User size={20} />}
@@ -216,16 +216,16 @@ const TopBanner = ({ m }) => (
     <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[80px] -mr-32 -mt-32" />
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
       <div className="space-y-2">
-        <h3 className="text-[11px] font-black text-[#6b7280] tracking-[0.4em] uppercase">Remaining Units</h3>
+        <h3 className="text-[11px] font-black text-[#6b7280] tracking-[0.4em] uppercase font-inter">Remaining Units</h3>
         <div className="flex items-baseline gap-3">
-          <span className="text-7xl font-[1000] tracking-tighter tabular-nums">{Math.max(0, m.limit - m.count)}</span>
-          <span className="text-sm font-black text-accent uppercase tracking-widest leading-none">Left</span>
+          <span className="text-7xl font-[1000] tracking-tighter tabular-nums font-inter">{Math.max(0, m.limit - m.count)}</span>
+          <span className="text-sm font-black text-accent uppercase tracking-widest leading-none font-inter">Left</span>
         </div>
       </div>
       <div className="flex flex-col md:items-end gap-2">
         <div className="flex items-center gap-3">
-          <div className="px-3 py-1 rounded-full border border-accent/40 text-accent text-[10px] font-black tracking-widest uppercase">{m.rank}</div>
-          <span className="text-2xl font-[900] text-[#6b7280] tracking-tighter tabular-nums">{m.xp} <span className="text-sm opacity-50">XP</span></span>
+          <div className="px-3 py-1 rounded-full border border-accent/40 text-accent text-[10px] font-black tracking-widest uppercase font-inter">{m.rank}</div>
+          <span className="text-2xl font-[900] text-[#6b7280] tracking-tighter tabular-nums font-inter">{m.xp} <span className="text-sm opacity-50 font-inter">XP</span></span>
         </div>
       </div>
     </div>
@@ -236,111 +236,128 @@ const TopBanner = ({ m }) => (
 );
 
 const TrackerCard = ({ config, count, onInc, onDec, index }) => {
-  const progress = Math.min(1, count / config.limit);
+  const isL = count >= config.limit;
   const isKing = config.type === 'JOINT_KING';
   const isQueen = config.type === 'JOINT_QUEEN';
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="bg-[#121315] rounded-[40px] border border-white/5 p-8 flex flex-col items-center justify-between min-h-[520px] hover:border-accent/20 transition-all group relative overflow-hidden">
-      <span className="text-[10px] font-black text-[#6b7280] tracking-[0.3em] uppercase relative z-10">Target: {config.limit}</span>
-      <div className="flex-1 w-full flex flex-col items-center justify-center space-y-12 relative z-10">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className={cn("bg-[#121315] rounded-[48px] border-2 p-8 md:p-10 flex flex-col items-center justify-between min-h-[520px] transition-all duration-700 group relative overflow-hidden", isL ? "border-danger/40 shadow-[0_0_40px_rgba(248,113,113,0.1)]" : "border-white/5 hover:border-accent/20")}>
+      <span className="text-[11px] font-[1000] text-[#6b7280] tracking-[0.4em] uppercase relative z-10 font-inter">Target: {config.limit}</span>
+      <div className="flex-1 w-full flex flex-col items-center justify-center space-y-12 relative z-10 py-8">
         <div className="w-full flex justify-center h-24 items-center">
-          {config.type === 'CIGARETTE' && <CigaretteProgress progress={progress} />}
-          {config.type === 'SIMPLE' && <RingProgress progress={progress} />}
-          {(isKing || isQueen) && <JointProgress progress={progress} isKing={isKing} />}
-          {(!['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].includes(config.type)) && <GenericBarProgress progress={progress} />}
+          {config.type === 'CIGARETTE' && <CigaretteProgress count={count} limit={config.limit} />}
+          {config.type === 'SIMPLE' && <RingProgress count={count} limit={config.limit} />}
+          {(isKing || isQueen) && <JointProgress count={count} limit={config.limit} isKing={isKing} />}
+          {(!['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].includes(config.type)) && <GenericBarProgress count={count} limit={config.limit} />}
         </div>
         <div className="flex flex-col items-center">
           <div className="flex items-center gap-2">
-            {(isKing || isQueen) && <Crown size={20} className={isKing ? "text-amber-400" : "text-purple-400"} />}
-            <motion.span key={count} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-7xl md:text-8xl font-[1000] tracking-tighter tabular-nums">{count}</motion.span>
+            {(isKing || isQueen) && <Crown size={24} className={cn("transition-colors duration-700", isL ? "text-danger" : (isKing ? "text-amber-400" : "text-purple-400"))} />}
+            <motion.span key={count} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={cn("text-7xl md:text-8xl font-[1000] tracking-tighter tabular-nums font-inter transition-colors duration-700", isL ? "text-danger" : "text-white")}>{count}</motion.span>
           </div>
-          <span className="text-[11px] font-black text-accent tracking-[0.5em] uppercase opacity-40 mt-2">{config.name}</span>
+          <span className={cn("text-[12px] font-black tracking-[0.6em] uppercase transition-colors duration-700 mt-3 font-inter", isL ? "text-danger" : "text-accent opacity-40")}>{config.name}</span>
         </div>
       </div>
       <div className="w-full flex justify-between items-center pt-8 mt-auto relative z-10">
-        <button onClick={onDec} className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#6b7280] hover:text-white hover:bg-white/10 active:scale-90 transition-all shadow-lg"><Minus size={24} strokeWidth={3} /></button>
-        <button onClick={onInc} className="w-14 h-14 rounded-full bg-accent flex items-center justify-center text-black hover:brightness-110 active:scale-90 transition-all shadow-[0_10px_25px_var(--accent-rgb)]" style={{'--accent-rgb': 'rgba(0,210,255,0.4)'}}><Plus size={24} strokeWidth={4} /></button>
+        <button onClick={onDec} className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#6b7280] hover:text-white hover:bg-white/10 active:scale-90 transition-all shadow-xl"><Minus size={28} strokeWidth={3} /></button>
+        <button onClick={onInc} className={cn("w-16 h-16 rounded-full flex items-center justify-center text-black active:scale-90 transition-all shadow-2xl", isL ? "bg-danger shadow-[0_10px_30px_rgba(248,113,113,0.5)]" : "bg-accent shadow-[0_10px_30px_var(--accent-rgb)]")} style={{'--accent-rgb': 'rgba(0,210,255,0.4)'}}><Plus size={28} strokeWidth={4} /></button>
       </div>
     </motion.div>
   );
 };
 
-const CigaretteProgress = ({ progress }) => (
-  <div className="relative w-48 h-10 bg-white/5 rounded-full overflow-hidden border-2 border-white/10 flex">
-    <div className="h-full bg-white shadow-[0_0_15px_white]" style={{ width: `${progress * 72}%` }} />
-    <div className="h-full bg-[#f39c12]" style={{ width: '28%' }} />
-    <div className="absolute inset-y-0 w-2.5 bg-danger shadow-[0_0_15px_red]" style={{ left: `calc(${progress * 72}% - 5px)` }} />
-    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-  </div>
-);
+const CigaretteProgress = ({ count, limit }) => {
+  const isL = count >= limit;
+  const tobaccoPct = Math.max(0, 1 - (count / limit));
+  return (
+    <div className={cn("relative w-56 h-11 rounded-full overflow-hidden border-2 transition-all duration-1000 flex items-center", isL ? "bg-danger border-danger shadow-[0_0_40px_rgba(255,0,0,0.5)]" : "bg-white/5 border-white/10 shadow-inner")}>
+      {!isL && <div className="absolute h-full bg-white shadow-[0_0_20px_white] transition-all duration-1000 ease-out" style={{ width: `${tobaccoPct * 72}%`, right: '28%' }} />}
+      {!isL && count > 0 && <div className="absolute h-full w-3 bg-[#ff4b2b] shadow-[0_0_20px_#ff4b2b] z-20 transition-all duration-1000 ease-out" style={{ right: `calc(28% + ${tobaccoPct * 72}% - 1.5px)` }} />}
+      <div className={cn("absolute right-0 h-full w-[28%] border-l-2 transition-all duration-1000", isL ? "bg-danger border-white/20" : "bg-[#f39c12] border-black/20")} />
+    </div>
+  );
+};
 
-const JointProgress = ({ progress, isKing }) => (
-  <div className={cn("relative h-10 bg-white/5 rounded-full overflow-hidden border-2 border-white/10 p-1 flex items-center", isKing ? "w-52" : "w-40")}>
-     <div className="h-full bg-gradient-to-r from-[#ff4b2b] to-[#f39c12] rounded-full shadow-[0_0_20px_rgba(255,75,43,0.6)]" style={{ width: `${progress * 100}%` }} />
-     <div className="absolute top-0 right-0 h-full w-4 bg-[#333]/40 border-l border-white/5" />
-  </div>
-);
+const JointProgress = ({ count, limit, isKing }) => {
+  const isL = count >= limit;
+  const tobaccoPct = Math.max(0, 1 - (count / limit));
+  return (
+    <div className={cn("relative h-11 rounded-full overflow-hidden border-2 transition-all duration-1000 flex items-center", isKing ? "w-56" : "w-44", isL ? "bg-danger border-danger shadow-[0_0_40px_rgba(255,0,0,0.5)]" : "bg-white/5 border-white/10 shadow-inner")}>
+       {!isL && <div className="absolute h-full bg-gradient-to-r from-[#ff4b2b] to-[#f39c12] rounded-l-full shadow-[0_0_20px_rgba(255,75,43,0.4)] transition-all duration-1000 ease-out" style={{ width: `${(1-tobaccoPct) * 85}%`, left: 0 }} />}
+       {!isL && count > 0 && <div className="absolute h-full w-3 bg-[#ff4b2b] shadow-[0_0_20px_#ff4b2b] z-20 transition-all duration-1000 ease-out" style={{ left: `calc(${(1-tobaccoPct) * 85}% - 1.5px)` }} />}
+       <div className={cn("absolute right-0 h-full w-[15%] border-l-2 transition-all duration-1000", isL ? "bg-danger border-white/20" : "bg-[#333]/80 border-white/5")} />
+    </div>
+  );
+};
 
-const GenericBarProgress = ({ progress }) => (
-  <div className="w-48 h-10 bg-white/5 rounded-full overflow-hidden border-2 border-white/10 p-1">
-    <div className="h-full bg-accent rounded-full shadow-[0_0_20px_var(--accent)]" style={{ width: `${progress * 100}%` }} />
-  </div>
-);
+const GenericBarProgress = ({ count, limit }) => {
+  const isL = count >= limit;
+  const progress = Math.min(1, count / limit);
+  return (
+    <div className={cn("w-52 h-11 rounded-full overflow-hidden border-2 p-1 transition-all duration-1000", isL ? "bg-danger/20 border-danger shadow-[0_0_30px_rgba(255,0,0,0.3)]" : "bg-white/5 border-white/10 shadow-inner")}>
+      <div className={cn("h-full rounded-full transition-all duration-1000", isL ? "bg-danger shadow-[0_0_20px_red]" : "bg-accent shadow-[0_0_20px_var(--accent)]")} style={{ width: `${progress * 100}%` }} />
+    </div>
+  );
+};
 
-const RingProgress = ({ progress }) => (
-  <div className="relative w-24 h-24 flex items-center justify-center">
-    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-      <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
-      <motion.circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="264" initial={{ strokeDashoffset: 264 }} animate={{ strokeDashoffset: 264 - (progress * 264) }} className="text-accent" strokeLinecap="round" />
-    </svg>
-    <HeartPulse size={16} className="text-accent animate-pulse" />
-  </div>
-);
+const RingProgress = ({ count, limit }) => {
+  const isL = count >= limit;
+  const progress = Math.min(1, count / limit);
+  return (
+    <div className="relative w-28 h-28 flex items-center justify-center">
+      <svg className="absolute inset-0 w-full h-full -rotate-90 overflow-visible" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
+        <motion.circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="264" initial={{ strokeDashoffset: 264 }} animate={{ strokeDashoffset: 264 - (progress * 264) }} className={cn("transition-colors duration-1000", isL ? "text-danger" : "text-accent")} strokeLinecap="round" />
+      </svg>
+      <HeartPulse size={20} className={cn("transition-all duration-1000", isL ? "text-danger scale-125" : "text-accent animate-pulse")} />
+    </div>
+  );
+};
 
 const NavBtn = ({ icon: Icon, label, active, onClick }) => (
   <button onClick={onClick} className={cn("flex flex-col items-center gap-1.5 transition-all relative group", active ? "text-accent" : "text-[#6b7280] hover:text-white")}>
     {active && <motion.div layoutId="navIndicator" className="absolute -top-6 w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_10px_var(--accent)]" />}
     <Icon size={22} strokeWidth={active ? 3 : 2} />
-    <span className="text-[9px] font-black uppercase tracking-[0.2em]">{label}</span>
+    <span className="text-[9px] font-black uppercase tracking-[0.2em] font-inter">{label}</span>
   </button>
 );
 
 const HistoryScreen = ({ logs, configs, m, onEdit, userId }) => {
   const onDelete = async (logDate) => {
-    if (window.confirm("Permanently delete this entry?")) {
+    if (window.confirm("Permanently delete this registry record?")) {
       await deleteDoc(doc(db, 'users', userId, 'logs', logDate));
     }
   };
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
-       <Card className="p-8 bg-[#121315] border-white/5">
-          <h3 className="text-[11px] font-black text-[#6b7280] tracking-[0.4em] uppercase mb-8">Registry Analytics</h3>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10 font-inter">
+       <Card className="p-10 bg-[#121315] border-white/5">
+          <h3 className="text-[11px] font-black text-[#6b7280] tracking-[0.5em] uppercase mb-10">Registry Analytics</h3>
           <div className="h-64 w-full">
              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}>
+                <LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}>
                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                   <XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} />
-                   <Tooltip contentStyle={{ background: '#121315', border: '1px solid #ffffff10', borderRadius: '16px', fontSize: '12px' }} />
-                   <Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={4} dot={{ r: 4, fill: 'var(--accent)' }} />
+                   <XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900, letterSpacing:'0.1em'}} />
+                   <Tooltip contentStyle={{ background: '#121315', border: '1px solid #ffffff10', borderRadius: '24px', fontSize: '12px', fontWeight:900 }} />
+                   <Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={6} dot={{ r: 6, fill: 'var(--accent)', strokeWidth: 4, stroke: '#121315' }} />
                 </LineChart>
              </ResponsiveContainer>
           </div>
        </Card>
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <InsightCard icon={TrendingUp} label="Streak" val={m.streak} sub="Days Active" color="text-amber-400" />
           <InsightCard icon={Wallet} label="Retained" val={`$${m.savings.toFixed(2)}`} sub="Resource Saved" color="text-emerald-400" />
           <InsightCard icon={Activity} label="Impact" val={`${Math.floor(m.lost/60)}H`} sub="Time Restored" color="text-rose-400" />
        </div>
-       <div className="space-y-4">
+       <div className="space-y-6 pt-10">
+          <h4 className="text-[11px] font-black text-[#6b7280] tracking-[0.5em] uppercase px-2">Registry Timeline</h4>
           {logs.map(log => (
-             <div key={log.logDate} className="bg-[#121315] p-6 rounded-[28px] border border-white/5 flex items-center justify-between group">
+             <div key={log.logDate} className="bg-[#121315] p-8 rounded-[40px] border border-white/5 flex items-center justify-between group hover:border-accent/10 transition-all shadow-xl">
                 <div className="flex flex-col">
-                   <span className="text-lg font-black tracking-tighter uppercase">{new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span>
-                   <span className="text-[10px] font-bold text-[#6b7280] uppercase tracking-widest">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units logged</span>
+                   <span className="text-xl font-[1000] tracking-tighter uppercase">{new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span>
+                   <span className="text-[10px] font-bold text-[#6b7280] uppercase tracking-widest mt-2">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units registered</span>
                 </div>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                   <button onClick={() => onEdit(log)} className="p-4 rounded-2xl bg-white/5 hover:bg-accent/10 hover:text-accent transition-all"><Edit2 size={18} /></button>
-                   <button onClick={() => onDelete(log.logDate)} className="p-4 rounded-2xl bg-white/5 hover:bg-danger/10 hover:text-danger transition-all"><Trash2 size={18} /></button>
+                <div className="flex items-center gap-3 md:opacity-0 group-hover:opacity-100 transition-all">
+                   <button onClick={() => onEdit(log)} className="p-5 rounded-3xl bg-white/5 hover:bg-accent/10 hover:text-accent transition-all"><Edit2 size={20} /></button>
+                   <button onClick={() => onDelete(log.logDate)} className="p-5 rounded-3xl bg-white/5 hover:bg-danger/10 hover:text-danger transition-all"><Trash2 size={20} /></button>
                 </div>
              </div>
           ))}
@@ -351,51 +368,50 @@ const HistoryScreen = ({ logs, configs, m, onEdit, userId }) => {
 
 const SettingsScreen = ({ configs, user, settings, onAdd }) => {
   const [n, setN] = useState(user.displayName || '');
-  const [loading, setLoading] = useState(false);
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10 max-w-2xl mx-auto">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10 max-w-2xl mx-auto font-inter">
        <Card className="p-10 bg-[#121315] border-white/5 space-y-10">
-          <div className="flex flex-col items-center gap-6">
-             <div className="w-32 h-32 rounded-[44px] bg-accent/10 border-2 border-accent/30 flex items-center justify-center overflow-hidden">
+          <div className="flex flex-col items-center gap-8">
+             <div className="w-32 h-32 rounded-[44px] bg-accent/10 border-2 border-accent/30 flex items-center justify-center overflow-hidden shadow-2xl shadow-accent/5">
                 {user.photoURL ? <img src={user.photoURL} className="w-full h-full object-cover" /> : <User size={48} className="text-accent" />}
              </div>
-             <div className="w-full space-y-6">
+             <div className="w-full space-y-8">
                 <Input label="Registry Identity" value={n} onChange={setN} isDark={true} />
-                <button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-14 bg-white text-black font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all">Update Identity</button>
+                <button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-16 bg-white text-black font-[1000] uppercase tracking-widest rounded-[24px] active:scale-95 transition-all shadow-2xl">Commit Profile</button>
              </div>
           </div>
        </Card>
        <Card className="p-10 bg-[#121315] border-white/5 space-y-8">
-          <div className="flex items-center justify-between"><h3 className="text-sm font-black uppercase tracking-widest">Active Protocols</h3><button onClick={onAdd} className="p-3 bg-accent/10 text-accent rounded-xl hover:bg-accent/20 transition-all"><Plus size={20} /></button></div>
+          <div className="flex items-center justify-between"><h3 className="text-sm font-black uppercase tracking-widest">Active Protocols</h3><button onClick={onAdd} className="p-4 bg-accent/10 text-accent rounded-2xl hover:bg-accent/20 transition-all"><Plus size={24} /></button></div>
           <div className="space-y-4">
              {configs.map(c => (
-                <div key={c.id} className="flex items-center justify-between p-6 bg-white/5 rounded-[24px] border border-white/5">
-                   <div className="flex items-center gap-4">
-                      {c.type.startsWith('JOINT') ? <Crown size={16} className="text-accent/40" /> : <Activity size={16} className="text-accent/40" />}
+                <div key={c.id} className="flex items-center justify-between p-8 bg-white/5 rounded-[32px] border border-white/5 group hover:border-accent/10 transition-all">
+                   <div className="flex items-center gap-6">
+                      <div className="p-3 bg-white/5 rounded-2xl text-accent/40">{c.type.startsWith('JOINT') ? <Crown size={20} /> : <Activity size={20} />}</div>
                       <div className="flex flex-col">
-                        <span className="text-base font-black uppercase tracking-tight">{c.name}</span>
+                        <span className="text-lg font-black uppercase tracking-tight">{c.name}</span>
                         <span className="text-[10px] font-bold text-[#6b7280] uppercase tracking-widest">Target: {c.limit}</span>
                       </div>
                    </div>
-                   <button onClick={async () => await deleteDoc(doc(db, 'users', user.uid, 'configs', c.id))} className="p-3 text-[#6b7280] hover:text-danger transition-colors"><Trash2 size={18} /></button>
+                   <button onClick={async () => await deleteDoc(doc(db, 'users', user.uid, 'configs', c.id))} className="p-4 text-[#6b7280] hover:text-danger transition-colors"><Trash2 size={20} /></button>
                 </div>
              ))}
           </div>
        </Card>
-       <button onClick={() => signOut(auth)} className="w-full h-16 border border-[#ff4b2b]/30 text-[#ff4b2b] font-black uppercase tracking-widest rounded-2xl hover:bg-[#ff4b2b]/5 transition-all flex items-center justify-center gap-4"><LogOut size={20} /> Terminate Session</button>
+       <button onClick={() => signOut(auth)} className="w-full h-18 border-2 border-[#ff4b2b]/30 text-[#ff4b2b] font-black uppercase tracking-[0.4em] rounded-[24px] hover:bg-[#ff4b2b]/5 transition-all flex items-center justify-center gap-4 active:scale-95"><LogOut size={22} /> Terminate Registry</button>
     </motion.div>
   );
 };
 
 const ProfileModal = ({ user, onClose }) => (
   <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-    <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-[#121315] border border-white/10 rounded-[32px] w-full max-w-md p-10 relative z-10 shadow-2xl text-center space-y-6">
-      <div className="w-24 h-24 rounded-[32px] bg-accent/10 border-2 border-accent/20 overflow-hidden mx-auto flex items-center justify-center">
-         {user.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <User size={40} className="text-accent" />}
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+    <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-[#121315] border border-white/10 rounded-[48px] w-full max-w-md p-12 relative z-10 shadow-2xl text-center space-y-8">
+      <div className="w-28 h-28 rounded-[40px] bg-accent/10 border-2 border-accent/20 overflow-hidden mx-auto flex items-center justify-center shadow-2xl">
+         {user.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <User size={48} className="text-accent" />}
       </div>
-      <div><h4 className="text-2xl font-[1000] uppercase tracking-tighter">{user.displayName || 'Registry User'}</h4><p className="text-[#6b7280] text-xs font-bold tracking-[0.3em] uppercase mt-1">{user.email}</p></div>
-      <button onClick={onClose} className="w-full h-14 bg-white text-black font-black uppercase tracking-widest rounded-2xl">Dismiss</button>
+      <div><h4 className="text-3xl font-[1000] uppercase tracking-tighter">{user.displayName || 'Anonymous'}</h4><p className="text-[#6b7280] text-sm font-bold tracking-[0.3em] uppercase mt-2">{user.email}</p></div>
+      <button onClick={onClose} className="w-full h-16 bg-white text-black font-[1000] uppercase tracking-widest rounded-[24px] shadow-2xl active:scale-95 transition-all">Close Registry</button>
     </motion.div>
   </div>
 );
@@ -408,19 +424,24 @@ const AddOverlay = ({ onClose, user, configs }) => {
      onClose();
   };
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-       <div className="bg-[#121315] border border-white/10 rounded-[40px] w-full max-w-lg p-10 space-y-8 shadow-2xl">
-          <div className="flex justify-between items-center"><h3 className="text-2xl font-[1000] uppercase tracking-tighter">New Protocol</h3><button onClick={onClose}><X /></button></div>
-          <Input label="Registry Label" value={n} onChange={setN} placeholder="Identify Protocol" isDark={true} />
-          <Input label="Threshold Limit" value={l} onChange={setL} type="number" isDark={true} />
-          <div className="grid grid-cols-2 gap-4">
-             {['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => (
-                <button key={x} onClick={() => setT(x)} className={cn("h-14 rounded-2xl border-2 font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2", t === x ? "border-accent bg-accent/10 text-accent" : "border-white/5 text-[#6b7280] hover:border-white/10")}>
-                   {x.includes('KING') && <Crown size={12} />} {x.replace('_',' ')}
-                </button>
-             ))}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md font-inter">
+       <div className="bg-[#121315] border border-white/10 rounded-[48px] w-full max-w-xl p-12 space-y-10 shadow-2xl">
+          <div className="flex justify-between items-center"><h3 className="text-3xl font-[1000] uppercase tracking-tighter">New Protocol</h3><button onClick={onClose} className="p-3 bg-white/5 rounded-full"><X /></button></div>
+          <div className="space-y-8">
+            <Input label="Registry Label" value={n} onChange={setN} placeholder="Unit Identifier" isDark={true} />
+            <Input label="Registry Threshold" value={l} onChange={setL} type="number" isDark={true} />
+            <div className="space-y-4">
+               <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[#6b7280] ml-2">Visual Logic</span>
+               <div className="grid grid-cols-2 gap-4">
+                  {['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => (
+                     <button key={x} onClick={() => setT(x)} className={cn("h-16 rounded-[24px] border-2 font-black text-[11px] uppercase tracking-widest transition-all flex items-center justify-center gap-3", t === x ? "border-accent bg-accent/10 text-accent" : "border-white/5 text-[#6b7280] hover:border-white/10")}>
+                        {x.includes('KING') && <Crown size={14} />} {x.replace('_',' ')}
+                     </button>
+                  ))}
+               </div>
+            </div>
           </div>
-          <button onClick={handle} className="w-full h-16 bg-accent text-black font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all">Authorize</button>
+          <button onClick={handle} className="w-full h-18 bg-accent text-black font-[1000] uppercase tracking-widest rounded-[24px] shadow-2xl active:scale-95 transition-all">Authorize Registry</button>
        </div>
     </div>
   );
@@ -433,28 +454,25 @@ const EditOverlay = ({ log, configs, onClose, user }) => {
      onClose();
   };
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm font-inter">
-       <div className="bg-[#121315] border border-white/10 rounded-[40px] w-full max-w-lg p-10 space-y-8 shadow-2xl">
-          <div className="flex justify-between items-center">
-             <h3 className="text-xl font-[1000] uppercase tracking-tighter">Modify Registry</h3>
-             <button onClick={onClose} className="p-2 bg-white/5 rounded-full"><X size={20} /></button>
-          </div>
-          <div className="bg-white/5 p-4 rounded-2xl text-center"><span className="text-xs font-black uppercase tracking-widest opacity-40">{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span></div>
-          <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/10">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md font-inter">
+       <div className="bg-[#121315] border border-white/10 rounded-[48px] w-full max-w-xl p-12 space-y-10 shadow-2xl">
+          <div className="flex justify-between items-center"><h3 className="text-2xl font-[1000] uppercase tracking-tighter">Modify Registry</h3><button onClick={onClose} className="p-3 bg-white/5 rounded-full"><X /></button></div>
+          <div className="bg-white/5 p-6 rounded-3xl text-center"><span className="text-xs font-black uppercase tracking-[0.4em] opacity-40">{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span></div>
+          <div className="space-y-8 max-h-[400px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-accent/20">
              {configs.map(x => <Input key={x.id} label={x.name} value={c[x.id] || 0} type="number" onChange={v => setC({...c, [x.id]: parseInt(v) || 0})} isDark={true} />)}
           </div>
-          <button onClick={handle} className="w-full h-16 bg-accent text-black font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all shadow-[0_10px_30px_rgba(0,210,255,0.3)]">Commit Changes</button>
+          <button onClick={handle} className="w-full h-18 bg-accent text-black font-[1000] uppercase tracking-widest rounded-[24px] active:scale-95 transition-all shadow-2xl shadow-accent/10">Commit Registry</button>
        </div>
     </div>
   );
 };
 
 const InsightCard = ({ icon: Icon, label, val, sub, color }) => (
-  <Card className="p-8 bg-[#121315] border-white/5 flex flex-col items-center text-center">
-     <div className={cn("p-4 rounded-2xl bg-white/5 mb-4", color)}><Icon size={28} /></div>
-     <span className="text-4xl font-[1000] tracking-tighter tabular-nums mb-1">{val}</span>
-     <span className="text-[10px] font-black text-[#6b7280] uppercase tracking-[0.2em]">{sub}</span>
-     <div className="mt-6 pt-6 border-t border-white/5 w-full text-[9px] font-black uppercase tracking-widest text-accent opacity-40">{label}</div>
+  <Card className="p-10 bg-[#121315] border-white/5 flex flex-col items-center text-center shadow-xl">
+     <div className={cn("p-5 rounded-3xl bg-white/5 mb-6 shadow-inner", color)}><Icon size={32} /></div>
+     <span className="text-5xl font-[1000] tracking-tighter tabular-nums mb-2 font-inter">{val}</span>
+     <span className="text-[11px] font-black text-[#6b7280] uppercase tracking-[0.3em] font-inter">{sub}</span>
+     <div className="mt-8 pt-8 border-t border-white/5 w-full text-[10px] font-black uppercase tracking-[0.6em] text-accent opacity-40 font-inter">{label}</div>
   </Card>
 );
 
@@ -471,25 +489,26 @@ const AuthScreen = ({ accent }) => {
   };
   return (
     <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center p-6 text-white font-inter relative overflow-hidden">
-      <div className="w-full max-w-md space-y-12 relative z-10">
+      <div className="w-full max-w-md space-y-16 relative z-10">
         <div className="flex flex-col items-center text-center">
-          <div className="w-20 h-20 bg-accent rounded-[28px] flex items-center justify-center mb-8 shadow-[0_0_60px_rgba(0,210,255,0.4)] text-black"><Zap size={40} fill="currentColor" /></div>
-          <h1 className="text-6xl font-[1000] tracking-tighter uppercase leading-none">TABAK<span className="text-accent">++</span></h1>
+          <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_80px_rgba(0,210,255,0.4)] text-black"><Zap size={48} fill="currentColor" /></div>
+          <h1 className="text-7xl font-[1000] tracking-tighter uppercase leading-none">TABAK<span className="text-accent">++</span></h1>
+          <p className="mt-6 text-[#6b7280] text-[11px] font-black uppercase tracking-[0.8em] ml-[0.8em]">Registry Core Online</p>
         </div>
-        <Card className="p-10 bg-[#121315] border-white/5 space-y-6">
-          {err && <div className="p-4 bg-danger/10 border border-danger/20 rounded-2xl text-danger text-xs font-bold text-center">{err}</div>}
+        <Card className="p-12 bg-[#121315] border-white/5 space-y-8 rounded-[48px] shadow-2xl">
+          {err && <div className="p-5 bg-danger/10 border border-danger/20 rounded-2xl text-danger text-[11px] font-black text-center uppercase tracking-widest">{err}</div>}
           {!isL && <Input label="Registry Name" value={n} onChange={setN} placeholder="Registry Identity" isDark={true} />}
           <Input label="Registry Email" value={e} onChange={setE} placeholder="id@system.com" isDark={true} />
           <Input label="Registry Key" type="password" value={p} onChange={setP} placeholder="••••••••" isDark={true} />
-          <button className="w-full h-16 bg-accent text-black font-black uppercase tracking-widest rounded-2xl active:scale-95 transition-all mt-4 flex items-center justify-center shadow-[0_10px_30px_rgba(0,210,255,0.3)]" onClick={handle} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Registry' : 'Join Registry')}</button>
-          <button onClick={() => setIsL(!isL)} className="w-full text-xs font-bold text-[#6b7280] uppercase tracking-[0.2em] hover:text-accent transition-all mt-4">{isL ? "Request Access Entry" : "Return to Log In"}</button>
+          <button className="w-full h-18 bg-accent text-black font-[1000] uppercase tracking-widest rounded-[24px] active:scale-95 transition-all mt-6 flex items-center justify-center shadow-2xl shadow-accent/20" onClick={handle} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : (isL ? 'Initialize Registry' : 'Register Identity')}</button>
+          <button onClick={() => setIsL(!isL)} className="w-full text-[10px] font-black text-[#6b7280] uppercase tracking-[0.4em] hover:text-accent transition-all mt-6">{isL ? "Request New Access" : "Return to Authenticator"}</button>
         </Card>
       </div>
     </div>
   );
 };
 
-const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#0a0a0b] flex flex-col items-center justify-center p-12 text-center text-white font-inter"><AlertCircle className="text-danger mb-10" size={64} /><h2 className="text-3xl font-[1000] uppercase tracking-tighter leading-none mb-4 text-white">Sync Failed</h2><p className="text-text-dim text-sm max-w-xs font-bold opacity-60 leading-relaxed">{msg}</p><button onClick={() => window.location.reload()} className="mt-12 rounded-full font-black uppercase tracking-[0.5em] px-12 h-20 bg-white text-black shadow-2xl active:scale-95 transition-all">Re-Link System</button></div>;
-const LoadingView = () => <div className="min-h-screen bg-[#0a0a0b] flex flex-col items-center justify-center space-y-8 text-accent font-inter"><Loader2 className="animate-spin" size={72} strokeWidth={3} /><span className="text-[11px] font-black tracking-[1.2em] uppercase text-accent animate-pulse ml-[1.2em]">Syncing Registry</span></div>;
+const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#0a0a0b] flex flex-col items-center justify-center p-12 text-center text-white font-inter"><AlertCircle className="text-danger mb-10" size={84} strokeWidth={2.5} /><h2 className="text-4xl font-[1000] uppercase tracking-tighter leading-none mb-6 text-white">Sync Failed</h2><p className="text-[#6b7280] text-sm max-w-xs font-bold opacity-60 leading-relaxed uppercase tracking-widest mb-12">{msg}</p><button onClick={() => window.location.reload()} className="rounded-[24px] font-black uppercase tracking-[0.5em] px-16 h-20 bg-white text-black shadow-2xl active:scale-95 transition-all">Re-Link System</button></div>;
+const LoadingView = () => <div className="min-h-screen bg-[#0a0a0b] flex flex-col items-center justify-center space-y-10 text-accent font-inter"><Loader2 className="animate-spin" size={84} strokeWidth={2.5} /><span className="text-[11px] font-black tracking-[1.2em] uppercase text-accent animate-pulse ml-[1.2em]">Syncing Registry</span></div>;
 
 export default AppWrapper;
