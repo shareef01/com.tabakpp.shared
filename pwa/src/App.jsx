@@ -25,7 +25,7 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 import { cn } from './utils/utils';
 
-const APP_VERSION = "8.5.0-STABLE";
+const APP_VERSION = "9.0.0-FINAL";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -116,6 +116,9 @@ const App = () => {
             nightOwl: d.nightOwl ?? false,
             globalPrice: d.globalPrice || '0.5'
           }));
+          if (d.photoURL && auth.currentUser.photoURL !== d.photoURL) {
+            updateProfile(auth.currentUser, { photoURL: d.photoURL });
+          }
         } else {
           setDoc(doc(db, 'users', uid), { accent: '#D4FF5C', isDark: true }, { merge: true });
         }
@@ -146,7 +149,7 @@ const App = () => {
 
   function generateCoach(count, limit, streak) {
     const p = limit > 0 ? count / limit : 0;
-    if (count === 0 && streak > 0) return `On a ${streak}-day streak!`;
+    if (count === 0 && streak > 0) return `On a ${streak}-day streak! Keep pushing.`;
     if (p >= 1.0) return "Daily threshold reached.";
     return "Track every session to analyze performance.";
   }
@@ -276,7 +279,7 @@ const AuthScreen = ({ accent }) => {
             <Zap size={52} fill="currentColor" strokeWidth={1.5} />
           </div>
           <h1 className="text-7xl font-[1000] tracking-tighter uppercase leading-none text-white drop-shadow-2xl">tabak++</h1>
-          <p className="mt-8 text-accent/50 font-black tracking-[0.6em] uppercase text-[10px]">Registry Portal Active</p>
+          <p className="mt-8 text-accent/50 font-black tracking-[0.6em] uppercase text-[10px]">Private Progress Registry</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 120 }}>
@@ -284,14 +287,14 @@ const AuthScreen = ({ accent }) => {
             <div className="flex flex-col space-y-8">
               {err && <div className="p-6 bg-danger/10 border border-danger/20 rounded-[32px] text-danger text-[11px] font-black uppercase tracking-widest leading-relaxed text-center shadow-2xl">{err}</div>}
               {!isL && <Input label="Full Name" value={n} onChange={setN} placeholder="Identify yourself" isDark={true} />}
-              <Input label="Registry Email" value={e} onChange={setE} placeholder="id@domain.com" isDark={true} />
-              <Input label="Registry Key" type="password" value={p} onChange={setP} placeholder="••••••••" isDark={true} />
+              <Input label="Email Identity" value={e} onChange={setE} placeholder="id@domain.com" isDark={true} />
+              <Input label="Secure Phrase" type="password" value={p} onChange={setP} placeholder="••••••••" isDark={true} />
               <button className="w-full h-22 text-[12px] bg-accent text-bg-base shadow-[0_20px_60px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.5em] rounded-[32px] mt-8 transition-all hover:scale-[1.02] active:scale-[0.98] active:brightness-90 flex items-center justify-center" onClick={handle} disabled={loading} style={{'--accent': accent, '--accent-rgb': `rgba(${rgb}, 0.3)`}}>
-                {loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Registry' : 'Initialize Vault')}
+                {loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Registry' : 'Join Registry')}
               </button>
               <div className="flex flex-col space-y-6 items-center pt-8 border-t border-white/5 mt-6">
                 <button onClick={() => setIsL(!isL)} className="text-[11px] font-[1000] text-text-dim uppercase tracking-[0.3em] hover:text-accent transition-all decoration-accent underline-offset-8">
-                  {isL ? "Request New Access" : "Return to Log In"}
+                  {isL ? "Request New Access" : "Return to Registry"}
                 </button>
                 <button onClick={() => signInAnonymously(auth)} className="text-[10px] font-black text-accent/20 uppercase tracking-[0.5em] hover:text-accent transition-all">
                   Browse Anonymous
@@ -318,10 +321,10 @@ const NavItem = ({ icon: Icon, active, onClick, label, isDark }) => (
 
 const TrackerScreen = ({ m, c, onInc, onDec, view, isDark, onAdd, accent }) => (
   <div className="flex flex-col space-y-8 pb-10">
-    <StaggeredItem index={0}><Card className={cn("p-10 relative overflow-hidden group shadow-2xl transition-all duration-700 rounded-[48px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}><div className="flex justify-between items-end relative z-10 text-white"><div className="space-y-1.5"><span className="text-[9px] font-black text-text-dim uppercase tracking-[0.4em]">Remaining Today</span><div className={cn("text-6xl font-[1000] tracking-tighter leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{Math.max(0, m.limit - m.count)} <span className="text-sm text-accent uppercase tracking-widest font-black ml-3 leading-none">Units</span></div></div><div className="text-right space-y-2 hidden md:block"><div className="px-4 py-1.5 bg-accent-soft rounded-xl text-accent text-[9px] font-black uppercase border border-accent/20">{m.rank}</div><div className={cn("text-3xl font-[1000] opacity-40 leading-none tracking-tighter", !isDark && "text-[#1D1D1F]")}>{m.xp} XP</div></div></div><div className="w-full h-4 bg-black/10 rounded-full overflow-hidden mt-10 p-0.5 border border-white/5 relative z-10 shadow-inner"><motion.div animate={{ width: `${Math.min(1, m.progress) * 100}%` }} className={cn("h-full rounded-full transition-all duration-1000 shadow-2xl", m.progress >= 1 ? "bg-danger shadow-[0_0_30px_#F87171]" : "bg-accent shadow-[0_0_20px_var(--accent)]")} /></div></Card></StaggeredItem>
+    <StaggeredItem index={0}><Card className={cn("p-10 relative overflow-hidden group shadow-2xl transition-all duration-700 rounded-[48px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}><div className="flex justify-between items-end relative z-10 text-white"><div className="space-y-1.5"><span className="text-[9px] font-black text-text-dim uppercase tracking-[0.4em]">Remaining Units</span><div className={cn("text-6xl font-[1000] tracking-tighter leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{Math.max(0, m.limit - m.count)} <span className="text-sm text-accent uppercase tracking-widest font-black ml-3 leading-none">Left</span></div></div><div className="text-right space-y-2 hidden md:block"><div className="px-4 py-1.5 bg-accent-soft rounded-xl text-accent text-[9px] font-black uppercase border border-accent/20">{m.rank}</div><div className={cn("text-3xl font-[1000] opacity-40 leading-none tracking-tighter", !isDark && "text-[#1D1D1F]")}>{m.xp} XP</div></div></div><div className="w-full h-4 bg-black/10 rounded-full overflow-hidden mt-10 p-0.5 border border-white/5 relative z-10 shadow-inner"><motion.div animate={{ width: `${Math.min(1, m.progress) * 100}%` }} className={cn("h-full rounded-full transition-all duration-1000 shadow-2xl", m.progress >= 1 ? "bg-danger shadow-[0_0_30px_#F87171]" : "bg-accent shadow-[0_0_20px_var(--accent)]")} /></div></Card></StaggeredItem>
     <div className={cn("grid gap-6 md:gap-10", view === 'COMPACT' ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 lg:grid-cols-2")}>
        {c.sort((a,b) => a.order - b.order).map((config, i) => <StaggeredItem key={config.id} index={i+1}><CounterCard config={config} count={(m.todayLog.counts || {})[config.id] || 0} onInc={() => onInc(config.id)} onDec={() => onDec(config.id)} isC={view === 'COMPACT'} isDark={isDark} accent={accent} /></StaggeredItem>)}
-       <StaggeredItem index={c.length + 1}><button onClick={onAdd} className={cn("w-full border-2 border-dashed border-white/10 rounded-[48px] flex flex-col items-center justify-center space-y-4 hover:bg-white/[0.02] hover:border-accent/20 transition-all group relative overflow-hidden shadow-2xl shadow-black/10", view === 'COMPACT' ? "h-[320px]" : "h-[450px] md:h-[580px]")}><div className="w-20 h-20 rounded-[40px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-700 shadow-inner shadow-black/40 text-text-dim group-hover:text-accent border border-white/5 shrink-0"><Plus size={32} /></div><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.5em] group-hover:text-white transition-colors">Add Tracker</span></button></StaggeredItem>
+       <StaggeredItem index={c.length + 1}><button onClick={onAdd} className={cn("w-full border-2 border-dashed border-white/10 rounded-[48px] flex flex-col items-center justify-center space-y-4 hover:bg-white/[0.02] hover:border-accent/20 transition-all group relative overflow-hidden shadow-2xl shadow-black/10", view === 'COMPACT' ? "h-[320px]" : "h-[450px] md:h-[580px]")}><div className="w-20 h-20 rounded-[40px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-700 shadow-inner shadow-black/40 text-text-dim group-hover:text-accent border border-white/5 shrink-0"><Plus size={32} /></div><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.5em] group-hover:text-white transition-colors">Add Protocol</span></button></StaggeredItem>
     </div>
   </div>
 );
@@ -336,14 +339,14 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark, accent }) => {
 
        <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-hidden py-4">
           {(isCig || isJoint) ? (
-             <div className={cn("relative w-full max-w-[280px] h-14 md:h-16 rounded-full overflow-hidden transition-all duration-1000 border-2 shadow-2xl", isL ? "bg-danger border-danger/40" : (isDark ? "bg-[#111] border-white/10 shadow-[inset_0_4px_30px_rgba(0,0,0,0.9)]" : "bg-[#DDD] border-black/5 shadow-inner"))}>
+             <div className={cn("relative w-full max-w-[240px] h-14 md:h-16 rounded-full overflow-hidden transition-all duration-1000 border-2 shadow-2xl mt-4 shrink-0", isL ? "bg-danger border-danger/40" : (isDark ? "bg-[#111] border-white/10 shadow-[inset_0_4px_30px_rgba(0,0,0,0.9)]" : "bg-[#DDD] border-black/5 shadow-inner"))}>
                 <div className={cn("absolute left-0 inset-y-0 bg-[#1a1a1a] transition-all duration-1000 shadow-2xl", isL && "bg-danger/60 w-full")} style={{ width: isL ? '100%' : `${p * 72}%` }} />
                 {!isL && count > 0 && <div className="absolute inset-y-0 w-3.5 bg-[#FF3D00] shadow-[0_0_30px_#FF3D00] z-20" style={{ left: `calc(${p * 72}% - 1.75px)` }} />}
                 {!isL && <div className={cn("absolute right-[28%] inset-y-0 transition-all duration-700 shadow-2xl", isCig ? "bg-white" : "bg-[#C8E6C9]")} style={{ left: `${p * 72}%` }} />}
                 <div className={cn("absolute inset-y-0 right-0 w-[28%] border-l-2 border-black/40 z-[11]", isL ? "bg-danger" : (isCig ? "bg-[#D97706]" : "bg-[#333]"))} />
              </div>
           ) : (
-             <div className="relative w-36 h-36 md:w-52 md:h-52 flex items-center justify-center shrink-0">
+             <div className="relative w-32 h-32 md:w-52 md:h-52 flex items-center justify-center shrink-0">
                 <svg className="w-full h-full -rotate-90 overflow-visible" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="42" className={cn("fill-transparent stroke-[12]", isDark ? "stroke-white/5" : "stroke-black/5")} />
                   <motion.circle cx="50" cy="50" r="42" className={cn("fill-transparent stroke-[12] transition-all duration-1000 drop-shadow-2xl", isL ? "stroke-danger" : "stroke-accent")} strokeDasharray="264" initial={{ strokeDashoffset: 264 }} animate={{ strokeDashoffset: 264 - (Math.min(1, p) * 264) }} strokeLinecap="round" />
@@ -358,10 +361,10 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark, accent }) => {
        </div>
 
        <div className="flex justify-center items-center space-x-12 md:space-x-16 relative z-20 shrink-0 pt-6">
-          <motion.button whileTap={{ scale: 0.6 }} onClick={() => onDec(config.id)} className={cn("w-18 h-18 md:w-22 md:h-22 rounded-full border-4 flex items-center justify-center transition-all shadow-2xl active:scale-90 shrink-0 aspect-square", isDark ? "bg-white/5 border-white/10 text-white/30 hover:text-white" : "bg-[#F5F5F7] border-black/10 text-black/20 hover:text-black shadow-inner")}>
+          <motion.button whileTap={{ scale: 0.6 }} onClick={() => onDec(config.id)} className={cn("w-16 h-16 md:w-22 md:h-22 rounded-full border-4 flex items-center justify-center transition-all shadow-2xl active:scale-90 shrink-0 aspect-square", isDark ? "bg-white/5 border-white/10 text-white/30 hover:text-white" : "bg-[#F5F5F7] border-black/10 text-black/20 hover:text-black shadow-inner")}>
             <Minus size={32} strokeWidth={3} />
           </motion.button>
-          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onInc(config.id)} className={cn("w-18 h-18 md:w-22 md:h-22 rounded-full border-4 flex items-center justify-center transition-all shadow-2xl active:scale-95 shrink-0 aspect-square", isL ? "border-danger text-danger bg-danger/10 shadow-[0_20px_50px_rgba(248,113,113,0.3)]" : "bg-accent text-bg-base border-white/20 shadow-[0_25px_80px_var(--accent-rgb)]")} style={{'--accent-rgb': `rgba(${rgb}, 0.5)`}}>
+          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onInc(config.id)} className={cn("w-16 h-16 md:w-22 md:h-22 rounded-full border-4 flex items-center justify-center transition-all shadow-2xl active:scale-95 shrink-0 aspect-square", isL ? "border-danger text-danger bg-danger/10 shadow-[0_20px_50px_rgba(248,113,113,0.3)]" : "bg-accent text-bg-base border-white/20 shadow-[0_25px_80px_var(--accent-rgb)]")} style={{'--accent-rgb': `rgba(${rgb}, 0.5)`}}>
             <Plus size={40} strokeWidth={3} />
           </motion.button>
        </div>
@@ -378,7 +381,7 @@ const HistoryScreen = ({ logs, configs, todayString, onEdit, m, isDark }) => {
     <div className="flex flex-col space-y-10 md:space-y-12 pb-20">
        <StaggeredItem index={0}><Card className={cn("p-0 overflow-hidden shadow-2xl rounded-[48px]", isDark ? "bg-white/[0.03] border-accent/20 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="p-10 md:p-14 pb-8 md:pb-10 flex justify-between items-start"><div className="space-y-1.5 md:space-y-2"><span className="text-[10px] md:text-[11px] font-[1000] text-text-dim uppercase tracking-[0.5em]">Analytics Link</span><h3 className={cn("text-4xl md:text-5xl font-[1000] text-accent mt-1 md:mt-2 uppercase tracking-tighter leading-none font-black transition-colors")}>Usage History</h3></div><div className="p-4 md:p-5 bg-accent-soft rounded-[28px] border border-accent/20 shadow-2xl text-accent font-black"><BarChart3 size={32} /></div></div><div className="h-[280px] md:h-[350px] w-full pr-10 md:pr-14 pl-4 md:pl-6 pb-10 md:pb-14"><ResponsiveContainer width="100%" height="100%"><LineChart data={chart}><CartesianGrid strokeDasharray="8 8" stroke="rgba(128,128,128,0.1)" vertical={false} /><XAxis dataKey="name" stroke="#888" fontSize={10} axisLine={false} tickLine={false} dy={20} fontVariant="black" /><Tooltip contentStyle={{ background: isDark ? '#0D0D0E' : '#FFF', border: '2px solid var(--accent)', borderRadius: '32px', fontWeight: '950', fontSize: '13px', textTransform:'uppercase', boxShadow:'0 30px 60px rgba(0,0,0,0.6)', color: isDark ? '#FFF' : '#1D1D1F' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 4, stroke: isDark ? '#020202' : '#FFF' }} activeDot={{ r: 14, fill: '#FFF', shadow: '0 0 30px var(--accent)' }} animationDuration={2500} /></LineChart></ResponsiveContainer></div></Card></StaggeredItem>
        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10"><InsightCard Icon={TrendingUp} label="Streak" val={m.streak} suffix="Active Days" color="text-orange-400" index={1} isDark={isDark} /><InsightCard Icon={Wallet} label="Savings" val={`$${m.savings.toFixed(2)}`} suffix="Total Saved" color="text-emerald-400" index={2} isDark={isDark} /><InsightCard Icon={Activity} label="Impact" val={`${Math.floor(m.lost/60)}H`} suffix="Time Restored" color="text-rose-400" index={3} isDark={isDark} /></div>
-       <div className="space-y-10 md:space-y-12 pt-16 px-4"><div className="flex items-center justify-between px-2"><h4 className="text-[14px] font-[1000] text-accent uppercase tracking-[0.8em]">Operational Logs</h4><History size={20} className="text-accent/30" /></div><div className="grid gap-6 md:gap-8">{logs.sort((a,b)=>b.logDate.localeCompare(a.logDate)).map((log, i) => <StaggeredItem key={log.logDate} index={i+5}><Card className={cn("py-12 flex items-center justify-between group p-12 md:p-14 transition-all duration-700 shadow-2xl shadow-black/10 rounded-[48px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="flex flex-col space-y-2"><span className={cn("text-2xl md:text-3xl font-[1000] tracking-tighter uppercase leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{log.logDate === todayString ? 'Current Period' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-[900] text-text-dim uppercase tracking-[0.4em] mt-3 flex items-center"><History size={16} className="mr-3 opacity-30" /> {Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units tracked</span></div><div className="flex items-center space-x-10"><div className="flex -space-x-5 md:-space-x-6">{Object.entries(log.counts || {}).map(([cid, count]) => <div key={cid} className={cn("w-16 h-16 md:w-18 md:h-18 rounded-full border-[5px] md:border-[6px] flex items-center justify-center font-[1000] text-base shadow-2xl transition-all group-hover:-translate-y-4 shadow-black/20", isDark ? "bg-black border-white/10 text-white" : "bg-white border-black/10 text-black shadow-black/10")}>{count}</div>)}</div><button onClick={() => onEdit(log)} className={cn("p-5 md:p-6 rounded-[28px] md:rounded-[32px] transition-all hover:scale-110 shadow-inner", isDark ? "bg-white/5 text-text-dim hover:text-accent" : "bg-[#F5F5F7] text-black/40 hover:text-accent shadow-inner")}><Edit2 size={24} /></button></div></Card></StaggeredItem>)}</div></div>
+       <div className="space-y-10 md:space-y-12 pt-16 px-4"><div className="flex items-center justify-between px-2"><h4 className="text-[14px] font-[1000] text-accent uppercase tracking-[0.8em]">Operational Logs</h4><History size={20} className="text-accent/30" /></div><div className="grid gap-6 md:gap-8">{logs.sort((a,b)=>b.logDate.localeCompare(a.logDate)).map((log, i) => <StaggeredItem key={log.logDate} index={i+5}><Card className={cn("py-12 flex items-center justify-between group p-12 md:p-14 transition-all duration-700 shadow-2xl shadow-black/10 rounded-[48px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="flex flex-col space-y-1.5 md:space-y-2"><span className={cn("text-2xl md:text-3xl font-[1000] tracking-tighter uppercase leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{log.logDate === todayString ? 'Current Period' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-[900] text-text-dim uppercase tracking-[0.4em] mt-3 flex items-center"><History size={16} className="mr-3 opacity-30" /> {Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units tracked</span></div><div className="flex items-center space-x-10"><div className="flex -space-x-5 md:-space-x-6">{Object.entries(log.counts || {}).map(([cid, count]) => <div key={cid} className={cn("w-16 h-16 md:w-18 md:h-18 rounded-full border-[5px] md:border-[6px] flex items-center justify-center font-[1000] text-base shadow-2xl transition-all group-hover:-translate-y-4 shadow-black/20", isDark ? "bg-black border-white/10 text-white" : "bg-white border-black/10 text-black shadow-black/10")}>{count}</div>)}</div><button onClick={() => onEdit(log)} className={cn("p-5 md:p-6 rounded-[28px] md:rounded-[32px] transition-all hover:scale-110 shadow-inner", isDark ? "bg-white/5 text-text-dim hover:text-accent" : "bg-[#F5F5F7] text-black/40 hover:text-accent shadow-inner")}><Edit2 size={24} /></button></div></Card></StaggeredItem>)}</div></div>
     </div>
   );
 };
@@ -420,25 +423,25 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
        <Card className={cn("p-12 md:p-16 relative overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.4)] rounded-[64px]", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}>
           <div className="flex items-center space-x-10 md:space-x-14 mb-14 md:mb-20 relative z-10">
              <div className="relative group shrink-0">
-                <div className={cn("w-32 h-32 md:w-40 md:h-40 bg-accent rounded-[44px] border-4 border-white/10 flex items-center justify-center text-6xl md:text-8xl font-[1000] text-bg-base shadow-2xl overflow-hidden shadow-accent/20 transition-all group-active:scale-95", loading && "animate-pulse")}>
+                <div className={cn("w-28 h-28 md:w-40 md:h-40 bg-accent rounded-[44px] border-4 border-white/10 flex items-center justify-center text-5xl md:text-8xl font-[1000] text-bg-base shadow-2xl overflow-hidden shadow-accent/20 transition-all group-active:scale-95", loading && "animate-pulse")}>
                    {photoURL ? <img src={photoURL} className="w-full h-full object-cover" alt="p" /> : al.charAt(0)}
                 </div>
-                <button onClick={() => fileRef.current?.click()} className="absolute bottom-[-10px] right-[-10px] w-14 h-14 rounded-[22px] bg-white text-black flex items-center justify-center shadow-2xl border-4 border-black/90 active:scale-90 transition-transform">
-                   {loading ? <Loader2 size={24} className="animate-spin" /> : <Camera size={24} />}
+                <button onClick={() => fileRef.current?.click()} className="absolute bottom-[-10px] right-[-10px] w-12 h-12 md:w-14 md:h-14 rounded-[20px] bg-white text-black flex items-center justify-center shadow-2xl border-4 border-black/90 active:scale-90 transition-transform">
+                   {loading ? <Loader2 size={24} className="animate-spin" /> : <Camera size={20} />}
                 </button>
                 <input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={handleUpload} />
              </div>
              <div className="space-y-4 min-w-0">
-                <h4 className={cn("text-4xl md:text-6xl font-[1000] tracking-tighter uppercase leading-none transition-colors truncate", !s.isDark && "text-[#1D1D1F]")}>{al}</h4>
+                <h4 className={cn("text-3xl md:text-6xl font-[1000] tracking-tighter uppercase leading-none transition-colors truncate", !s.isDark && "text-[#1D1D1F]")}>{al}</h4>
                 <div className="flex items-center space-x-4">
                    <div className="h-2.5 w-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_20px_var(--accent)]" />
-                   <span className="text-[12px] font-black uppercase tracking-[0.5em] text-accent/60 font-inter">Verified Registry</span>
+                   <span className="text-[11px] font-black uppercase tracking-[0.5em] text-accent/60 font-inter">Verified Registry</span>
                 </div>
              </div>
           </div>
           <div className="space-y-12 relative z-10">
              <Input label="Registry Identity" value={al} onChange={setAl} isDark={s.isDark} />
-             <button className="w-full h-22 rounded-full bg-accent text-bg-base shadow-[0_20px_60px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.4em] active:scale-95 transition-all text-xs flex items-center justify-center" onClick={() => onUpd({ displayName: al })} style={{'--accent-rgb': `rgba(${hexToRgb(s.accent)}, 0.4)`}}>Update Identification</button>
+             <button className="w-full h-22 rounded-full bg-accent text-bg-base shadow-[0_20px_60px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.4em] active:scale-95 transition-all text-xs flex items-center justify-center" onClick={() => onUpd({ displayName: al })} style={{'--accent-rgb': `rgba(${hexToRgb(settings.accent)}, 0.4)`}}>Update Identification</button>
           </div>
        </Card>
 
@@ -456,7 +459,7 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
                 </div>
                 <div className="flex flex-wrap gap-6 justify-center">
                    {ACCENTS.map(x => (
-                      <button key={x.v} onClick={() => setLa(x.v)} className={cn("w-16 h-16 md:w-18 md:h-18 rounded-[24px] border-[5px] transition-all duration-700 shadow-2xl active:scale-90 relative", la === x.v ? "border-white scale-115 shadow-accent/60" : "border-transparent opacity-30 hover:opacity-100")} style={{ backgroundColor: x.v }}>
+                      <button key={x.v} onClick={() => setLa(x.v)} className={cn("w-14 h-14 md:w-16 md:h-16 rounded-[24px] border-[5px] transition-all duration-700 shadow-2xl active:scale-90 relative", la === x.v ? "border-white scale-115 shadow-accent/60" : "border-transparent opacity-30 hover:opacity-100")} style={{ backgroundColor: x.v }}>
                          {la === x.v && <motion.div layoutId="colorCheck" className="absolute inset-0 flex items-center justify-center text-white"><Check size={28} strokeWidth={5} /></motion.div>}
                       </button>
                    ))}
@@ -531,7 +534,7 @@ const AddForm = ({ onAdd, isDark, accent }) => {
   const rgb = hexToRgb(accent);
   return (
     <div className="space-y-14">
-       <Input label="Registry Label" value={n} onChange={setN} placeholder="e.g. Unit A" isDark={isDark} />
+       <Input label="Registry Label" value={n} onChange={setN} placeholder="e.g. Protocol Alpha" isDark={isDark} />
        <Input label="Registry Threshold" value={l} onChange={setL} type="number" isDark={isDark} />
        <div className="space-y-10"><span className="text-[12px] font-[1000] text-text-dim uppercase tracking-[1em] ml-2 font-inter">Visual Protocol</span><div className="grid grid-cols-2 gap-6 md:grid-cols-2 md:gap-8">{['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => <button key={x} onClick={() => setT(x)} className={cn("h-20 md:h-24 rounded-[36px] border-2 font-[1000] text-[11px] uppercase tracking-[0.5em] transition-all duration-1000 shadow-2xl active:scale-95 font-inter", t === x ? "bg-accent text-bg-base border-accent" : (isDark ? "bg-black/40 border-white/5 text-text-dim" : "bg-black/5 border-black/5 text-black/40"))} style={{'boxShadow': t === x ? `0 20px 60px rgba(${rgb}, 0.4)` : 'none'}}>{x.replace('_',' ')}</button>)}</div></div>
        <button className="w-full h-24 rounded-full bg-accent text-bg-base shadow-[0_30px_100px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.8em] active:scale-95 transition-all text-sm mt-10 font-inter" onClick={() => onAdd(n, t, l)} style={{'--accent-rgb': `rgba(${rgb}, 0.4)`}}>Deploy Tracker</button>
