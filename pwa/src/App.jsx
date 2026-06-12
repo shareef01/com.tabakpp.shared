@@ -25,7 +25,7 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 import { cn } from './utils/utils';
 
-const APP_VERSION = "4.1.0-STABLE";
+const APP_VERSION = "4.2.0-STABLE";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -37,7 +37,7 @@ class ErrorBoundary extends Component {
         <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
           <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
           <h2 className="text-3xl font-[950] uppercase tracking-tighter leading-none">System Malfunction</h2>
-          <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed">{this.state.error?.message || "Logic scope collision detected."}</p>
+          <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed">{this.state.error?.message || "UI Logic Crash Detected"}</p>
           <Button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-64 h-16 rounded-full shadow-2xl">Hard Reset Vault</Button>
         </div>
       );
@@ -66,7 +66,6 @@ const AppWrapper = () => (
 );
 
 const App = () => {
-  // 0. All States declared at TOP LEVEL
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('tracker');
@@ -83,20 +82,18 @@ const App = () => {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // 1. Auth Listener
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setAuthLoading(false);
       if (!u) { setLogs([]); setConfigs([]); }
     }, (err) => {
-      setAppError("Auth sync failure: " + err.message);
+      setAppError("Auth sync failed: " + err.message);
       setAuthLoading(false);
     });
     return () => unsub();
   }, []);
 
-  // 2. Data Sync
   useEffect(() => {
     if (!user) return;
     try {
@@ -125,7 +122,7 @@ const App = () => {
         }
       });
       return () => { cUnsub(); lUnsub(); sUnsub(); };
-    } catch (err) { setAppError("Sync Failure: " + err.message); }
+    } catch (err) { setAppError("Vault Sync Failure: " + err.message); }
   }, [user]);
 
   const metrics = useMemo(() => {
@@ -151,8 +148,8 @@ const App = () => {
   function generateCoach(count, limit, streak) {
     const p = limit > 0 ? count / limit : 0;
     if (count === 0 && streak > 0) return `Perfect start! You're on a ${streak}-day streak.`;
-    if (p >= 1.0) return "Threshold reached. Stability protocol active.";
-    return "Every session tracked is a step toward optimization.";
+    if (p >= 1.0) return "Protocol Threshold. Security active.";
+    return "Every session tracked is a data point for growth.";
   }
 
   const onInc = useCallback(async (id) => {
@@ -187,7 +184,6 @@ const App = () => {
       className={cn("flex flex-col min-h-screen font-inter transition-all duration-700 overflow-hidden select-none", themeClass)}
       style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent), fontSize: `${settings.fontScale}rem` }}
     >
-      {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-[100] pt-[env(safe-area-inset-top)] px-8 py-8 flex justify-between items-center bg-inherit/90 backdrop-blur-3xl">
         <div className="flex flex-col">
           <h1 className="text-4xl font-[1000] tracking-tighter uppercase leading-none">tabak++</h1>
@@ -202,7 +198,7 @@ const App = () => {
             {showProfileMenu && (
               <>
                 <div className="fixed inset-0 z-[90]" onClick={() => setShowProfileMenu(false)} />
-                <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className={cn("absolute right-0 mt-4 w-56 rounded-[32px] p-2 shadow-2xl border backdrop-blur-3xl z-[100]", settings.isDark ? "bg-black/90 border-white/10" : "bg-white/95 border-black/5 shadow-black/10")}>
+                <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className={cn("absolute right-0 mt-4 w-56 rounded-[32px] p-2 shadow-2xl border backdrop-blur-3xl z-[100]", settings.isDark ? "bg-black/90 border-white/10" : "bg-white/95 border-black/5 shadow-black/10 shadow-2xl")}>
                   <button onClick={() => { setActiveTab('settings'); setShowProfileMenu(false); }} className="w-full flex items-center space-x-4 p-4 rounded-2xl hover:bg-accent/10 transition-colors text-sm font-[1000] uppercase tracking-widest"><Settings size={18} className="text-accent" /><span>Profile</span></button>
                   <button onClick={() => { signOut(auth); setShowProfileMenu(false); }} className="w-full flex items-center space-x-4 p-4 rounded-2xl hover:bg-danger/10 text-danger transition-colors text-sm font-[1000] uppercase tracking-widest border-t border-white/5 mt-1"><LogOut size={18} /><span>Terminate</span></button>
                 </motion.div>
@@ -212,13 +208,12 @@ const App = () => {
         </div>
       </header>
 
-      {/* CONTENT */}
       <main className="flex-1 overflow-y-auto pt-40 pb-44 px-6 max-w-6xl mx-auto w-full transition-all duration-500">
         <AnimatePresence mode="wait">
           {activeTab === 'tracker' && <TrackerScreen key="t" m={metrics} c={configs} onInc={onInc} onDec={onDec} isDark={settings.isDark} view={settings.layout} onAdd={() => setActiveTab('settings')} />}
           {activeTab === 'health' && <HealthScreen key="h" last={Date.now() - 3600000 * 4} isDark={settings.isDark} />}
           {activeTab === 'history' && <HistoryScreen key="y" logs={logs} configs={configs} m={metrics} todayString={today} onEdit={setEditTarget} isDark={settings.isDark} />}
-          {activeTab === 'settings' && <SettingsScreen key="s" c={configs} u={user} s={settings} onAdd={() => setShowAdd(true)} onUpd={onUpdateSettings} onReo={async (id, dir) => {
+          {activeTab === 'settings' && <SettingsScreen key="s" c={configs} u={user} s={settings} onAdd={() => setShowAdd(false)} onUpd={onUpdateSettings} onReo={async (id, dir) => {
                 const idx = configs.findIndex(x => x.id === id);
                 if ((dir === 'up' && idx > 0) || (dir === 'down' && idx < configs.length - 1)) {
                    const n = [...configs]; const swap = dir === 'up' ? idx - 1 : idx + 1;
@@ -226,11 +221,10 @@ const App = () => {
                    setConfigs(final);
                    for (const x of final) { await updateDoc(doc(db, 'users', user.uid), { order: x.order }); }
                 }
-              }} onDel={async (id) => { await deleteDoc(doc(db, 'users', user.uid, 'configs', id)); }} />}
+              }} onDel={async (id) => { await deleteDoc(doc(db, 'users', user.uid, 'configs', id)); }} onAddTrigger={() => setShowAdd(true)} />}
         </AnimatePresence>
       </main>
 
-      {/* NAV */}
       <nav className="fixed bottom-0 left-0 right-0 md:bottom-10 md:left-1/2 md:-translate-x-1/2 md:w-[600px] pb-[env(safe-area-inset-bottom)] md:pb-0 z-[110] px-4">
         <div className={cn("backdrop-blur-3xl border rounded-t-[40px] md:rounded-[40px] flex justify-around items-center h-24 md:h-22 px-6 shadow-2xl transition-all duration-500", settings.isDark ? "bg-black/80 border-white/5 shadow-black" : "bg-white/80 border-black/5 shadow-black/5 shadow-2xl")}>
           <NavItem id="tracker" icon={LayoutDashboard} active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} label="tracker" isDark={settings.isDark} />
@@ -240,9 +234,8 @@ const App = () => {
         </div>
       </nav>
 
-      {/* OVERLAYS */}
       <AnimatePresence>
-        {showAdd && <Overlay onClose={() => setShowAdd(false)} title="New Protocol" isDark={settings.isDark}><AddForm onAdd={async (n, t, l) => { const id = Math.random().toString(36).substr(2, 9); await setDoc(doc(db, 'users', user.uid, 'configs', id), { name: n, type: t, limit: parseInt(l) || 20, order: configs.length }); setShowAdd(false); }} /></Overlay>}
+        {showAdd && <Overlay onClose={() => setShowAdd(false)} title="New Protocol" isDark={settings.isDark}><AddForm onAdd={async (n, t, l) => { const id = Math.random().toString(36).substr(2, 9); await setDoc(doc(db, 'users', user.uid, 'configs', id), { name: n, type: t, limit: parseInt(l) || 20, order: configs.length }); setShowAdd(false); }} isDark={settings.isDark} /></Overlay>}
         {editTarget && <Overlay onClose={() => setEditTarget(null)} title="Override Data" isDark={settings.isDark}><EditForm log={editTarget} configs={configs} onSave={async (d, c) => { await setDoc(doc(db, 'users', user.uid, 'logs', d), { counts: c }, { merge: true }); setEditTarget(null); }} isDark={settings.isDark} /></Overlay>}
       </AnimatePresence>
     </div>
@@ -265,15 +258,15 @@ const AuthScreen = ({ accent }) => {
   return (
     <div className="min-h-screen bg-[#020202] flex items-center justify-center p-6 text-white font-inter">
       <div className="w-full max-w-md space-y-12">
-        <div className="flex flex-col items-center text-center"><div className="w-24 h-24 bg-accent rounded-[32px] flex items-center justify-center mb-8 shadow-2xl text-bg-base shadow-accent/20" style={{'--accent': accent}}><LayoutDashboard size={40} /></div><h1 className="text-5xl font-[1000] tracking-tighter uppercase leading-none text-white font-inter">tabak++</h1></div>
-        <Card className="space-y-6 bg-white/[0.03] border-white/5 p-10 backdrop-blur-lg shadow-2xl"><div className="flex flex-col space-y-6">
+        <div className="flex flex-col items-center text-center"><div className="w-24 h-24 bg-accent rounded-[32px] flex items-center justify-center mb-8 shadow-2xl text-bg-base shadow-accent/20" style={{'--accent': accent}}><LayoutDashboard size={40} /></div><h1 className="text-5xl font-[950] tracking-tighter uppercase leading-none text-white font-inter">tabak++</h1></div>
+        <Card className="space-y-6 bg-white/[0.03] border-white/5 p-10 backdrop-blur-lg shadow-2xl shadow-black">
           {err && <div className="p-4 bg-danger/10 border border-danger/20 rounded-2xl text-danger text-[10px] font-black uppercase tracking-widest leading-relaxed">{err}</div>}
           {!isL && <Input label="Vault Commander" value={n} onChange={setN} placeholder="Your Alias" isDark={true} />}
           <Input label="Vault ID" value={e} onChange={setE} placeholder="email@address.com" isDark={true} />
           <Input label="Security Phrase" type="password" value={p} onChange={setP} placeholder="••••••••" isDark={true} />
           <Button className="w-full h-18 text-xs shadow-2xl font-black uppercase tracking-[0.2em]" onClick={handle} disabled={loading} style={{'--accent': accent}}>{loading ? <Loader2 className="animate-spin" /> : (isL ? 'Access Vault' : 'Initialize Vault')}</Button>
           <div className="flex flex-col space-y-4 items-center pt-2"><button onClick={() => setIsL(!isL)} className="text-[10px] font-black text-text-dim uppercase tracking-widest hover:text-accent transition-all underline underline-offset-8 decoration-white/10">{isL ? "Request Access" : "Return to Login"}</button><button onClick={() => signInAnonymously(auth)} className="text-[10px] font-black text-accent/60 uppercase tracking-widest hover:text-accent transition-all">Guest entry</button></div>
-        </div></Card>
+        </Card>
       </div>
     </div>
   );
@@ -292,7 +285,7 @@ const TrackerScreen = ({ m, c, onInc, onDec, view, isDark, onAdd }) => (
     <StaggeredItem index={0}><Card className={cn("p-12 relative overflow-hidden group shadow-2xl transition-all duration-700", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}><div className="flex justify-between items-end relative z-10 text-white"><div className="space-y-2"><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em]">Vault Capacity</span><div className={cn("text-7xl font-[1000] tracking-tighter leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{Math.max(0, m.limit - m.count)} <span className="text-base text-accent uppercase tracking-widest font-black ml-4 leading-none">Remaining</span></div></div><div className="text-right space-y-3 hidden md:block"><div className="px-4 py-2 bg-accent-soft rounded-2xl text-accent text-[10px] font-black uppercase border border-accent/20">{m.rank}</div><div className={cn("text-4xl font-[1000] opacity-40 leading-none tracking-tighter", !isDark && "text-[#1D1D1F]")}>{m.xp} XP</div></div></div><div className="w-full h-3.5 bg-black/10 rounded-full overflow-hidden mt-12 p-0.5 border border-white/5 relative z-10 shadow-inner"><motion.div animate={{ width: `${Math.min(1, m.progress) * 100}%` }} className={cn("h-full rounded-full transition-all duration-1000 shadow-2xl", m.progress >= 1 ? "bg-danger shadow-[0_0_30px_#F87171]" : "bg-accent shadow-[0_0_20px_var(--accent)]")} /></div><div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[150px] -mr-64 -mt-64" /></Card></StaggeredItem>
     <div className={cn("grid gap-10", view === 'COMPACT' ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 lg:grid-cols-2")}>
        {c.sort((a,b) => a.order - b.order).map((config, i) => <StaggeredItem key={config.id} index={i+1}><CounterCard config={config} count={(m.todayLog.counts || {})[config.id] || 0} onInc={() => onInc(config.id)} onDec={() => onDec(config.id)} isC={view === 'COMPACT'} isDark={isDark} /></StaggeredItem>)}
-       <StaggeredItem index={c.length + 1}><button onClick={onAdd} className={cn("w-full border-2 border-dashed border-white/5 rounded-[48px] flex flex-col items-center justify-center space-y-6 hover:bg-white/[0.02] hover:border-accent/20 transition-all group relative overflow-hidden shadow-2xl", view === 'COMPACT' ? "h-[350px]" : "h-[580px]")}><div className="w-20 h-20 rounded-[32px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-500 shadow-inner shadow-black/40"><Plus className="text-text-dim group-hover:text-accent" size={32} /></div><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em] group-hover:text-white transition-colors">Deploy Protocol</span></button></StaggeredItem>
+       <StaggeredItem index={c.length + 1}><button onClick={onAdd} className={cn("w-full border-2 border-dashed border-white/5 rounded-[48px] flex flex-col items-center justify-center space-y-6 hover:bg-white/[0.02] hover:border-accent/20 transition-all group relative overflow-hidden shadow-2xl shadow-black/20", view === 'COMPACT' ? "h-[350px]" : "h-[580px]")}><div className="w-20 h-20 rounded-[32px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-500 shadow-inner shadow-black/40"><Plus className="text-text-dim group-hover:text-accent" size={32} /></div><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.4em] group-hover:text-white transition-colors">Deploy Protocol</span></button></StaggeredItem>
     </div>
   </div>
 );
@@ -309,7 +302,7 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark }) => {
                 <div className={cn("absolute left-0 inset-y-0 bg-[#1a1a1a] transition-all duration-700", isL && "bg-danger/40 w-full")} style={{ width: isL ? '100%' : `${p * 72}%` }} />
                 {!isL && count > 0 && <div className="absolute inset-y-0 w-3 bg-[#FF3D00] shadow-[0_0_20px_#FF3D00] z-20" style={{ left: `calc(${p * 72}% - 1.5px)` }} />}
                 {!isL && <div className={cn("absolute right-[28%] inset-y-0 transition-all duration-700 shadow-xl", isCig ? "bg-white" : "bg-[#C8E6C9]")} style={{ left: `${p * 72}%` }} />}
-                <div className={cn("absolute inset-y-0 right-0 w-[28%] border-l border-black/20 z-[11]", isL ? "bg-danger" : (isCig ? "bg-[#D97706]" : "bg-[#333]"))} />
+                <div className={cn("absolute inset-y-0 right-0 w-[28%] border-l border-black/20 z-[11]", isL ? "bg-danger" : (isCig ? "bg-[#D97706]" : "bg-[#424242]"))} />
              </div>
           ) : (
              <div className="relative w-56 h-56 mb-10 flex items-center justify-center"><svg className="w-full h-full -rotate-90"><circle cx="112" cy="112" r="100" className={cn("fill-transparent stroke-[12]", isDark ? "stroke-white/5" : "stroke-black/5")} /><motion.circle cx="112" cy="112" r="100" className={cn("fill-transparent stroke-[12] transition-all duration-1000", isL ? "stroke-danger" : "stroke-accent shadow-accent")} strokeDasharray="628" initial={{ strokeDashoffset: 628 }} animate={{ strokeDashoffset: 628 - (Math.min(1, p) * 628) }} strokeLinecap="round" /></svg><div className="absolute inset-0 flex flex-col items-center justify-center"><div className={cn("text-7xl font-[1000] tracking-tighter", isL ? "text-danger" : (isDark ? "text-white" : "text-[#1D1D1F]"))}>{count}</div><Activity size={24} className={cn("mt-2", isL ? "text-danger" : "text-accent")} /></div></div>
@@ -327,7 +320,7 @@ const HealthScreen = ({ last, isDark }) => {
   return (
     <div className="flex flex-col space-y-12 pb-20 max-w-5xl mx-auto">
        <Card className={cn("p-14 overflow-hidden relative shadow-2xl", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}><div className="flex justify-between items-center mb-14 relative z-10"><div className="w-24 h-24 rounded-[42px] bg-success/20 flex items-center justify-center border border-success/30 text-success shadow-2xl shadow-success/20"><Heart size={48} fill="currentColor" /></div><div className="text-right"><span className="text-[11px] font-black text-text-dim uppercase tracking-[0.4em]">Vault Security State</span><div className={cn("text-6xl font-[1000] text-success tracking-tighter mt-3 drop-shadow-2xl", !isDark && "text-success")}>{h}<span className="text-xl mx-2 opacity-60 font-black">H</span>{m}<span className="text-xl mx-2 opacity-60 font-black">M</span></div></div></div><h2 className={cn("text-5xl font-[1000] tracking-tighter uppercase leading-none mb-4 relative z-10", !isDark && "text-[#1D1D1F]")}>Biological Repair</h2><p className="text-base font-bold text-text-muted max-w-lg relative z-10 leading-relaxed opacity-80 border-l-4 border-success/30 pl-8 transition-all hover:opacity-100 font-bold font-inter">Neural and cellular sequences are currently re-aligning. Recovery protocols verified.</p><div className="absolute top-0 right-0 w-[600px] h-[600px] bg-success/10 rounded-full blur-[180px] -mr-64 -mt-64 animate-pulse" /></Card>
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pb-32">{miles.map((m, i) => <StaggeredItem key={m.title} index={i+1}><Card className={cn("h-full flex flex-col group p-12 transition-all duration-1000 hover:bg-white/[0.01] shadow-2xl", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="flex justify-between items-start mb-12"><div className="space-y-2"><span className={cn("text-[10px] font-[1000] uppercase tracking-[0.5em] transition-all duration-1000", m.progress >= 1 ? "text-success shadow-success" : "text-text-dim group-hover:text-success/50")}>{m.progress >= 1 ? 'Phase Stabilized' : 'In Progress'}</span><h4 className={cn("text-3xl font-[1000] tracking-tighter uppercase leading-none mt-2 transition-all duration-700", !isDark && "text-[#1D1D1F]")}>{m.title}</h4></div><div className="text-6xl font-[1000] text-success tracking-tighter transition-all duration-700 group-hover:scale-110">{Math.floor(m.progress * 100)}%</div></div><div className="w-full h-2.5 bg-black/10 rounded-full overflow-hidden mb-12 border border-white/5 p-0.5 shadow-inner relative"><motion.div animate={{ width: `${m.progress * 100}%` }} className="h-full bg-success shadow-[0_0_30px_rgba(74,222,128,0.6)] rounded-full transition-all duration-1000" /></div><p className="text-sm font-bold text-text-muted leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity flex-1 leading-loose border-l-2 border-white/5 pl-8">{m.desc}</p></Card></StaggeredItem>)}</div>
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pb-32">{miles.map((m, i) => <StaggeredItem key={m.title} index={i+1}><Card className={cn("h-full flex flex-col group p-12 transition-all duration-1000 hover:bg-white/[0.01] shadow-2xl", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="flex justify-between items-start mb-12"><div className="space-y-2"><span className={cn("text-[10px] font-[1000] uppercase tracking-[0.5em] transition-all duration-1000", m.progress >= 1 ? "text-success shadow-success" : "text-text-dim group-hover:text-success/50")}>{m.progress >= 1 ? 'Phase Stabilized' : 'In Progress'}</span><h4 className={cn("text-3xl font-[1000] tracking-tighter uppercase leading-none mt-2 transition-all duration-700", !isDark && "text-[#1D1D1F]")}>{m.title}</h4></div><div className="text-6xl font-[1000] text-success tracking-tighter transition-all duration-700 group-hover:scale-110">{Math.floor(m.progress * 100)}%</div></div><div className="w-full h-2.5 bg-black/10 rounded-full overflow-hidden mb-12 border border-white/5 p-0.5 shadow-inner relative"><motion.div animate={{ width: `${m.progress * 100}%` }} className="h-full bg-success shadow-[0_0_30px_rgba(74,222,128,0.6)] rounded-full transition-all duration-1000" /></div><p className="text-sm font-bold text-text-muted leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity flex-1 leading-loose border-l-2 border-white/5 pl-8 font-inter">{m.desc}</p></Card></StaggeredItem>)}</div>
     </div>
   );
 };
@@ -346,7 +339,7 @@ const HistoryScreen = ({ logs, configs, todayString, onEdit, m, isDark }) => {
   );
 };
 
-const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
+const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel, onAddTrigger }) => {
   const [al, setAl] = useState(u.displayName || 'Commander'); const [gl, setGl] = useState(s.goal || 'OPTIMIZATION');
   return (
     <div className="flex flex-col space-y-12 pb-40 max-w-4xl mx-auto">
@@ -362,7 +355,7 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
        </Card>
        <Card className={cn("p-14 border-white/5 shadow-2xl", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}>
           <div className="flex justify-between items-center mb-16 px-2"><div className="space-y-2"><h4 className={cn("text-4xl font-[1000] uppercase tracking-tighter leading-none transition-colors", !s.isDark && "text-[#1D1D1F]")}>Protocols</h4><p className="text-[11px] font-black text-text-dim uppercase tracking-[0.4em] mt-3 opacity-60 font-black font-inter">Manage operational logic</p></div><div className={cn("p-5 rounded-[32px] shadow-2xl border", s.isDark ? "bg-white/5 border-white/5" : "bg-black/5 border-black/5 text-black/30")}><RefreshCcw size={28} /></div></div>
-          <div className="space-y-16"><Input label="Global unit rate ($)" value={s.globalPrice} onChange={(v) => onUpd({ globalPrice: v })} type="number" isDark={s.isDark} /><div className="space-y-8">{c.map(x => <div key={x.id} className={cn("flex items-center justify-between p-12 rounded-[56px] border group transition-all duration-1000 shadow-2xl hover:border-accent/40", s.isDark ? "bg-white/[0.01] border-white/5 shadow-black/40" : "bg-[#F5F5F7] border-black/5 shadow-inner")}><div className="flex items-center space-x-10"><div className="flex flex-col space-y-3"><button onClick={() => onReo(x.id, 'up')} className={cn("p-3 rounded-xl transition-all hover:scale-110 shadow-lg", s.isDark ? "bg-white/5 text-text-dim" : "bg-black/5 text-[#1D1D1F]/20")}><ArrowUp size={16} /></button><button onClick={() => onReo(x.id, 'down')} className={cn("p-3 rounded-xl transition-all hover:scale-110 shadow-lg", s.isDark ? "bg-white/5 text-text-dim" : "bg-black/5 text-[#1D1D1F]/20")}><ArrowDown size={16} /></button></div><div className="flex flex-col space-y-1"><span className={cn("text-2xl font-[1000] uppercase leading-none transition-all group-hover:text-accent", !s.isDark && "text-[#1D1D1F]")}>{x.name}</span><span className="text-[11px] font-black text-text-dim uppercase tracking-[0.3em] mt-2 opacity-60 font-black font-inter">Target: {x.limit} UNITS</span></div></div><div className="flex items-center space-x-6 opacity-0 group-hover:opacity-100 duration-700 transition-all translate-x-8 group-hover:translate-x-0"><button onClick={() => onDel(x.id)} className="p-5 rounded-[24px] bg-danger/5 text-danger/40 hover:text-danger border border-danger/10 shadow-2xl transition-all hover:scale-110 shadow-black/40"><Trash2 size={24} /></button></div></div>)}</div><Button variant="outline" className={cn("w-full border-dashed border-2 rounded-[56px] h-28 hover:bg-accent-soft hover:border-accent group transition-all transition-colors shadow-black/5", !s.isDark && "text-[#1D1D1F] border-black/10 shadow-inner")} onClick={onAdd}><Plus className="mr-6 group-hover:rotate-90 transition-transform duration-1000 text-accent scale-110" size={40} /><span className="text-base font-[1000] tracking-[0.3em]">Initialize Tracker</span></Button></div>
+          <div className="space-y-16"><Input label="Global unit rate ($)" value={s.globalPrice} onChange={(v) => onUpd({ globalPrice: v })} type="number" isDark={s.isDark} /><div className="space-y-8">{c.map(x => <div key={x.id} className={cn("flex items-center justify-between p-12 rounded-[56px] border group transition-all duration-1000 shadow-2xl hover:border-accent/40", s.isDark ? "bg-white/[0.01] border-white/5 shadow-black/40" : "bg-[#F5F5F7] border-black/5 shadow-inner")}><div className="flex items-center space-x-10"><div className="flex flex-col space-y-3"><button onClick={() => onReo(x.id, 'up')} className={cn("p-3 rounded-xl transition-all hover:scale-110 shadow-lg", s.isDark ? "bg-white/5 text-text-dim" : "bg-black/5 text-[#1D1D1F]/20")}><ArrowUp size={16} /></button><button onClick={() => onReo(x.id, 'down')} className={cn("p-3 rounded-xl transition-all hover:scale-110 shadow-lg", s.isDark ? "bg-white/5 text-text-dim" : "bg-black/5 text-[#1D1D1F]/20")}><ArrowDown size={16} /></button></div><div className="flex flex-col space-y-1"><span className={cn("text-2xl font-[1000] uppercase leading-none transition-all group-hover:text-accent", !s.isDark && "text-[#1D1D1F]")}>{x.name}</span><span className="text-[11px] font-black text-text-dim uppercase tracking-[0.3em] mt-2 opacity-60 font-black font-inter">Target: {x.limit} UNITS</span></div></div><div className="flex items-center space-x-6 opacity-0 group-hover:opacity-100 duration-700 transition-all translate-x-8 group-hover:translate-x-0"><button onClick={() => onDel(x.id)} className="p-5 rounded-[24px] bg-danger/5 text-danger/40 hover:text-danger border border-danger/10 shadow-2xl transition-all hover:scale-110"><Trash2 size={24} /></button></div></div>)}</div><Button variant="outline" className={cn("w-full border-dashed border-2 rounded-[56px] h-28 hover:bg-accent-soft hover:border-accent group transition-all transition-colors shadow-black/5", !s.isDark && "text-[#1D1D1F] border-black/10 shadow-inner")} onClick={onAddTrigger}><Plus className="mr-6 group-hover:rotate-90 transition-transform duration-1000 text-accent scale-110" size={40} /><span className="text-base font-[1000] tracking-[0.3em]">Initialize Tracker</span></Button></div>
        </Card>
        <Button variant="danger" className="w-full h-24 rounded-[42px] shadow-2xl hover:scale-[1.01] active:scale-[0.98] text-sm font-black transition-all shadow-black/80 shadow-black/50" onClick={() => signOut(auth)}>Emergency Session Termination</Button>
     </div>
@@ -398,16 +391,16 @@ const EditForm = ({ log, configs, onSave, isDark }) => {
   const [c, setC] = useState({ ...(log.counts || {}) });
   return (
     <div className="space-y-14">
-       <div className={cn("flex items-center space-x-8 p-8 rounded-[42px] border shadow-inner", isDark ? "bg-black/40 border-white/5 shadow-black/30" : "bg-black/5 border-black/5 shadow-inner")}><div className="p-5 bg-accent-soft rounded-[28px] border border-accent/20 shadow-accent/20 shadow-xl"><Calendar size={32} className="text-accent" /></div><span className={cn("text-lg font-black uppercase tracking-[0.4em] opacity-90", !isDark && "text-[#1D1D1F]")}>{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span></div>
+       <div className={cn("flex items-center space-x-8 p-8 rounded-[42px] border shadow-inner", isDark ? "bg-black/40 border-white/5" : "bg-black/5 border-black/5 shadow-inner")}><div className="p-5 bg-accent-soft rounded-[28px] border border-accent/20 shadow-accent/20 shadow-xl"><Calendar size={32} className="text-accent" /></div><span className={cn("text-lg font-black uppercase tracking-[0.4em] opacity-90", !isDark && "text-[#1D1D1F]")}>{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span></div>
        <div className="max-h-[400px] overflow-y-auto pr-8 space-y-12 scrollbar-thin scrollbar-thumb-accent/40 pb-10">{configs.map(x => <Input key={x.id} label={x.name} value={c[x.id] || 0} type="number" onChange={v => setC({...c, [x.id]: parseInt(v) || 0})} isDark={isDark} />)}</div>
-       <Button size="lg" className="w-full h-24 rounded-[42px] shadow-2xl text-base font-[1000] transition-all hover:scale-[1.02] active:scale-95 shadow-black/50" onClick={() => onSave(log.logDate, c)}><Save size={32} className="mr-6" /> Commit Override</Button>
+       <Button size="lg" className="w-full h-24 rounded-[42px] shadow-2xl text-base font-[1000] transition-all hover:scale-[1.02] active:scale-95 shadow-black/50" onClick={() => onSave(log.logDate, c)}>Register Override</Button>
     </div>
   );
 };
 
 const InsightCard = ({ Icon, label, val, suffix, color, index, isDark }) => (
   <StaggeredItem index={index}>
-    <Card className={cn("flex flex-col items-center text-center py-16 transition-all duration-1000 shadow-2xl group shadow-black/5 shadow-black/10 shadow-2xl", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}>
+    <Card className={cn("flex flex-col items-center text-center py-16 transition-all duration-1000 shadow-2xl group shadow-black/5 shadow-black/10 shadow-2xl", isDark ? "bg-white/[0.03] border-white/5" : "bg-white border-black/5")}>
       <div className={cn("p-8 rounded-[48px] mb-12 transition-all duration-1000 group-hover:scale-110 shadow-2xl relative z-10", color, isDark ? "bg-white/[0.04]" : "bg-[#F0F2F5] shadow-inner")}><Icon size={48} /></div>
       <div className={cn("text-7xl font-[1000] leading-none tracking-tighter mb-4 relative z-10 drop-shadow-2xl transition-colors font-inter", !isDark && "text-[#1D1D1F]")}>{val}</div>
       <div className="text-[12px] font-black text-text-dim uppercase tracking-[0.6em] relative z-10 opacity-70 font-bold">{suffix}</div>
@@ -416,7 +409,7 @@ const InsightCard = ({ Icon, label, val, suffix, color, index, isDark }) => (
   </StaggeredItem>
 );
 
-const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter"><AlertCircle className="text-danger mb-6" size={48} /><h2 className="text-2xl font-black uppercase tracking-tighter leading-none mb-2 text-white font-black font-inter">Terminal Collision</h2><p className="text-text-dim text-sm max-w-xs">{msg}</p><Button onClick={() => window.location.reload()} className="mt-8 rounded-full">Re-Initialize Vault</Button></div>;
+const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter"><AlertCircle className="text-danger mb-6" size={48} /><h2 className="text-2xl font-black uppercase tracking-tighter leading-none mb-2 text-white font-black font-inter">System Terminal Fail</h2><p className="text-text-dim text-sm max-w-xs">{msg}</p><Button onClick={() => window.location.reload()} className="mt-8 rounded-full">Re-Initialize Vault</Button></div>;
 const LoadingView = () => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center space-y-6 text-accent font-inter"><Loader2 className="animate-spin" size={48} /><span className="text-[10px] font-black tracking-[0.5em] uppercase text-accent font-black">Syncing Neural Link...</span></div>;
 
 export default AppWrapper;
