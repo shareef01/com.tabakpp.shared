@@ -5,7 +5,7 @@ import {
   ChevronRight, Info, History, Plus, Minus, Edit2, Trash2,
   TrendingUp, Wallet, Activity, Calendar, Clock, ArrowUp, ArrowDown, X,
   Save, AlertCircle, RefreshCcw, Camera, Target, Layout, Type, Grid,
-  Database, ShieldCheck, Flame, Loader2, InfoIcon, User, UserCircle, Moon, Check
+  Database, ShieldCheck, Flame, Loader2, InfoIcon, User, UserCircle, Moon, Check, Sparkles
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -25,7 +25,7 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 import { cn } from './utils/utils';
 
-const APP_VERSION = "4.6.0-PRO-MAX-OPT";
+const APP_VERSION = "4.7.0-STABLE";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -184,7 +184,6 @@ const App = () => {
       className={cn("flex flex-col min-h-screen font-inter transition-all duration-700 overflow-hidden select-none", themeClass)}
       style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent), fontSize: `${settings.fontScale}rem` }}
     >
-      {/* HEADER - Safe Area Responsive */}
       <header className="fixed top-0 left-0 right-0 z-[100] pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-6 px-6 md:px-12 flex justify-between items-center bg-inherit/90 backdrop-blur-3xl border-b border-white/5">
         <div className="flex flex-col">
           <h1 className="text-3xl md:text-4xl font-[1000] tracking-tighter uppercase leading-none transition-colors">tabak++</h1>
@@ -209,7 +208,6 @@ const App = () => {
         </div>
       </header>
 
-      {/* CONTENT - Safe Area Responsive */}
       <main className="flex-1 overflow-y-auto pt-[calc(env(safe-area-inset-top)+6.5rem)] pb-[calc(env(safe-area-inset-bottom)+9rem)] px-4 md:px-12 max-w-5xl mx-auto w-full transition-all duration-500">
         <AnimatePresence mode="wait">
           {activeTab === 'tracker' && <TrackerScreen key="t" m={metrics} c={configs} onInc={onInc} onDec={onDec} isDark={settings.isDark} view={settings.layout} onAdd={() => setActiveTab('settings')} />}
@@ -227,7 +225,6 @@ const App = () => {
         </AnimatePresence>
       </main>
 
-      {/* NAV - iPhone Home Indicator Responsive */}
       <nav className="fixed bottom-0 left-0 right-0 md:bottom-10 md:left-1/2 md:-translate-x-1/2 md:w-[600px] pb-[calc(env(safe-area-inset-bottom)+0.2rem)] md:pb-0 z-[110] px-4">
         <div className={cn("backdrop-blur-3xl border rounded-t-[36px] md:rounded-[40px] flex justify-around items-center h-22 md:h-22 px-4 md:px-6 shadow-2xl transition-all duration-500", settings.isDark ? "bg-black/80 border-white/5 shadow-black" : "bg-white/80 border-black/5 shadow-black/5 shadow-2xl")}>
           <NavItem id="tracker" icon={LayoutDashboard} active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} label="tracker" isDark={settings.isDark} />
@@ -237,9 +234,8 @@ const App = () => {
         </div>
       </nav>
 
-      {/* OVERLAYS */}
       <AnimatePresence>
-        {showAdd && <Overlay onClose={() => setShowAdd(false)} title="New Protocol" isDark={settings.isDark}><AddForm onAdd={async (n, t, l) => { const id = Math.random().toString(36).substr(2, 9); await setDoc(doc(db, 'users', user.uid, 'configs', id), { name: n, type: t, limit: parseInt(l) || 20, order: configs.length }); setShowAdd(false); }} /></Overlay>}
+        {showAdd && <Overlay onClose={() => setShowAdd(false)} title="New Protocol" isDark={settings.isDark}><AddForm onAdd={async (n, t, l) => { const id = Math.random().toString(36).substr(2, 9); await setDoc(doc(db, 'users', user.uid, 'configs', id), { name: n, type: t, limit: parseInt(l) || 20, order: configs.length }); setShowAdd(false); }} isDark={settings.isDark} /></Overlay>}
         {editTarget && <Overlay onClose={() => setEditTarget(null)} title="Override Data" isDark={settings.isDark}><EditForm log={editTarget} configs={configs} onSave={async (d, c) => { await setDoc(doc(db, 'users', user.uid, 'logs', d), { counts: c }, { merge: true }); setEditTarget(null); }} isDark={settings.isDark} /></Overlay>}
       </AnimatePresence>
     </div>
@@ -339,7 +335,7 @@ const HistoryScreen = ({ logs, configs, todayString, onEdit, m, isDark }) => {
   }), [logs]);
   return (
     <div className="flex flex-col space-y-10 md:space-y-12 pb-20">
-       <StaggeredItem index={0}><Card className={cn("p-0 overflow-hidden shadow-2xl", isDark ? "bg-white/[0.03] border-accent/20 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="p-10 md:p-14 pb-8 md:pb-10 flex justify-between items-start"><div className="space-y-1.5 md:space-y-2"><span className="text-[10px] md:text-[11px] font-[1000] text-text-dim uppercase tracking-[0.5em]">Analytics Engine</span><h3 className={cn("text-4xl md:text-5xl font-[1000] text-accent mt-1 md:mt-2 uppercase tracking-tighter leading-none font-black")}>Usage Volatility</h3></div><div className="p-4 md:p-5 bg-accent-soft rounded-2xl md:rounded-[32px] border border-accent/20 shadow-2xl text-accent font-black"><BarChart3 size={32} /></div></div><div className="h-[280px] md:h-[350px] w-full pr-10 md:pr-14 pl-4 md:pl-6 pb-10 md:pb-14"><ResponsiveContainer width="100%" height="100%"><LineChart data={chart}><CartesianGrid strokeDasharray="8 8" stroke="rgba(128,128,128,0.1)" vertical={false} /><XAxis dataKey="name" stroke="#888" fontSize={10} axisLine={false} tickLine={false} dy={20} fontVariant="black" /><Tooltip contentStyle={{ background: isDark ? '#0D0D0E' : '#FFF', border: '1px solid var(--accent)', borderRadius: '24px', fontWeight: '950', fontSize: '13px', textTransform:'uppercase', boxShadow:'0 20px 50px rgba(0,0,0,0.4)', color: isDark ? '#FFF' : '#1D1D1F' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={6} dot={{ r: 6, fill: 'var(--accent)', strokeWidth: 3, stroke: isDark ? '#020202' : '#FFF' }} activeDot={{ r: 12, fill: '#FFF', shadow: '0 0 30px var(--accent)' }} animationDuration={2500} /></LineChart></ResponsiveContainer></div></Card></StaggeredItem>
+       <StaggeredItem index={0}><Card className={cn("p-0 overflow-hidden shadow-2xl", isDark ? "bg-white/[0.03] border-accent/20 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="p-10 md:p-14 pb-8 md:pb-10 flex justify-between items-start"><div className="space-y-1.5 md:space-y-2"><span className="text-[10px] md:text-[11px] font-[1000] text-text-dim uppercase tracking-[0.5em]">Analytics Engine</span><h3 className={cn("text-4xl md:text-5xl font-[1000] text-accent mt-1 md:mt-2 uppercase tracking-tighter leading-none font-black transition-colors")}>Usage Volatility</h3></div><div className="p-4 md:p-5 bg-accent-soft rounded-2xl md:rounded-[32px] border border-accent/20 shadow-2xl text-accent font-black"><BarChart3 size={32} /></div></div><div className="h-[280px] md:h-[350px] w-full pr-10 md:pr-14 pl-4 md:pl-6 pb-10 md:pb-14"><ResponsiveContainer width="100%" height="100%"><LineChart data={chart}><CartesianGrid strokeDasharray="8 8" stroke="rgba(128,128,128,0.1)" vertical={false} /><XAxis dataKey="name" stroke="#888" fontSize={10} axisLine={false} tickLine={false} dy={20} fontVariant="black" /><Tooltip contentStyle={{ background: isDark ? '#0D0D0E' : '#FFF', border: '1px solid var(--accent)', borderRadius: '24px', fontWeight: '950', fontSize: '13px', textTransform:'uppercase', boxShadow:'0 20px 50px rgba(0,0,0,0.4)', color: isDark ? '#FFF' : '#1D1D1F' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={6} dot={{ r: 6, fill: 'var(--accent)', strokeWidth: 3, stroke: isDark ? '#020202' : '#FFF' }} activeDot={{ r: 12, fill: '#FFF', shadow: '0 0 30px var(--accent)' }} animationDuration={2500} /></LineChart></ResponsiveContainer></div></Card></StaggeredItem>
        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10"><InsightCard Icon={TrendingUp} label="Streak" val={m.streak} suffix="Active Units" color="text-orange-400" index={1} isDark={isDark} /><InsightCard Icon={Wallet} label="Savings" val={`$${m.savings.toFixed(2)}`} suffix="Financial Gain" color="text-emerald-400" index={2} isDark={isDark} /><InsightCard Icon={Activity} label="Health Cost" val={`${Math.floor(m.lost/60)}H`} suffix="Time Impact" color="text-rose-400" index={3} isDark={isDark} /></div>
        <div className="space-y-8 md:space-y-10 pt-12 md:pt-16 px-2 md:px-4"><div className="flex items-center justify-between px-2"><h4 className="text-[12px] md:text-[14px] font-[1000] text-accent uppercase tracking-[0.6em]">Activity Ledger</h4><History size={18} className="text-accent/30" /></div><div className="grid gap-4 md:gap-6">{logs.sort((a,b)=>b.logDate.localeCompare(a.logDate)).map((log, i) => <StaggeredItem key={log.logDate} index={i+5}><Card className={cn("py-10 md:py-12 flex items-center justify-between group p-10 md:p-14 transition-all duration-700 shadow-2xl shadow-black/10", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="flex flex-col space-y-1.5 md:space-y-2"><span className={cn("text-2xl md:text-3xl font-[1000] tracking-tighter uppercase leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{log.logDate === todayString ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[10px] md:text-[11px] font-[900] text-text-dim uppercase tracking-[0.4em] mt-2 md:mt-3 flex items-center"><History size={14} className="mr-2.5 opacity-40" /> {Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} logs committed</span></div><div className="flex items-center space-x-8 md:space-x-12"><div className="flex -space-x-4 md:-space-x-5">{Object.entries(log.counts || {}).map(([cid, count]) => <div key={cid} className={cn("w-14 h-14 md:w-16 md:h-16 rounded-full border-[4px] md:border-[5px] flex items-center justify-center font-[1000] text-sm md:text-base shadow-2xl transition-all group-hover:-translate-y-2.5", isDark ? "bg-black border-white/5 text-white" : "bg-white border-black/5 text-black shadow-black/10")}>{count}</div>)}</div><button onClick={() => onEdit(log)} className={cn("p-4 md:p-5 rounded-2xl md:rounded-[24px] transition-all hover:scale-110 shadow-inner", isDark ? "bg-white/5 text-text-dim hover:text-accent" : "bg-[#F5F5F7] text-black/40 hover:text-accent shadow-inner")}><Edit2 size={20} /></button></div></Card></StaggeredItem>)}</div></div>
     </div>
@@ -347,17 +343,26 @@ const HistoryScreen = ({ logs, configs, todayString, onEdit, m, isDark }) => {
 };
 
 const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
-  const [al, setAl] = useState(u.displayName || 'Commander'); const [gl, setGl] = useState(s.goal || 'OPTIMIZATION');
+  const [al, setAl] = useState(u.displayName || 'Commander');
+  const [gl, setGl] = useState(s.goal || 'OPTIMIZATION');
+  const [ld, setLd] = useState(s.isDark);
+  const [la, setLa] = useState(s.accent);
+
+  const applyTheme = () => {
+    onUpd({ isDark: ld, accent: la });
+    setTimeout(() => window.location.reload(), 300);
+  };
+
   return (
     <div className="flex flex-col space-y-10 md:space-y-12 pb-40">
-       <Card className={cn("p-10 md:p-14 relative overflow-hidden shadow-2xl", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}><div className="flex items-center space-x-8 md:space-x-12 mb-12 md:mb-16 relative z-10"><div className="w-32 h-32 md:w-36 md:h-36 bg-accent rounded-[42px] md:rounded-[56px] border-2 border-accent/20 flex items-center justify-center text-6xl md:text-7xl font-[1000] text-bg-base shadow-2xl overflow-hidden shadow-accent/20 transition-all active:scale-95">{u.photoURL ? <img src={u.photoURL} className="w-full h-full object-cover" alt="p" /> : al.charAt(0)}</div><div className="space-y-3 md:space-y-4"><h4 className={cn("text-4xl md:text-5xl font-[1000] tracking-tighter uppercase leading-none transition-colors", !s.isDark && "text-[#1D1D1F]")}>{al}</h4><div className="flex items-center space-x-3 md:space-x-4"><div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_15px_var(--accent)]" /><span className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.6em] text-accent font-bold font-inter">Vault Commander</span></div></div></div><div className="space-y-10 md:space-y-12 relative z-10"><Input label="Identifier" value={al} onChange={setAl} isDark={s.isDark} /><Input label="Objective" value={gl} onChange={setGl} isDark={s.isDark} /><Button className="w-full h-20 md:h-22 rounded-[32px] shadow-2xl text-[10px] md:text-[11px] font-[1000] uppercase tracking-widest active:scale-95 transition-all" onClick={() => onUpd({ displayName: al, goal: gl })}>Update Parameters</Button></div></Card>
+       <Card className={cn("p-10 md:p-14 relative overflow-hidden shadow-2xl", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}><div className="flex items-center space-x-8 md:space-x-12 mb-12 md:mb-16 relative z-10"><div className="w-32 h-32 md:w-36 md:h-36 bg-accent rounded-[42px] md:rounded-[56px] border-2 border-accent/20 flex items-center justify-center text-6xl md:text-7xl font-[1000] text-bg-base shadow-2xl overflow-hidden shadow-accent/20 transition-all active:scale-95">{u.photoURL ? <img src={u.photoURL} className="w-full h-full object-cover" alt="p" /> : al.charAt(0)}</div><div className="space-y-3 md:space-y-4"><h4 className={cn("text-4xl md:text-5xl font-[1000] tracking-tighter uppercase leading-none transition-colors", !s.isDark && "text-[#1D1D1F]")}>{al}</h4><div className="flex items-center space-x-3 md:space-x-4"><div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_15px_var(--accent)]" /><span className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.6em] text-accent font-bold font-inter">Vault Commander</span></div></div></div><div className="space-y-10 md:space-y-12 relative z-10"><Input label="Identifier" value={al} onChange={setAl} isDark={s.isDark} /><Input label="Objective" value={gl} onChange={setGl} isDark={s.isDark} /><Button className="w-full h-22 rounded-full shadow-2xl text-[12px] font-[1000] uppercase tracking-widest active:scale-95 transition-all" onClick={() => onUpd({ displayName: al, goal: gl })}>Update Parameters</Button></div></Card>
        <Card className={cn("p-10 md:p-14 space-y-12 md:space-y-16 shadow-2xl", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12"><Toggle icon={Moon} label="Obsidian Mode" active={s.isDark} onClick={() => onUpd({ isDark: !s.isDark })} isDark={s.isDark} /><Toggle icon={Clock} label="Night Owl Mode" active={s.nightOwl} onClick={() => onUpd({ nightOwl: !s.nightOwl })} isDark={s.isDark} /><Toggle icon={Grid} label="Neural Matrix" active={s.layout === 'COMPACT'} onClick={() => onUpd({ layout: s.layout === 'LARGE' ? 'COMPACT' : 'LARGE' })} isDark={s.isDark} />
-             <div className={cn("p-8 md:p-10 rounded-[36px] md:rounded-[48px] border space-y-8 md:space-y-10 shadow-inner transition-all", s.isDark ? "bg-black/40 border-white/5 shadow-black/40" : "bg-[#F0F2F5] border-black/5 shadow-inner")}><div className="flex items-center justify-between px-1 md:px-2 text-[10px] md:text-xs font-[1000] uppercase tracking-[0.5em] opacity-60"><span>Accent Spectrum</span><Activity size={16} className="opacity-30" /></div><div className="flex flex-wrap gap-4 md:gap-5">{ACCENTS.map(x => (
-                   <button key={x.v} onClick={() => onUpd({ accent: x.v })} className={cn("w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl border-[3px] md:border-4 transition-all duration-700 shadow-2xl active:scale-90 relative", s.accent === x.v ? "border-white scale-110 shadow-accent/50" : "border-transparent opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>
-                      {s.accent === x.v && <motion.div layoutId="colorCheck" className="absolute inset-0 flex items-center justify-center text-white"><Check size={18} strokeWidth={4} /></motion.div>}
+          <div className="flex flex-col space-y-10"><Toggle icon={Moon} label="Obsidian Mode" active={ld} onClick={() => setLd(!ld)} isDark={s.isDark} /><Toggle icon={Clock} label="Night Owl Mode" active={s.nightOwl} onClick={() => onUpd({ nightOwl: !s.nightOwl })} isDark={s.isDark} /><Toggle icon={Grid} label="Neural Matrix" active={s.layout === 'COMPACT'} onClick={() => onUpd({ layout: s.layout === 'LARGE' ? 'COMPACT' : 'LARGE' })} isDark={s.isDark} />
+             <div className={cn("p-8 md:p-10 rounded-[36px] md:rounded-[48px] border space-y-10 shadow-inner transition-all", s.isDark ? "bg-black/40 border-white/5 shadow-black/40" : "bg-[#F0F2F5] border-black/5 shadow-inner")}><div className="flex items-center justify-between px-1 md:px-2 text-[10px] md:text-xs font-[1000] uppercase tracking-[0.5em] opacity-60"><span>Accent Spectrum</span><Activity size={16} className="opacity-30" /></div><div className="flex flex-wrap gap-4 md:gap-5 justify-center">{ACCENTS.map(x => (
+                   <button key={x.v} onClick={() => setLa(x.v)} className={cn("w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl border-[3px] md:border-4 transition-all duration-700 shadow-2xl active:scale-90 relative", la === x.v ? "border-white scale-110 shadow-accent/50" : "border-transparent opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>
+                      {la === x.v && <motion.div layoutId="colorCheck" className="absolute inset-0 flex items-center justify-center text-white"><Check size={18} strokeWidth={4} /></motion.div>}
                    </button>
-                ))}</div></div></div>
+                ))}</div><Button variant="outline" className="w-full h-18 rounded-full border-2 border-accent/20 hover:border-accent text-[10px] font-black uppercase tracking-widest" onClick={applyTheme}><Sparkles className="mr-3" size={18} /> Apply Identity Schema</Button></div></div>
           <div className="pt-8 md:pt-10 border-t border-white/10"><div className="flex justify-between items-center px-2 md:px-4 mb-8 md:mb-10"><span className={cn("text-[11px] md:text-[12px] font-[1000] uppercase tracking-[0.5em]", s.isDark ? "text-text-dim" : "text-[#1D1D1F]/60")}>Typography Scaling</span><span className="text-sm font-black text-accent">{Math.round(s.fontScale*100)}%</span></div><input type="range" min="0.8" max="1.3" step="0.1" value={s.fontScale} onChange={e => onUpd({ fontScale: parseFloat(e.target.value) })} className="w-full h-2 bg-black/10 rounded-full appearance-none cursor-pointer accent-accent shadow-inner transition-all hover:bg-black/20" /></div>
        </Card>
        <Card className={cn("p-10 md:p-14 border-white/5 shadow-2xl", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}>
