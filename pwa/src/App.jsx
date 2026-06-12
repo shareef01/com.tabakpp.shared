@@ -26,7 +26,7 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
-const APP_VERSION = "13.1.0-FIX-SCOPE";
+const APP_VERSION = "13.5.0-ACCENT-RESTORED";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -52,6 +52,11 @@ const hexToRgb = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
   return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 210, 255';
 };
+
+const ACCENTS = [
+  { n: 'Cyan', v: '#00d2ff' }, { n: 'Lime', v: '#D4FF5C' }, { n: 'Emerald', v: '#4ADE80' },
+  { n: 'Violet', v: '#A78BFA' }, { n: 'Amber', v: '#FBBF24' }, { n: 'Rose', v: '#FB7185' }
+];
 
 // --- MAIN WRAPPER ---
 const AppWrapper = () => (
@@ -149,6 +154,11 @@ const App = () => {
     await setDoc(ref, { counts: { ...counts, [id]: counts[id] - 1 } }, { merge: true });
   }, [user, today, metrics.todayLog.counts]);
 
+  const onUpdateSettings = useCallback((upd) => {
+    if (!user) return;
+    updateDoc(doc(db, 'users', user.uid), upd);
+  }, [user]);
+
   const onReorder = async (id, dir) => {
     if (!user) return;
     const sorted = [...configs].sort((a,b)=>a.order - b.order);
@@ -208,7 +218,7 @@ const App = () => {
             </motion.div>
           )}
           {activeTab === 'history' && <HistoryScreen logs={logs} configs={configs} m={metrics} onEdit={setEditTarget} userId={user.uid} today={today} />}
-          {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={onReorder} onEditP={setEditProtocol} />}
+          {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={onReorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} />}
         </AnimatePresence>
       </main>
 
@@ -342,68 +352,13 @@ const RingProgress = ({ count, limit }) => {
   );
 };
 
-const NavBtn = ({ icon: Icon, label, active, onClick }) => (
+const NavBtn = ({ id, icon: Icon, label, active, onClick }) => (
   <button onClick={onClick} className="relative flex-1 py-4 flex flex-col items-center gap-2 group transition-all duration-500 overflow-visible">
     <div className={cn("absolute -top-3 w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_15px_var(--accent)] transition-all duration-500", active ? "opacity-100 scale-100" : "opacity-0 scale-0")} />
     <Icon size={24} className={cn("transition-all duration-500", active ? "text-accent scale-110 drop-shadow-[0_0_10px_var(--accent-rgb)]" : "text-white/20 group-hover:text-white/40")} style={{'--accent-rgb': 'rgba(0,210,255,0.4)'}} strokeWidth={active ? 3 : 2} />
     <span className={cn("text-[9px] font-[1000] uppercase tracking-[0.4em] transition-all duration-500", active ? "text-white opacity-100" : "text-white/20 opacity-0 group-hover:opacity-40 translate-y-2 group-hover:translate-y-0")}>{label}</span>
   </button>
 );
-
-// --- MODALS & SCREENS ---
-
-const AuthScreen = ({ accent }) => {
-  const [isL, setIsL] = useState(true);
-  const [e, setE] = useState(''); const [p, setP] = useState(''); const [n, setN] = useState('');
-  const [loading, setLoading] = useState(false); const [err, setErr] = useState('');
-  const handle = async () => {
-    setLoading(true); setErr('');
-    try {
-      if (isL) { await signInWithEmailAndPassword(auth, e, p); }
-      else { const c = await createUserWithEmailAndPassword(auth, e, p); await updateProfile(c.user, { displayName: n }); await setDoc(doc(db, 'users', c.user.uid), { name: n, accent: '#00d2ff', isDark: true }); }
-    } catch (e) { setErr(e.message); } finally { setLoading(false); }
-  };
-  return (
-    <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center p-8 text-white font-inter relative overflow-hidden">
-      <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-accent/5 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-accent/5 rounded-full blur-[100px] animate-pulse delay-1000" />
-      <div className="w-full max-w-[450px] space-y-16 relative z-10">
-        <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', damping: 20 }} className="flex flex-col items-center text-center">
-          <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_80px_rgba(0,210,255,0.4)] text-black hover:scale-110 transition-transform duration-1000 cursor-pointer"><Zap size={48} fill="currentColor" /></div>
-          <h1 className="text-7xl font-[1000] tracking-tighter uppercase leading-none drop-shadow-2xl">TABAK<span className="text-accent">++</span></h1>
-          <p className="mt-8 text-white/20 text-[11px] font-black uppercase tracking-[1em] ml-[1em]">High Fidelity Tracking</p>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="bg-white/[0.02] border border-white/[0.05] p-12 rounded-[56px] space-y-10 shadow-[0_50px_100px_rgba(0,0,0,0.8)] backdrop-blur-xl">
-          <div className="space-y-8">
-            {err && <div className="p-6 bg-danger/10 border border-danger/20 rounded-[24px] text-danger text-[11px] font-[1000] text-center uppercase tracking-widest leading-relaxed">{err}</div>}
-            {!isL && (
-              <div className="relative group">
-                <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest opacity-40 group-focus-within:opacity-100 transition-opacity">Identity</span>
-                <input value={n} onChange={e=>setN(e.target.value)} className="w-full h-18 bg-white/[0.03] border border-white/5 rounded-[24px] px-6 pt-5 text-sm font-bold focus:border-accent/40 focus:bg-accent/5 outline-none transition-all" placeholder="Registry Name" />
-              </div>
-            )}
-            <div className="relative group">
-              <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest opacity-40 group-focus-within:opacity-100 transition-opacity">Link</span>
-              <input value={e} onChange={e=>setE(e.target.value)} className="w-full h-18 bg-white/[0.03] border border-white/5 rounded-[24px] px-6 pt-5 text-sm font-bold focus:border-accent/40 focus:bg-accent/5 outline-none transition-all" placeholder="Email Address" />
-            </div>
-            <div className="relative group">
-              <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest opacity-40 group-focus-within:opacity-100 transition-opacity">Passkey</span>
-              <input type="password" value={p} onChange={e=>setP(e.target.value)} className="w-full h-18 bg-white/[0.03] border border-white/5 rounded-[24px] px-6 pt-5 text-sm font-bold focus:border-accent/40 focus:bg-accent/5 outline-none transition-all" placeholder="••••••••" />
-            </div>
-            <button className="w-full h-20 bg-accent text-black font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-[0_20px_60px_rgba(0,210,255,0.4)] flex items-center justify-center font-inter" onClick={handle} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Registry' : 'Join Registry')}</button>
-          </div>
-          <div className="space-y-8 pt-8 border-t border-white/[0.05] text-center">
-             <div className="flex items-center justify-center gap-6">
-                <button className="w-16 h-16 rounded-[22px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center hover:bg-white/[0.08] transition-all"><Apple size={24} fill="currentColor" /></button>
-                <button className="w-16 h-16 rounded-[22px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center hover:bg-white/[0.08] transition-all"><Github size={24} fill="currentColor" /></button>
-             </div>
-             <button onClick={() => setIsL(!isL)} className="text-[11px] font-[1000] text-white/20 uppercase tracking-[0.4em] hover:text-accent transition-all font-inter">{isL ? "Request Access Entry" : "Return to Log In"}</button>
-          </div>
-        </motion.div>
-      </div>
-    </div>
-  );
-};
 
 const HistoryScreen = ({ logs, configs, m, onEdit, userId, today }) => {
   const onDelete = async (logDate) => {
@@ -461,8 +416,15 @@ const HistoryScreen = ({ logs, configs, m, onEdit, userId, today }) => {
   );
 };
 
-const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP }) => {
+const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd }) => {
   const [n, setN] = useState(user.displayName || '');
+  const [la, setLa] = useState(settings.accent);
+
+  const applyTheme = () => {
+    onUpd({ accent: la });
+    setTimeout(() => window.location.reload(), 300);
+  };
+
   return (
     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-12 max-w-3xl mx-auto font-inter">
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] space-y-12 shadow-[0_50px_100px_rgba(0,0,0,0.5)]">
@@ -482,6 +444,25 @@ const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP }) => {
              </div>
           </div>
        </Card>
+
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] space-y-10 shadow-2xl">
+          <div className="space-y-10">
+             <div className="px-2">
+                <h3 className="text-[12px] font-black uppercase tracking-[0.4em] text-white/30 mb-2">Interface Schematics</h3>
+                <span className="text-3xl font-[1000] tracking-tighter uppercase">Accent Spectrum</span>
+             </div>
+
+             <div className="grid grid-cols-3 gap-6">
+                {ACCENTS.map(x => (
+                   <button key={x.v} onClick={() => setLa(x.v)} className={cn("h-16 rounded-[24px] border-2 transition-all duration-500 relative flex items-center justify-center", la === x.v ? "border-white scale-105 shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>
+                      {la === x.v && <Check size={24} className="text-white drop-shadow-md" strokeWidth={4} />}
+                   </button>
+                ))}
+             </div>
+             <button onClick={applyTheme} className="w-full h-20 bg-accent text-black font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-[0_20px_50px_var(--accent-rgb)] flex items-center justify-center gap-4" style={{'--accent-rgb': 'rgba(0,210,255,0.3)'}}><Zap size={22} fill="currentColor" /> Apply Scheme</button>
+          </div>
+       </Card>
+
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] space-y-10 shadow-2xl">
           <div className="flex items-center justify-between px-2">
              <div className="space-y-2">
@@ -516,6 +497,15 @@ const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP }) => {
     </motion.div>
   );
 };
+
+const InsightCard = ({ icon: Icon, label, val, sub, color }) => (
+  <Card className="p-12 bg-white/[0.02] border border-white/[0.03] flex flex-col items-center text-center shadow-2xl rounded-[56px] group hover:border-accent/20 transition-all duration-700">
+     <div className={cn("p-6 rounded-[28px] bg-white/[0.03] mb-8 shadow-inner border border-white/5 group-hover:scale-110 transition-transform duration-700", color)}><Icon size={40} /></div>
+     <span className="text-6xl font-[1000] tracking-tighter tabular-nums mb-3 font-inter group-hover:text-white transition-colors">{val}</span>
+     <span className="text-[12px] font-black text-white/20 uppercase tracking-[0.5em] font-inter group-hover:text-white/40">{sub}</span>
+     <div className="mt-10 pt-10 border-t border-white/[0.05] w-full text-[11px] font-black uppercase tracking-[0.8em] text-accent opacity-20 font-inter group-hover:opacity-40">{label}</div>
+  </Card>
+);
 
 const ProfileModal = ({ user, onClose }) => (
   <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-black/80 backdrop-blur-xl">
@@ -632,15 +622,6 @@ const EditOverlay = ({ log, configs, onClose, user }) => {
     </div>
   );
 };
-
-const InsightCard = ({ icon: Icon, label, val, sub, color }) => (
-  <Card className="p-12 bg-white/[0.02] border border-white/[0.03] flex flex-col items-center text-center shadow-2xl rounded-[56px] group hover:border-accent/20 transition-all duration-700">
-     <div className={cn("p-6 rounded-[28px] bg-white/[0.03] mb-8 shadow-inner border border-white/5 group-hover:scale-110 transition-transform duration-700", color)}><Icon size={40} /></div>
-     <span className="text-6xl font-[1000] tracking-tighter tabular-nums mb-3 font-inter group-hover:text-white transition-colors">{val}</span>
-     <span className="text-[12px] font-black text-white/20 uppercase tracking-[0.5em] font-inter group-hover:text-white/40">{sub}</span>
-     <div className="mt-10 pt-10 border-t border-white/[0.05] w-full text-[11px] font-black uppercase tracking-[0.8em] text-accent opacity-20 font-inter group-hover:opacity-40">{label}</div>
-  </Card>
-);
 
 const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#0a0a0c] flex flex-col items-center justify-center p-12 text-center text-white font-inter"><AlertCircle className="text-danger mb-12" size={120} strokeWidth={2} /><h2 className="text-5xl font-[1000] uppercase tracking-tighter leading-none mb-8 font-inter">Sync Failure</h2><p className="text-white/20 text-sm max-w-sm font-bold opacity-60 leading-relaxed uppercase tracking-widest mb-16 font-inter">{msg}</p><button onClick={() => window.location.reload()} className="rounded-[32px] font-[1000] uppercase tracking-[0.6em] px-20 h-24 bg-white text-black shadow-2xl active:scale-95 transition-all font-inter">Re-Link System</button></div>;
 const LoadingView = () => <div className="min-h-screen bg-[#0a0a0c] flex flex-col items-center justify-center space-y-12 text-accent font-inter"><Loader2 className="animate-spin" size={100} strokeWidth={3} /><span className="text-sm font-black tracking-[1.5em] uppercase text-accent animate-pulse ml-[1.5em] font-inter">Synchronizing Registry</span></div>;
