@@ -26,7 +26,7 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
-const APP_VERSION = "13.0.0-ULTRA-MODERN";
+const APP_VERSION = "13.1.0-FIX-SCOPE";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -76,7 +76,7 @@ const App = () => {
     accent: '#00d2ff', isDark: true, layout: 'LARGE', fontScale: 1, nightOwl: false, globalPrice: '0.5'
   });
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -171,7 +171,6 @@ const App = () => {
       className="min-h-screen bg-[#0a0a0c] text-white font-inter selection:bg-accent/30 overflow-x-hidden"
       style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent), fontSize: `${settings.fontScale}rem` }}
     >
-      {/* ULTRA-MODERN HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0c]/40 backdrop-blur-3xl border-b border-white/[0.03] px-6 py-5">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex flex-col">
@@ -192,8 +191,7 @@ const App = () => {
         </div>
       </header>
 
-      {/* SCROLLABLE CONTENT */}
-      <main className="pt-28 pb-[16rem] px-6 max-w-7xl mx-auto">
+      <main className="flex-1 overflow-y-auto pt-28 pb-[16rem] px-6 max-w-7xl mx-auto">
         <AnimatePresence mode="wait">
           {activeTab === 'track' && (
             <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} transition={{ type: 'spring', damping: 20, stiffness: 100 }} className="space-y-12">
@@ -209,12 +207,11 @@ const App = () => {
               </div>
             </motion.div>
           )}
-          {activeTab === 'history' && <HistoryScreen logs={logs} configs={configs} m={metrics} onEdit={setEditTarget} userId={user.uid} />}
+          {activeTab === 'history' && <HistoryScreen logs={logs} configs={configs} m={metrics} onEdit={setEditTarget} userId={user.uid} today={today} />}
           {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={onReorder} onEditP={setEditProtocol} />}
         </AnimatePresence>
       </main>
 
-      {/* ULTRA-MODERN GLASS BOTTOM NAVIGATION */}
       <nav className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-full max-w-[500px] px-6">
         <div className="bg-[#121316]/60 backdrop-blur-3xl border border-white/[0.05] rounded-[40px] p-2 flex items-center justify-between shadow-[0_40px_100px_rgba(0,0,0,0.8)]">
           <NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} />
@@ -366,22 +363,16 @@ const AuthScreen = ({ accent }) => {
       else { const c = await createUserWithEmailAndPassword(auth, e, p); await updateProfile(c.user, { displayName: n }); await setDoc(doc(db, 'users', c.user.uid), { name: n, accent: '#00d2ff', isDark: true }); }
     } catch (e) { setErr(e.message); } finally { setLoading(false); }
   };
-  const rgb = hexToRgb(accent);
   return (
     <div className="min-h-screen bg-[#0a0a0c] flex items-center justify-center p-8 text-white font-inter relative overflow-hidden">
-      {/* Background Decor */}
       <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-accent/5 rounded-full blur-[120px] animate-pulse" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-accent/5 rounded-full blur-[100px] animate-pulse delay-1000" />
-
       <div className="w-full max-w-[450px] space-y-16 relative z-10">
         <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', damping: 20 }} className="flex flex-col items-center text-center">
-          <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_80px_rgba(0,210,255,0.4)] text-black hover:scale-110 transition-transform duration-1000 cursor-pointer">
-            <Zap size={48} fill="currentColor" />
-          </div>
+          <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_80px_rgba(0,210,255,0.4)] text-black hover:scale-110 transition-transform duration-1000 cursor-pointer"><Zap size={48} fill="currentColor" /></div>
           <h1 className="text-7xl font-[1000] tracking-tighter uppercase leading-none drop-shadow-2xl">TABAK<span className="text-accent">++</span></h1>
           <p className="mt-8 text-white/20 text-[11px] font-black uppercase tracking-[1em] ml-[1em]">High Fidelity Tracking</p>
         </motion.div>
-
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="bg-white/[0.02] border border-white/[0.05] p-12 rounded-[56px] space-y-10 shadow-[0_50px_100px_rgba(0,0,0,0.8)] backdrop-blur-xl">
           <div className="space-y-8">
             {err && <div className="p-6 bg-danger/10 border border-danger/20 rounded-[24px] text-danger text-[11px] font-[1000] text-center uppercase tracking-widest leading-relaxed">{err}</div>}
@@ -399,15 +390,14 @@ const AuthScreen = ({ accent }) => {
               <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest opacity-40 group-focus-within:opacity-100 transition-opacity">Passkey</span>
               <input type="password" value={p} onChange={e=>setP(e.target.value)} className="w-full h-18 bg-white/[0.03] border border-white/5 rounded-[24px] px-6 pt-5 text-sm font-bold focus:border-accent/40 focus:bg-accent/5 outline-none transition-all" placeholder="••••••••" />
             </div>
-            <button className="w-full h-20 bg-accent text-black font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-[0_20px_60px_rgba(0,210,255,0.4)] flex items-center justify-center" onClick={handle} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Registry' : 'Join Registry')}</button>
+            <button className="w-full h-20 bg-accent text-black font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-[0_20px_60px_rgba(0,210,255,0.4)] flex items-center justify-center font-inter" onClick={handle} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Registry' : 'Join Registry')}</button>
           </div>
-
-          <div className="space-y-8 pt-8 border-t border-white/[0.05]">
+          <div className="space-y-8 pt-8 border-t border-white/[0.05] text-center">
              <div className="flex items-center justify-center gap-6">
                 <button className="w-16 h-16 rounded-[22px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center hover:bg-white/[0.08] transition-all"><Apple size={24} fill="currentColor" /></button>
                 <button className="w-16 h-16 rounded-[22px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center hover:bg-white/[0.08] transition-all"><Github size={24} fill="currentColor" /></button>
              </div>
-             <button onClick={() => setIsL(!isL)} className="w-full text-[11px] font-[1000] text-white/20 uppercase tracking-[0.4em] hover:text-accent transition-all">{isL ? "Request Access Entry" : "Return to Log In"}</button>
+             <button onClick={() => setIsL(!isL)} className="text-[11px] font-[1000] text-white/20 uppercase tracking-[0.4em] hover:text-accent transition-all font-inter">{isL ? "Request Access Entry" : "Return to Log In"}</button>
           </div>
         </motion.div>
       </div>
@@ -415,7 +405,7 @@ const AuthScreen = ({ accent }) => {
   );
 };
 
-const HistoryScreen = ({ logs, configs, m, onEdit, userId }) => {
+const HistoryScreen = ({ logs, configs, m, onEdit, userId, today }) => {
   const onDelete = async (logDate) => {
     if (window.confirm("Permanently delete this registry record?")) {
       await deleteDoc(doc(db, 'users', userId, 'logs', logDate));
@@ -442,13 +432,11 @@ const HistoryScreen = ({ logs, configs, m, onEdit, userId }) => {
              </ResponsiveContainer>
           </div>
        </Card>
-
        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <InsightCard icon={TrendingUp} label="Streak" val={m.streak} sub="Days Active" color="text-amber-400" />
           <InsightCard icon={Wallet} label="Retained" val={`$${m.savings.toFixed(2)}`} sub="Capital Saved" color="text-emerald-400" />
           <InsightCard icon={Activity} label="Impact" val={`${Math.floor(m.lost/60)}H`} sub="Time Restored" color="text-rose-400" />
        </div>
-
        <div className="space-y-8 pt-12">
           <div className="flex items-center justify-between px-4">
              <h4 className="text-[12px] font-black text-white/20 tracking-[0.8em] uppercase">Timeline Feed</h4>
@@ -494,7 +482,6 @@ const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP }) => {
              </div>
           </div>
        </Card>
-
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] space-y-10 shadow-2xl">
           <div className="flex items-center justify-between px-2">
              <div className="space-y-2">
@@ -513,8 +500,8 @@ const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP }) => {
                       </div>
                       <div className="w-18 h-18 bg-white/[0.03] border border-white/5 rounded-[24px] flex items-center justify-center text-accent/50 group-hover:text-accent transition-all shadow-inner">{c.type.startsWith('JOINT') ? <Crown size={32} /> : <Activity size={32} />}</div>
                       <div className="flex flex-col gap-1.5">
-                        <span className="text-2xl font-[1000] tracking-tight uppercase group-hover:text-white transition-colors">{c.name}</span>
-                        <span className="text-[11px] font-black text-white/20 uppercase tracking-[0.4em]">Registry Target: {c.limit}</span>
+                        <span className="text-2xl font-[1000] tracking-tight uppercase group-hover:text-white transition-colors font-inter">{c.name}</span>
+                        <span className="text-[11px] font-black text-white/20 uppercase tracking-[0.4em] font-inter">Registry Target: {c.limit}</span>
                       </div>
                    </div>
                    <div className="flex items-center gap-6 opacity-0 group-hover:opacity-100 transition-all">
@@ -540,8 +527,8 @@ const ProfileModal = ({ user, onClose }) => (
          </div>
       </div>
       <div>
-         <h4 className="text-4xl font-[1000] uppercase tracking-tighter leading-none">{user.displayName || 'Registry User'}</h4>
-         <p className="text-white/20 text-sm font-black tracking-[0.4em] uppercase mt-4">{user.email}</p>
+         <h4 className="text-4xl font-[1000] uppercase tracking-tighter leading-none font-inter">{user.displayName || 'Registry User'}</h4>
+         <p className="text-white/20 text-sm font-black tracking-[0.4em] uppercase mt-4 font-inter">{user.email}</p>
       </div>
       <button onClick={onClose} className="w-full h-20 bg-white text-black font-[1000] uppercase tracking-[0.5em] rounded-[28px] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3">Dismiss <ChevronRight size={24} /></button>
     </motion.div>
@@ -561,25 +548,25 @@ const AddOverlay = ({ onClose, user, configs }) => {
           <div className="flex justify-between items-center"><h3 className="text-4xl font-[1000] uppercase tracking-tighter">New Protocol</h3><button onClick={onClose} className="p-4 bg-white/5 rounded-full hover:bg-white/10 transition-all"><X size={32} /></button></div>
           <div className="space-y-10">
             <div className="relative group">
-              <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest">Descriptor</span>
-              <input value={n} onChange={e=>setN(e.target.value)} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-lg font-[1000] focus:border-accent/40 outline-none transition-all" placeholder="Protocol Label" />
+              <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest font-inter">Descriptor</span>
+              <input value={n} onChange={e=>setN(e.target.value)} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-lg font-[1000] focus:border-accent/40 outline-none transition-all font-inter" placeholder="Protocol Label" />
             </div>
             <div className="relative group">
-              <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest">Threshold</span>
-              <input type="number" value={l} onChange={e=>setL(e.target.value)} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-lg font-[1000] focus:border-accent/40 outline-none transition-all" />
+              <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest font-inter">Threshold</span>
+              <input type="number" value={l} onChange={e=>setL(e.target.value)} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-lg font-[1000] focus:border-accent/40 outline-none transition-all font-inter" />
             </div>
             <div className="space-y-5">
-               <span className="text-[11px] font-black uppercase tracking-[0.8em] text-white/20 ml-2">Visual Schematic</span>
+               <span className="text-[11px] font-black uppercase tracking-[0.8em] text-white/20 ml-2 font-inter">Visual Schematic</span>
                <div className="grid grid-cols-2 gap-5">
                   {['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => (
-                     <button key={x} onClick={() => setT(x)} className={cn("h-18 rounded-[32px] border-2 font-black text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-4", t === x ? "border-accent bg-accent/10 text-accent shadow-[0_0_30px_rgba(0,210,255,0.2)]" : "border-white/5 text-white/20 hover:border-white/10")}>
+                     <button key={x} onClick={() => setT(x)} className={cn("h-18 rounded-[32px] border-2 font-black text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-4 font-inter", t === x ? "border-accent bg-accent/10 text-accent shadow-[0_0_30px_rgba(0,210,255,0.2)]" : "border-white/5 text-white/20 hover:border-white/10")}>
                         {x.includes('KING') && <Crown size={18} />} {x.replace('_',' ')}
                      </button>
                   ))}
                </div>
             </div>
           </div>
-          <button onClick={handle} className="w-full h-22 bg-accent text-black font-[1000] uppercase tracking-[0.6em] rounded-[32px] shadow-2xl active:scale-95 transition-all">Authorize Logic</button>
+          <button onClick={handle} className="w-full h-22 bg-accent text-black font-[1000] uppercase tracking-[0.6em] rounded-[32px] shadow-2xl active:scale-95 transition-all font-inter">Authorize Logic</button>
        </div>
     </div>
   );
@@ -635,12 +622,12 @@ const EditOverlay = ({ log, configs, onClose, user }) => {
           <div className="space-y-10 max-h-[450px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-accent/30">
              {configs.map(x => (
                 <div key={x.id} className="relative group">
-                  <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest">{x.name} Units</span>
-                  <input type="number" value={c[x.id] || 0} onChange={e=>setC({...c, [x.id]: parseInt(e.target.value) || 0})} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-2xl font-[1000] focus:border-accent/40 outline-none transition-all" />
+                  <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest font-inter">{x.name} Units</span>
+                  <input type="number" value={c[x.id] || 0} onChange={e=>setC({...c, [x.id]: parseInt(e.target.value) || 0})} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-2xl font-[1000] focus:border-accent/40 outline-none transition-all font-inter" />
                 </div>
              ))}
           </div>
-          <button onClick={handle} className="w-full h-22 bg-accent text-black font-[1000] uppercase tracking-[0.6em] rounded-[32px] shadow-2xl active:scale-95 transition-all">Commit Override</button>
+          <button onClick={handle} className="w-full h-22 bg-accent text-black font-[1000] uppercase tracking-[0.6em] rounded-[32px] shadow-2xl active:scale-95 transition-all font-inter">Commit Override</button>
        </div>
     </div>
   );
@@ -655,7 +642,7 @@ const InsightCard = ({ icon: Icon, label, val, sub, color }) => (
   </Card>
 );
 
-const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#0a0a0c] flex flex-col items-center justify-center p-12 text-center text-white font-inter"><AlertCircle className="text-danger mb-12" size={120} strokeWidth={2} /><h2 className="text-5xl font-[1000] uppercase tracking-tighter leading-none mb-8">Sync Failure</h2><p className="text-white/20 text-sm max-w-sm font-bold opacity-60 leading-relaxed uppercase tracking-widest mb-16">{msg}</p><button onClick={() => window.location.reload()} className="rounded-[32px] font-[1000] uppercase tracking-[0.6em] px-20 h-24 bg-white text-black shadow-2xl active:scale-95 transition-all">Re-Link System</button></div>;
-const LoadingView = () => <div className="min-h-screen bg-[#0a0a0c] flex flex-col items-center justify-center space-y-12 text-accent font-inter"><Loader2 className="animate-spin" size={100} strokeWidth={3} /><span className="text-sm font-black tracking-[1.5em] uppercase text-accent animate-pulse ml-[1.5em]">Synchronizing Registry</span></div>;
+const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#0a0a0c] flex flex-col items-center justify-center p-12 text-center text-white font-inter"><AlertCircle className="text-danger mb-12" size={120} strokeWidth={2} /><h2 className="text-5xl font-[1000] uppercase tracking-tighter leading-none mb-8 font-inter">Sync Failure</h2><p className="text-white/20 text-sm max-w-sm font-bold opacity-60 leading-relaxed uppercase tracking-widest mb-16 font-inter">{msg}</p><button onClick={() => window.location.reload()} className="rounded-[32px] font-[1000] uppercase tracking-[0.6em] px-20 h-24 bg-white text-black shadow-2xl active:scale-95 transition-all font-inter">Re-Link System</button></div>;
+const LoadingView = () => <div className="min-h-screen bg-[#0a0a0c] flex flex-col items-center justify-center space-y-12 text-accent font-inter"><Loader2 className="animate-spin" size={100} strokeWidth={3} /><span className="text-sm font-black tracking-[1.5em] uppercase text-accent animate-pulse ml-[1.5em] font-inter">Synchronizing Registry</span></div>;
 
 export default AppWrapper;
