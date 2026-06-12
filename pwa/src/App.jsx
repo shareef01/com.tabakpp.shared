@@ -4,7 +4,8 @@ import {
   LayoutGrid, BarChart3, Settings, User, Plus, Minus,
   Activity, Zap, ShieldCheck, HeartPulse, Flame, X,
   LogOut, Camera, Calendar, RefreshCcw, Loader2, AlertCircle,
-  TrendingUp, Wallet, Clock, Grid, Moon, Sparkles, Check, Edit2, Trash2, Crown
+  TrendingUp, Wallet, Clock, Grid, Moon, Sparkles, Check, Edit2, Trash2, Crown,
+  ArrowUp, ArrowDown
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -17,7 +18,7 @@ import {
   signInAnonymously, signOut, updateProfile
 } from 'firebase/auth';
 import {
-  doc, setDoc, collection, onSnapshot, query, orderBy, limit, deleteDoc, updateDoc, getDoc
+  doc, setDoc, collection, onSnapshot, query, orderBy, limit, deleteDoc, updateDoc, getDoc, writeBatch
 } from 'firebase/firestore';
 
 // --- UTILS ---
@@ -25,7 +26,7 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
-const APP_VERSION = "12.0.0-UNIFIED-BURN";
+const APP_VERSION = "12.5.0-MASTER-CONTROL";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -67,6 +68,7 @@ const App = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [editProtocol, setEditProtocol] = useState(null);
 
   const [logs, setLogs] = useState([]);
   const [configs, setConfigs] = useState([]);
@@ -147,6 +149,22 @@ const App = () => {
     await setDoc(ref, { counts: { ...counts, [id]: counts[id] - 1 } }, { merge: true });
   }, [user, today, metrics.todayLog.counts]);
 
+  const onReorder = async (id, dir) => {
+    if (!user) return;
+    const sorted = [...configs].sort((a,b)=>a.order - b.order);
+    const idx = sorted.findIndex(x => x.id === id);
+    if ((dir === 'up' && idx === 0) || (dir === 'down' && idx === sorted.length - 1)) return;
+
+    const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+    const itemA = sorted[idx];
+    const itemB = sorted[swapIdx];
+
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'users', user.uid, 'configs', itemA.id), { order: itemB.order });
+    batch.update(doc(db, 'users', user.uid, 'configs', itemB.id), { order: itemA.order });
+    await batch.commit();
+  };
+
   if (appError) return <ErrorView msg={appError} />;
   if (authLoading) return <LoadingView />;
   if (!user) return <AuthScreen accent={settings.accent} />;
@@ -180,7 +198,7 @@ const App = () => {
                  {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
                    <TrackerCard key={c.id} config={c} count={(metrics.todayLog.counts || {})[c.id] || 0} onInc={() => onInc(c.id)} onDec={() => onDec(c.id)} index={i} />
                  ))}
-                 <button onClick={() => setShowAdd(true)} className="bg-[#121315] rounded-[40px] border-2 border-dashed border-white/5 flex flex-col items-center justify-center space-y-4 hover:border-accent/20 transition-all min-h-[500px] group">
+                 <button onClick={() => setActiveTab('control')} className="bg-[#121315] rounded-[40px] border-2 border-dashed border-white/5 flex flex-col items-center justify-center space-y-4 hover:border-accent/20 transition-all min-h-[500px] group">
                     <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-[#6b7280] group-hover:text-accent group-hover:bg-accent/10 transition-all"><Plus size={32} /></div>
                     <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[#6b7280]">New Protocol</span>
                  </button>
@@ -188,7 +206,7 @@ const App = () => {
             </motion.div>
           )}
           {activeTab === 'history' && <HistoryScreen logs={logs} configs={configs} m={metrics} onEdit={setEditTarget} userId={user.uid} />}
-          {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} />}
+          {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={onReorder} onEditP={setEditProtocol} />}
         </AnimatePresence>
       </main>
 
@@ -204,6 +222,7 @@ const App = () => {
         {showProfile && <ProfileModal user={user} onClose={() => setShowProfile(false)} />}
         {showAdd && <AddOverlay onClose={() => setShowAdd(false)} user={user} configs={configs} />}
         {editTarget && <EditOverlay log={editTarget} configs={configs} onClose={() => setEditTarget(null)} user={user} />}
+        {editProtocol && <EditProtocolOverlay config={editProtocol} user={user} onClose={() => setEditProtocol(null)} />}
       </AnimatePresence>
     </div>
   );
@@ -277,7 +296,6 @@ const SmokingProgress = ({ count, limit, variant }) => {
       variant === 'KING' ? "w-64" : (variant === 'QUEEN' ? "w-48" : "w-56"),
       isL ? "bg-danger border-danger shadow-[0_0_40px_rgba(255,0,0,0.5)]" : "bg-white/5 border-white/10 shadow-inner"
     )}>
-      {/* Tobacco/Body portion (burns from left to right) */}
       {!isL && (
         <div
           className={cn(
@@ -287,22 +305,10 @@ const SmokingProgress = ({ count, limit, variant }) => {
           style={{ width: `${tobaccoPct * 72}%`, right: '28%' }}
         />
       )}
-
-      {/* The Ember (the burning tip) */}
       {!isL && count > 0 && (
-        <div
-          className="absolute h-full w-3 bg-[#ff4b2b] shadow-[0_0_20px_#ff4b2b] z-20 transition-all duration-1000 ease-out"
-          style={{ right: `calc(28% + ${tobaccoPct * 72}% - 1.5px)` }}
-        />
+        <div className="absolute h-full w-3 bg-[#ff4b2b] shadow-[0_0_20px_#ff4b2b] z-20 transition-all duration-1000 ease-out" style={{ right: `calc(28% + ${tobaccoPct * 72}% - 1.5px)` }} />
       )}
-
-      {/* Filter/Roach portion */}
-      <div
-        className={cn(
-          "absolute right-0 h-full w-[28%] border-l-2 transition-all duration-1000",
-          isL ? "bg-danger border-white/20" : (isJoint ? "bg-[#333]/80 border-white/5" : "bg-[#f39c12] border-black/20")
-        )}
-      />
+      <div className={cn("absolute right-0 h-full w-[28%] border-l-2 transition-all duration-1000", isL ? "bg-danger border-white/20" : (isJoint ? "bg-[#333]/80 border-white/5" : "bg-[#f39c12] border-black/20"))} />
     </div>
   );
 };
@@ -333,7 +339,7 @@ const RingProgress = ({ count, limit }) => {
 
 const NavBtn = ({ icon: Icon, label, active, onClick }) => (
   <button onClick={onClick} className={cn("flex flex-col items-center gap-1.5 transition-all relative group", active ? "text-accent" : "text-[#6b7280] hover:text-white")}>
-    {active && <motion.div layoutId="navIndicator" className="absolute -top-6 w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_10px_var(--accent)]" />}
+    {active && <motion.div layoutId="navIndicator" className="absolute -top-6 w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_100px_var(--accent)]" />}
     <Icon size={22} strokeWidth={active ? 3 : 2} />
     <span className="text-[9px] font-black uppercase tracking-[0.2em] font-inter">{label}</span>
   </button>
@@ -347,14 +353,14 @@ const HistoryScreen = ({ logs, configs, m, onEdit, userId }) => {
   };
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10 font-inter">
-       <Card className="p-10 bg-[#121315] border-white/5">
+       <Card className="p-10 bg-[#121315] border-white/5 shadow-2xl">
           <h3 className="text-[11px] font-black text-[#6b7280] tracking-[0.5em] uppercase mb-10">Registry Analytics</h3>
           <div className="h-64 w-full">
              <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}>
                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                   <XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900, letterSpacing:'0.1em'}} />
-                   <Tooltip contentStyle={{ background: '#121315', border: '1px solid #ffffff10', borderRadius: '24px', fontSize: '12px', fontWeight:900 }} />
+                   <XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} />
+                   <Tooltip contentStyle={{ background: '#121315', border: '1px solid #ffffff10', borderRadius: '24px', fontSize: '12px' }} />
                    <Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={6} dot={{ r: 6, fill: 'var(--accent)', strokeWidth: 4, stroke: '#121315' }} />
                 </LineChart>
              </ResponsiveContainer>
@@ -373,7 +379,7 @@ const HistoryScreen = ({ logs, configs, m, onEdit, userId }) => {
                    <span className="text-xl font-[1000] tracking-tighter uppercase">{new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span>
                    <span className="text-[10px] font-bold text-[#6b7280] uppercase tracking-widest mt-2">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units registered</span>
                 </div>
-                <div className="flex items-center gap-3 md:opacity-0 group-hover:opacity-100 transition-all">
+                <div className="flex items-center gap-3">
                    <button onClick={() => onEdit(log)} className="p-5 rounded-3xl bg-white/5 hover:bg-accent/10 hover:text-accent transition-all"><Edit2 size={20} /></button>
                    <button onClick={() => onDelete(log.logDate)} className="p-5 rounded-3xl bg-white/5 hover:bg-danger/10 hover:text-danger transition-all"><Trash2 size={20} /></button>
                 </div>
@@ -384,13 +390,13 @@ const HistoryScreen = ({ logs, configs, m, onEdit, userId }) => {
   );
 };
 
-const SettingsScreen = ({ configs, user, settings, onAdd }) => {
+const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP }) => {
   const [n, setN] = useState(user.displayName || '');
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10 max-w-2xl mx-auto font-inter">
-       <Card className="p-10 bg-[#121315] border-white/5 space-y-10">
+       <Card className="p-10 bg-[#121315] border-white/5 space-y-10 rounded-[48px] shadow-2xl">
           <div className="flex flex-col items-center gap-8">
-             <div className="w-32 h-32 rounded-[44px] bg-accent/10 border-2 border-accent/30 flex items-center justify-center overflow-hidden shadow-2xl shadow-accent/5">
+             <div className="w-32 h-32 rounded-[44px] bg-accent/10 border-2 border-accent/30 flex items-center justify-center overflow-hidden">
                 {user.photoURL ? <img src={user.photoURL} className="w-full h-full object-cover" /> : <User size={48} className="text-accent" />}
              </div>
              <div className="w-full space-y-8">
@@ -399,24 +405,31 @@ const SettingsScreen = ({ configs, user, settings, onAdd }) => {
              </div>
           </div>
        </Card>
-       <Card className="p-10 bg-[#121315] border-white/5 space-y-8">
-          <div className="flex items-center justify-between"><h3 className="text-sm font-black uppercase tracking-widest">Active Protocols</h3><button onClick={onAdd} className="p-4 bg-accent/10 text-accent rounded-2xl hover:bg-accent/20 transition-all"><Plus size={24} /></button></div>
+       <Card className="p-10 bg-[#121315] border-white/5 space-y-8 rounded-[48px] shadow-2xl">
+          <div className="flex items-center justify-between"><h3 className="text-[12px] font-black uppercase tracking-[0.4em] text-[#6b7280]">Active Protocols</h3><button onClick={onAdd} className="p-4 bg-accent/10 text-accent rounded-2xl hover:bg-accent/20 transition-all"><Plus size={24} /></button></div>
           <div className="space-y-4">
-             {configs.map(c => (
+             {configs.sort((a,b)=>a.order-b.order).map((c, idx) => (
                 <div key={c.id} className="flex items-center justify-between p-8 bg-white/5 rounded-[32px] border border-white/5 group hover:border-accent/10 transition-all">
                    <div className="flex items-center gap-6">
+                      <div className="flex flex-col gap-2">
+                        <button onClick={() => onReo(c.id, 'up')} className="p-1.5 rounded-lg bg-white/5 text-[#6b7280] hover:text-accent disabled:opacity-20 transition-colors" disabled={idx === 0}><ArrowUp size={16} strokeWidth={3} /></button>
+                        <button onClick={() => onReo(c.id, 'down')} className="p-1.5 rounded-lg bg-white/5 text-[#6b7280] hover:text-accent disabled:opacity-20 transition-colors" disabled={idx === configs.length - 1}><ArrowDown size={16} strokeWidth={3} /></button>
+                      </div>
                       <div className="p-3 bg-white/5 rounded-2xl text-accent/40">{c.type.startsWith('JOINT') ? <Crown size={20} /> : <Activity size={20} />}</div>
                       <div className="flex flex-col">
                         <span className="text-lg font-black uppercase tracking-tight">{c.name}</span>
                         <span className="text-[10px] font-bold text-[#6b7280] uppercase tracking-widest">Target: {c.limit}</span>
                       </div>
                    </div>
-                   <button onClick={async () => await deleteDoc(doc(db, 'users', user.uid, 'configs', c.id))} className="p-4 text-[#6b7280] hover:text-danger transition-colors"><Trash2 size={20} /></button>
+                   <div className="flex items-center gap-2">
+                      <button onClick={() => onEditP(c)} className="p-4 text-[#6b7280] hover:text-accent transition-colors"><Edit2 size={18} /></button>
+                      <button onClick={async () => { if(window.confirm(`Delete ${c.name}?`)) await deleteDoc(doc(db, 'users', user.uid, 'configs', c.id)); }} className="p-4 text-[#6b7280] hover:text-danger transition-colors"><Trash2 size={18} /></button>
+                   </div>
                 </div>
              ))}
           </div>
        </Card>
-       <button onClick={() => signOut(auth)} className="w-full h-18 border-2 border-[#ff4b2b]/30 text-[#ff4b2b] font-black uppercase tracking-[0.4em] rounded-[24px] hover:bg-[#ff4b2b]/5 transition-all flex items-center justify-center gap-4 active:scale-95"><LogOut size={22} /> Terminate Registry</button>
+       <button onClick={() => signOut(auth)} className="w-full h-18 border-2 border-[#ff4b2b]/30 text-[#ff4b2b] font-black uppercase tracking-[0.4em] rounded-[24px] hover:bg-[#ff4b2b]/5 transition-all flex items-center justify-center gap-4 active:scale-95"><LogOut size={22} /> Terminate Session</button>
     </motion.div>
   );
 };
@@ -465,6 +478,38 @@ const AddOverlay = ({ onClose, user, configs }) => {
   );
 };
 
+const EditProtocolOverlay = ({ config, user, onClose }) => {
+  const [n, setN] = useState(config.name);
+  const [l, setL] = useState(config.limit);
+  const [t, setT] = useState(config.type);
+  const handle = async () => {
+     await updateDoc(doc(db, 'users', user.uid, 'configs', config.id), { name: n, type: t, limit: parseInt(l) || 20 });
+     onClose();
+  };
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md font-inter">
+       <div className="bg-[#121315] border border-white/10 rounded-[48px] w-full max-w-xl p-12 space-y-10 shadow-2xl">
+          <div className="flex justify-between items-center"><h3 className="text-2xl font-[1000] uppercase tracking-tighter">Modify Protocol</h3><button onClick={onClose} className="p-3 bg-white/5 rounded-full"><X /></button></div>
+          <div className="space-y-8">
+            <Input label="Registry Label" value={n} onChange={setN} isDark={true} />
+            <Input label="Registry Threshold" value={l} onChange={setL} type="number" isDark={true} />
+            <div className="space-y-4">
+               <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[#6b7280] ml-2">Visual Logic</span>
+               <div className="grid grid-cols-2 gap-4">
+                  {['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => (
+                     <button key={x} onClick={() => setT(x)} className={cn("h-16 rounded-[24px] border-2 font-black text-[11px] uppercase tracking-widest transition-all flex items-center justify-center gap-3", t === x ? "border-accent bg-accent/10 text-accent" : "border-white/5 text-[#6b7280] hover:border-white/10")}>
+                        {x.includes('KING') && <Crown size={14} />} {x.replace('_',' ')}
+                     </button>
+                  ))}
+               </div>
+            </div>
+          </div>
+          <button onClick={handle} className="w-full h-18 bg-white text-black font-[1000] uppercase tracking-widest rounded-[24px] shadow-2xl active:scale-95 transition-all">Update Registry</button>
+       </div>
+    </div>
+  );
+};
+
 const EditOverlay = ({ log, configs, onClose, user }) => {
   const [c, setC] = useState({ ...(log.counts || {}) });
   const handle = async () => {
@@ -474,12 +519,12 @@ const EditOverlay = ({ log, configs, onClose, user }) => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md font-inter">
        <div className="bg-[#121315] border border-white/10 rounded-[48px] w-full max-w-xl p-12 space-y-10 shadow-2xl">
-          <div className="flex justify-between items-center"><h3 className="text-2xl font-[1000] uppercase tracking-tighter">Modify Registry</h3><button onClick={onClose} className="p-3 bg-white/5 rounded-full"><X /></button></div>
+          <div className="flex justify-between items-center"><h3 className="text-2xl font-[1000] uppercase tracking-tighter">Modify Daily Log</h3><button onClick={onClose} className="p-3 bg-white/5 rounded-full"><X /></button></div>
           <div className="bg-white/5 p-6 rounded-3xl text-center"><span className="text-xs font-black uppercase tracking-[0.4em] opacity-40">{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span></div>
           <div className="space-y-8 max-h-[400px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-accent/20">
              {configs.map(x => <Input key={x.id} label={x.name} value={c[x.id] || 0} type="number" onChange={v => setC({...c, [x.id]: parseInt(v) || 0})} isDark={true} />)}
           </div>
-          <button onClick={handle} className="w-full h-18 bg-accent text-black font-[1000] uppercase tracking-widest rounded-[24px] active:scale-95 transition-all shadow-2xl shadow-accent/10">Commit Registry</button>
+          <button onClick={handle} className="w-full h-18 bg-accent text-black font-[1000] uppercase tracking-widest rounded-[24px] active:scale-95 transition-all shadow-2xl shadow-accent/10">Commit Log</button>
        </div>
     </div>
   );
@@ -518,7 +563,7 @@ const AuthScreen = ({ accent }) => {
           {!isL && <Input label="Registry Name" value={n} onChange={setN} placeholder="Registry Identity" isDark={true} />}
           <Input label="Registry Email" value={e} onChange={setE} placeholder="id@system.com" isDark={true} />
           <Input label="Registry Key" type="password" value={p} onChange={setP} placeholder="••••••••" isDark={true} />
-          <button className="w-full h-18 bg-accent text-black font-[1000] uppercase tracking-widest rounded-[24px] active:scale-95 transition-all mt-6 flex items-center justify-center shadow-2xl shadow-accent/20" onClick={handle} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : (isL ? 'Initialize Registry' : 'Register Identity')}</button>
+          <button className="w-full h-18 bg-accent text-black font-[1000] uppercase tracking-widest rounded-[24px] active:scale-95 transition-all mt-6 flex items-center justify-center shadow-2xl shadow-accent/20" onClick={handle} disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : (isL ? 'Initialize Registry' : 'Join Registry')}</button>
           <button onClick={() => setIsL(!isL)} className="w-full text-[10px] font-black text-[#6b7280] uppercase tracking-[0.4em] hover:text-accent transition-all mt-6">{isL ? "Request New Access" : "Return to Authenticator"}</button>
         </Card>
       </div>
