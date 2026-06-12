@@ -25,7 +25,7 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 import { cn } from './utils/utils';
 
-const APP_VERSION = "9.9.0-GOLD-MASTER";
+const APP_VERSION = "10.0.0-PREMIUM";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -37,8 +37,8 @@ class ErrorBoundary extends Component {
         <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
           <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
           <h2 className="text-3xl font-[950] uppercase tracking-tighter leading-none">System Reset Required</h2>
-          <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed font-inter">{this.state.error?.message || "There was a fatal error in the UI link."}</p>
-          <Button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-64 h-18 rounded-full shadow-2xl font-black uppercase tracking-widest bg-white text-black font-inter">Re-Initialize</Button>
+          <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed font-inter">{this.state.error?.message || "There was a problem loading the UI link."}</p>
+          <Button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-64 h-18 rounded-full shadow-2xl font-black uppercase tracking-widest bg-white text-black font-inter">Reload Registry</Button>
         </div>
       );
     }
@@ -208,19 +208,19 @@ const App = () => {
                      {user.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <UserCircle size={24} />}
                   </div>
                   <div className="flex flex-col truncate min-w-0">
-                     <span className="text-sm font-[1000] uppercase tracking-widest truncate">{user.displayName || 'Registry User'}</span>
+                     <span className="text-sm font-[1000] uppercase tracking-widest truncate">{user.displayName || 'User Registry'}</span>
                      <span className="text-[10px] font-bold opacity-40 uppercase tracking-tighter truncate">{user.email}</span>
                   </div>
                 </div>
-                <button onClick={() => { setActiveTab('settings'); setShowProfileMenu(false); }} className="w-full flex items-center space-x-4 p-5 rounded-[24px] hover:bg-accent/10 transition-colors text-xs font-black uppercase tracking-widest"><Settings size={18} className="text-accent" /><span>Profile</span></button>
-                <button onClick={() => { signOut(auth); setShowProfileMenu(false); }} className="w-full flex items-center space-x-4 p-5 rounded-[24px] hover:bg-danger/10 text-danger transition-colors text-xs font-black uppercase tracking-widest mt-1"><LogOut size={18} /><span>Log Out</span></button>
+                <button onClick={() => { setActiveTab('settings'); setShowProfileMenu(false); }} className="w-full flex items-center space-x-4 p-5 rounded-[24px] hover:bg-accent/10 transition-colors text-xs font-black uppercase tracking-widest"><Settings size={16} className="text-accent" /><span>Profile</span></button>
+                <button onClick={() => { signOut(auth); setShowProfileMenu(false); }} className="w-full flex items-center space-x-4 p-5 rounded-[24px] hover:bg-danger/10 text-danger transition-colors text-xs font-black uppercase tracking-widest mt-1"><LogOut size={16} /><span>Log Out</span></button>
               </motion.div>
             </>
           )}
         </AnimatePresence>
       </header>
 
-      <main className="flex-1 overflow-y-auto pt-[calc(env(safe-area-inset-top)+6.5rem)] pb-[calc(env(safe-area-inset-bottom)+9rem)] px-5 md:px-12 max-w-7xl mx-auto w-full transition-all duration-500 overflow-x-hidden">
+      <main className="flex-1 overflow-y-auto pt-[calc(env(safe-area-inset-top)+6.5rem)] pb-[calc(env(safe-area-inset-bottom)+9rem)] px-5 md:px-12 max-w-[1600px] mx-auto w-full transition-all duration-500 overflow-x-hidden">
         <AnimatePresence mode="wait">
           {activeTab === 'tracker' && <TrackerScreen key="t" m={metrics} c={configs} onInc={onInc} onDec={onDec} isDark={settings.isDark} view={settings.layout} onAdd={() => setActiveTab('settings')} accent={settings.accent} />}
           {activeTab === 'history' && <HistoryScreen key="y" logs={logs} configs={configs} m={metrics} todayString={today} onEdit={setEditTarget} isDark={settings.isDark} />}
@@ -275,11 +275,11 @@ const AuthScreen = ({ accent }) => {
 
       <div className="w-full max-w-md space-y-12 relative z-10">
         <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', damping: 20 }} className="flex flex-col items-center text-center">
-          <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_100px_var(--accent-rgb)] text-bg-base transition-all hover:scale-110 duration-1000" style={{'--accent': accent, '--accent-rgb': `rgba(${rgb}, 0.6)`}}>
+          <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_100px_var(--accent-rgb)] text-bg-base transition-all hover:scale-110 duration-1000" style={{'--accent': accent}}>
             <Zap size={52} fill="currentColor" strokeWidth={1.5} />
           </div>
           <h1 className="text-7xl font-[1000] tracking-tighter uppercase leading-none text-white drop-shadow-2xl">tabak++</h1>
-          <p className="mt-8 text-accent/50 font-black tracking-[0.5em] uppercase text-[10px]">Private Logging Registry</p>
+          <p className="mt-8 text-accent/50 font-black tracking-[0.6em] uppercase text-[10px]">Private Logging Registry</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 120 }}>
@@ -295,9 +295,6 @@ const AuthScreen = ({ accent }) => {
               <div className="flex flex-col space-y-6 items-center pt-8 border-t border-white/5 mt-6 font-inter">
                 <button onClick={() => setIsL(!isL)} className="text-[11px] font-[1000] text-text-dim uppercase tracking-[0.3em] hover:text-accent transition-all decoration-accent underline-offset-8">
                   {isL ? "Request Access Entry" : "Return to Authenticator"}
-                </button>
-                <button onClick={() => signInAnonymously(auth)} className="text-[10px] font-black text-accent/20 uppercase tracking-[0.5em] hover:text-accent transition-all">
-                  Browse Anonymous
                 </button>
               </div>
             </div>
@@ -322,9 +319,9 @@ const NavItem = ({ icon: Icon, active, onClick, label, isDark }) => (
 const TrackerScreen = ({ m, c, onInc, onDec, view, isDark, onAdd, accent }) => (
   <div className="flex flex-col space-y-8 pb-10">
     <StaggeredItem index={0}><Card className={cn("p-10 relative overflow-hidden group shadow-2xl transition-all duration-700 rounded-[48px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}><div className="flex justify-between items-end relative z-10 text-white"><div className="space-y-1.5"><span className="text-[9px] font-black text-text-dim uppercase tracking-[0.4em] font-inter">Remaining Units</span><div className={cn("text-6xl font-[1000] tracking-tighter leading-none transition-colors font-inter", !isDark && "text-[#1D1D1F]")}>{Math.max(0, m.limit - m.count)} <span className="text-sm text-accent uppercase tracking-widest font-black ml-3 leading-none font-inter">Left</span></div></div><div className="text-right space-y-2 hidden md:block"><div className="px-4 py-1.5 bg-accent-soft rounded-xl text-accent text-[9px] font-black uppercase border border-accent/20 font-inter">{m.rank}</div><div className={cn("text-3xl font-[1000] opacity-40 leading-none tracking-tighter font-inter", !isDark && "text-[#1D1D1F]")}>{m.xp} XP</div></div></div><div className="w-full h-4 bg-black/10 rounded-full overflow-hidden mt-10 p-0.5 border border-white/5 relative z-10 shadow-inner"><motion.div animate={{ width: `${Math.min(1, m.progress) * 100}%` }} className={cn("h-full rounded-full transition-all duration-1000 shadow-2xl", m.progress >= 1 ? "bg-danger shadow-[0_0_30px_#F87171]" : "bg-accent shadow-[0_0_20px_var(--accent)]")} /></div></Card></StaggeredItem>
-    <div className={cn("grid gap-6 md:gap-10", view === 'COMPACT' ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 lg:grid-cols-2")}>
+    <div className={cn("grid gap-6 md:gap-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4")}>
        {c.sort((a,b) => a.order - b.order).map((config, i) => <StaggeredItem key={config.id} index={i+1}><CounterCard config={config} count={(m.todayLog.counts || {})[config.id] || 0} onInc={() => onInc(config.id)} onDec={() => onDec(config.id)} isC={view === 'COMPACT'} isDark={isDark} accent={accent} /></StaggeredItem>)}
-       <StaggeredItem index={c.length + 1}><button onClick={onAdd} className={cn("w-full border-2 border-dashed border-white/10 rounded-[48px] flex flex-col items-center justify-center space-y-4 hover:bg-white/[0.02] hover:border-accent/20 transition-all group relative overflow-hidden shadow-2xl shadow-black/10", view === 'COMPACT' ? "h-[320px]" : "h-[450px] md:h-[580px]")}><div className="w-20 h-20 rounded-[40px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-700 shadow-inner shadow-black/40 text-text-dim group-hover:text-accent border border-white/5 shrink-0"><Plus size={32} /></div><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.5em] group-hover:text-white transition-colors font-inter">Add Protocol</span></button></StaggeredItem>
+       <StaggeredItem index={c.length + 1}><button onClick={onAdd} className={cn("w-full border-2 border-dashed border-white/10 rounded-[48px] flex flex-col items-center justify-center space-y-4 hover:bg-white/[0.02] hover:border-accent/20 transition-all group relative overflow-hidden shadow-2xl shadow-black/10 min-h-[500px]")}><div className="w-20 h-20 rounded-[40px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-700 shadow-inner shadow-black/40 text-text-dim group-hover:text-accent border border-white/5 shrink-0"><Plus size={32} /></div><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.5em] group-hover:text-white transition-colors font-inter">Add Protocol</span></button></StaggeredItem>
     </div>
   </div>
 );
@@ -334,10 +331,10 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark, accent }) => {
   const isCig = config.type === 'CIGARETTE'; const isJoint = config.type.startsWith('JOINT');
   const rgb = hexToRgb(accent);
   return (
-    <Card className={cn("relative flex flex-col group transition-all duration-1000 p-8 md:p-14 overflow-hidden shadow-2xl rounded-[64px] font-inter", isL ? "bg-danger/[0.04] border-danger/50 shadow-[0_0_80px_rgba(248,113,113,0.15)]" : (isDark ? "bg-white/[0.03] border-white/5 shadow-black/20" : "bg-white border-black/5 shadow-black/5 shadow-2xl"), isC ? "min-h-[400px]" : "min-h-[500px] md:min-h-[620px]")}>
+    <Card className={cn("relative flex flex-col group transition-all duration-1000 p-8 md:p-14 overflow-hidden shadow-2xl rounded-[64px] font-inter", isL ? "bg-danger/[0.04] border-danger/50 shadow-[0_0_80px_rgba(248,113,113,0.15)]" : (isDark ? "bg-white/[0.03] border-white/5 shadow-black/20" : "bg-white border-black/5 shadow-black/5 shadow-2xl"), "min-h-[500px] md:min-h-[620px]")}>
        <div className="flex flex-col items-center text-center space-y-2 mb-8 relative z-20 shrink-0"><span className={cn("text-[13px] font-[1000] tracking-[0.6em] uppercase transition-all duration-700", isL ? "text-danger" : "text-accent")}>{config.name}</span><span className="text-[9px] font-black text-text-dim uppercase tracking-[0.3em] opacity-40">Target: {config.limit}</span></div>
 
-       <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-hidden py-4 min-h-0">
+       <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full py-4 min-h-0">
           {(isCig || isJoint) ? (
              <div className={cn("relative w-full max-w-[240px] aspect-[4/1] md:aspect-[5/1] rounded-full overflow-hidden transition-all duration-1000 border-2 shadow-2xl shrink-0 mt-4", isL ? "bg-danger border-danger/40" : (isDark ? "bg-[#111] border-white/10 shadow-[inset_0_4px_30px_rgba(0,0,0,0.9)]" : "bg-[#DDD] border-black/5 shadow-inner"))}>
                 <div className={cn("absolute left-0 inset-y-0 bg-[#1a1a1a] transition-all duration-1000 shadow-2xl", isL && "bg-danger/60 w-full")} style={{ width: isL ? '100%' : `${p * 72}%` }} />
@@ -364,7 +361,7 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark, accent }) => {
           <motion.button whileTap={{ scale: 0.6 }} onClick={() => onDec(config.id)} className={cn("w-18 h-18 md:w-22 md:h-22 rounded-full border-4 flex items-center justify-center transition-all shadow-2xl active:scale-90 shrink-0 aspect-square", isDark ? "bg-white/5 border-white/10 text-white/30 hover:text-white" : "bg-[#F5F5F7] border-black/10 text-black/20 hover:text-black shadow-inner")}>
             <Minus size={32} strokeWidth={3} />
           </motion.button>
-          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onInc(config.id)} className={cn("w-18 h-18 md:w-22 md:h-22 rounded-full border-4 flex items-center justify-center transition-all shadow-2xl active:scale-95 shrink-0 aspect-square", isL ? "border-danger text-danger bg-danger/10 shadow-[0_20px_50px_rgba(248,113,113,0.3)]" : "bg-accent text-bg-base border-white/20 shadow-[0_25px_80px_var(--accent-rgb)]")} style={{'--accent-rgb': `rgba(${rgb}, 0.5)`}}>
+          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onInc(config.id)} className={cn("w-18 h-18 md:w-22 md:h-22 rounded-full border-4 flex items-center justify-center transition-all shadow-2xl active:scale-95 shrink-0 aspect-square", isL ? "border-danger text-danger bg-danger/10 shadow-[0_0_60px_rgba(248,113,113,0.3)]" : "bg-accent text-bg-base border-white/20 shadow-[0_25px_80px_var(--accent-rgb)]")} style={{'--accent-rgb': `rgba(${rgb}, 0.5)`}}>
             <Plus size={40} strokeWidth={3} />
           </motion.button>
        </div>
@@ -441,7 +438,7 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
           </div>
           <div className="space-y-12 relative z-10">
              <Input label="Registry Identity" value={al} onChange={setAl} isDark={s.isDark} />
-             <button className="w-full h-22 rounded-full bg-accent text-bg-base shadow-[0_20px_60px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.4em] active:scale-95 transition-all text-xs flex items-center justify-center" onClick={() => onUpd({ displayName: al })} style={{'--accent-rgb': `rgba(${hexToRgb(s.accent)}, 0.4)`}}>Update Registration</button>
+             <button className="w-full h-22 rounded-full bg-accent text-bg-base shadow-[0_20px_60px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.4em] active:scale-95 transition-all text-xs flex items-center justify-center" onClick={() => onUpd({ displayName: al })} style={{'--accent-rgb': `rgba(${hexToRgb(s.accent)}, 0.4)`}}>Commit Update</button>
           </div>
        </Card>
 
@@ -464,7 +461,7 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
                       </button>
                    ))}
                 </div>
-                <button className="w-full h-22 rounded-full bg-accent text-bg-base shadow-[0_25px_80px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.4em] active:scale-95 transition-all text-xs flex items-center justify-center" onClick={applyTheme} style={{'--accent': la, '--accent-rgb': `rgba(${rgb}, 0.5)`}}><Zap className="mr-4" size={20} fill="currentColor" /> Apply Matrix Theme</button>
+                <button className="w-full h-22 rounded-full bg-accent text-bg-base shadow-[0_25px_80px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.4em] active:scale-95 transition-all text-xs flex items-center justify-center" onClick={applyTheme} style={{'--accent': la, '--accent-rgb': `rgba(${rgb}, 0.5)`}}><Zap className="mr-4" size={20} fill="currentColor" /> Apply Settings</button>
              </div>
           </div>
           <div className="pt-10 border-t border-white/10">
@@ -534,9 +531,9 @@ const AddForm = ({ onAdd, isDark, accent }) => {
   const rgb = hexToRgb(accent);
   return (
     <div className="space-y-14">
-       <Input label="Tracker Label" value={n} onChange={setN} placeholder="e.g. Protocol Alpha" isDark={isDark} />
+       <Input label="Registry Label" value={n} onChange={setN} placeholder="e.g. Protocol Alpha" isDark={isDark} />
        <Input label="Max Threshold" value={l} onChange={setL} type="number" isDark={isDark} />
-       <div className="space-y-10"><span className="text-[12px] font-[1000] text-text-dim uppercase tracking-[1em] ml-2 font-inter">Visual Schema</span><div className="grid grid-cols-2 gap-6 md:grid-cols-2 md:gap-8">{['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => <button key={x} onClick={() => setT(x)} className={cn("h-20 md:h-24 rounded-[36px] border-2 font-[1000] text-[11px] uppercase tracking-[0.5em] transition-all duration-1000 shadow-2xl active:scale-95 font-inter", t === x ? "bg-accent text-bg-base border-accent" : (isDark ? "bg-black/40 border-white/5 text-text-dim" : "bg-black/5 border-black/5 text-black/40"))} style={{'boxShadow': t === x ? `0 20px 60px rgba(${rgb}, 0.4)` : 'none'}}>{x.replace('_',' ')}</button>)}</div></div>
+       <div className="space-y-10"><span className="text-[12px] font-[1000] text-text-dim uppercase tracking-[1em] ml-2">Visual Schema</span><div className="grid grid-cols-2 gap-6 md:grid-cols-2 md:gap-8">{['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => <button key={x} onClick={() => setT(x)} className={cn("h-20 md:h-24 rounded-[36px] border-2 font-[1000] text-[11px] uppercase tracking-[0.5em] transition-all duration-1000 shadow-2xl active:scale-95 font-inter", t === x ? "bg-accent text-bg-base border-accent" : (isDark ? "bg-black/40 border-white/5 text-text-dim" : "bg-black/5 border-black/5 text-black/40"))} style={{'boxShadow': t === x ? `0 20px 60px rgba(${rgb}, 0.4)` : 'none'}}>{x.replace('_',' ')}</button>)}</div></div>
        <button className="w-full h-24 rounded-full bg-accent text-bg-base shadow-[0_30px_100px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.8em] active:scale-95 transition-all text-sm mt-10 font-inter" onClick={() => onAdd(n, t, l)} style={{'--accent-rgb': `rgba(${rgb}, 0.4)`}}>Deploy Registry</button>
     </div>
   );
@@ -549,7 +546,7 @@ const EditForm = ({ log, configs, onSave, isDark, accent }) => {
     <div className="space-y-14">
        <div className={cn("flex items-center space-x-10 p-10 rounded-[48px] border-2 shadow-inner", isDark ? "bg-black/60 border-white/5 shadow-black" : "bg-black/5 border-black/5 shadow-inner")}><div className="p-6 bg-accent-soft rounded-[32px] border-2 border-accent/20 shadow-accent/20 shadow-2xl"><Calendar size={36} strokeWidth={3} className="text-accent" /></div><span className={cn("text-xl md:text-2xl font-[1000] uppercase tracking-[0.6em] opacity-90 font-inter", !isDark && "text-[#1D1D1F]")}>{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span></div>
        <div className="max-h-[400px] overflow-y-auto pr-8 space-y-12 scrollbar-thin scrollbar-thumb-accent/40 pb-10 font-inter">{configs.map(x => <Input key={x.id} label={x.name} value={c[x.id] || 0} type="number" onChange={v => setC({...c, [x.id]: parseInt(v) || 0})} isDark={isDark} />)}</div>
-       <button className="w-full h-24 rounded-full bg-accent text-bg-base shadow-[0_30px_100px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.8em] active:scale-95 transition-all text-sm font-inter" onClick={() => onSave(log.logDate, c)} style={{'--accent-rgb': `rgba(${rgb}, 0.4)`}}>Update Registry</button>
+       <button className="w-full h-24 rounded-full bg-accent text-bg-base shadow-[0_30px_100px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.8em] active:scale-95 transition-all text-sm" onClick={() => onSave(log.logDate, c)} style={{'--accent-rgb': `rgba(${rgb}, 0.4)`}}>Update Registry</button>
     </div>
   );
 };
@@ -560,12 +557,12 @@ const InsightCard = ({ Icon, label, val, suffix, color, index, isDark }) => (
       <div className={cn("p-10 md:p-12 rounded-[40px] md:rounded-[48px] mb-12 md:mb-16 transition-all duration-1000 group-hover:scale-115 shadow-2xl relative z-10 border-2 shrink-0", color, isDark ? "bg-white/[0.02] border-white/5" : "bg-[#F0F2F5] border-black/5 shadow-inner")}><Icon size={48} strokeWidth={2.5} /></div>
       <div className={cn("text-6xl md:text-8xl font-[1000] leading-none tracking-tighter mb-4 md:mb-6 relative z-10 drop-shadow-2xl transition-colors font-inter", !isDark && "text-[#1D1D1F]")}>{val}</div>
       <div className="text-[12px] font-black text-text-dim uppercase tracking-[0.8em] relative z-10 opacity-30 font-bold font-inter">{suffix}</div>
-      <div className="mt-16 md:mt-20 pt-12 md:pt-16 border-t border-white/10 w-full flex items-center justify-center relative z-10 text-accent font-[1000] tracking-[1.5em] text-[10px] md:text-[11px] opacity-40 uppercase font-inter">{label}</div>
+      <div className="mt-16 md:mt-20 pt-12 md:pt-16 border-t border-white/10 w-full flex items-center justify-center relative z-10 text-accent font-[1000] tracking-[1.5em] text-[10px] md:text-[11px] opacity-40 uppercase">{label}</div>
     </Card>
   </StaggeredItem>
 );
 
-const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter"><AlertCircle className="text-danger mb-10" size={64} /><h2 className="text-3xl font-[1000] uppercase tracking-tighter leading-none mb-4 text-white font-inter">Sync Failed</h2><p className="text-text-dim text-sm max-w-xs font-bold opacity-60 leading-relaxed font-inter">{msg}</p><Button onClick={() => window.location.reload()} className="mt-12 rounded-full font-black uppercase tracking-[0.5em] px-12 h-20 bg-white text-black shadow-2xl font-inter">Re-Link System</Button></div>;
+const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter"><AlertCircle className="text-danger mb-10" size={64} /><h2 className="text-3xl font-[1000] uppercase tracking-tighter leading-none mb-4 text-white font-inter">Sync Failed</h2><p className="text-text-dim text-sm max-w-xs font-bold opacity-60 leading-relaxed font-inter">{msg}</p><button onClick={() => window.location.reload()} className="mt-12 rounded-full font-black uppercase tracking-[0.5em] px-12 h-20 bg-white text-black shadow-2xl font-inter active:scale-95 transition-all">Re-Link System</button></div>;
 const LoadingView = () => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center space-y-8 text-accent font-inter"><Loader2 className="animate-spin" size={72} strokeWidth={3} /><span className="text-[11px] font-black tracking-[1.2em] uppercase text-accent font-black animate-pulse ml-[1.2em]">Syncing Registry</span></div>;
 
 export default AppWrapper;
