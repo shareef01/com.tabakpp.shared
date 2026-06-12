@@ -25,7 +25,7 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 import { cn } from './utils/utils';
 
-const APP_VERSION = "7.8.0-ULTRA";
+const APP_VERSION = "8.0.0-PUBLISH-READY";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -35,9 +35,9 @@ class ErrorBoundary extends Component {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
-          <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
-          <h2 className="text-3xl font-[950] uppercase tracking-tighter leading-none">System Fault</h2>
-          <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed">{this.state.error?.message || "UI Link Collision."}</p>
+          <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8 font-inter"><AlertCircle size={48} /></div>
+          <h2 className="text-3xl font-[950] uppercase tracking-tighter leading-none">System Crash</h2>
+          <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed">{this.state.error?.message || "UI Logic Collision Detected."}</p>
           <Button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-64 h-18 rounded-full shadow-2xl font-black uppercase tracking-widest bg-white text-black">Reset Identity</Button>
         </div>
       );
@@ -116,15 +116,12 @@ const App = () => {
             nightOwl: d.nightOwl ?? false,
             globalPrice: d.globalPrice || '0.5'
           }));
-          if (d.photoURL && auth.currentUser.photoURL !== d.photoURL) {
-            updateProfile(auth.currentUser, { photoURL: d.photoURL });
-          }
         } else {
           setDoc(doc(db, 'users', uid), { accent: '#D4FF5C', isDark: true }, { merge: true });
         }
       });
       return () => { cUnsub(); lUnsub(); sUnsub(); };
-    } catch (err) { setAppError("Registry sync failure: " + err.message); }
+    } catch (err) { setAppError("Data sync failed: " + err.message); }
   }, [user]);
 
   const metrics = useMemo(() => {
@@ -149,9 +146,9 @@ const App = () => {
 
   function generateCoach(count, limit, streak) {
     const p = limit > 0 ? count / limit : 0;
-    if (count === 0 && streak > 0) return `On a ${streak}-day streak. Keep pushing.`;
-    if (p >= 1.0) return "Threshold reached.";
-    return "Track sessions to analyze performance.";
+    if (count === 0 && streak > 0) return `On a ${streak}-day streak!`;
+    if (p >= 1.0) return "Daily threshold reached.";
+    return "Track every session for deep insights.";
   }
 
   const onInc = useCallback(async (id) => {
@@ -220,7 +217,7 @@ const App = () => {
         </AnimatePresence>
       </header>
 
-      <main className="flex-1 overflow-y-auto pt-[calc(env(safe-area-inset-top)+6.5rem)] pb-[calc(env(safe-area-inset-bottom)+9rem)] px-5 md:px-12 max-w-5xl mx-auto w-full transition-all duration-500">
+      <main className="flex-1 overflow-y-auto pt-[calc(env(safe-area-inset-top)+6.5rem)] pb-[calc(env(safe-area-inset-bottom)+9rem)] px-5 md:px-12 max-w-5xl mx-auto w-full transition-all duration-500 overflow-x-hidden">
         <AnimatePresence mode="wait">
           {activeTab === 'tracker' && <TrackerScreen key="t" m={metrics} c={configs} onInc={onInc} onDec={onDec} isDark={settings.isDark} view={settings.layout} onAdd={() => setActiveTab('settings')} accent={settings.accent} />}
           {activeTab === 'history' && <HistoryScreen key="y" logs={logs} configs={configs} m={metrics} todayString={today} onEdit={setEditTarget} isDark={settings.isDark} />}
@@ -269,42 +266,42 @@ const AuthScreen = ({ accent }) => {
   return (
     <div className="min-h-screen bg-[#020202] flex items-center justify-center p-6 text-white font-inter relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-full opacity-20">
-         <div className="absolute top-[-15%] left-[-15%] w-[80%] h-[80%] bg-accent/10 rounded-full blur-[160px] animate-pulse" style={{'--accent': accent}} />
-         <div className="absolute bottom-[-15%] right-[-15%] w-[80%] h-[80%] bg-accent/5 rounded-full blur-[160px] animate-pulse" style={{animationDelay:'3s', '--accent': accent}} />
+         <div className="absolute top-[-20%] left-[-20%] w-[100%] h-[100%] bg-accent/10 rounded-full blur-[160px] animate-pulse" style={{'--accent': accent}} />
+         <div className="absolute bottom-[-20%] right-[-20%] w-[100%] h-[100%] bg-accent/5 rounded-full blur-[160px] animate-pulse" style={{animationDelay:'4s', '--accent': accent}} />
       </div>
 
       <div className="w-full max-w-md space-y-12 relative z-10">
         <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', damping: 20 }} className="flex flex-col items-center text-center">
-          <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_100px_var(--accent)] text-bg-base transition-all hover:scale-110 duration-1000" style={{'--accent': accent}}>
+          <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_120px_var(--accent-rgb)] text-bg-base transition-all hover:scale-110 duration-1000" style={{'--accent': accent, '--accent-rgb': `rgba(${rgb}, 0.6)`}}>
             <Zap size={52} fill="currentColor" strokeWidth={1.5} />
           </div>
           <h1 className="text-7xl font-[1000] tracking-tighter uppercase leading-none text-white drop-shadow-2xl">tabak++</h1>
-          <p className="mt-8 text-accent/50 font-black tracking-[0.6em] uppercase text-[10px]">Private Logging Registry</p>
+          <p className="mt-8 text-accent/50 font-black tracking-[0.5em] uppercase text-[10px]">Registry Link Active</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 120 }}>
-          <Card className="space-y-6 bg-white/[0.04] border-white/5 p-12 backdrop-blur-3xl shadow-2xl shadow-black rounded-[60px] border-t border-t-white/10">
+          <Card className="space-y-6 bg-white/[0.04] border-white/5 p-12 backdrop-blur-3xl shadow-2xl shadow-black rounded-[64px] border-t border-t-white/10">
             <div className="flex flex-col space-y-8">
               {err && <div className="p-6 bg-danger/10 border border-danger/20 rounded-[32px] text-danger text-[11px] font-black uppercase tracking-widest leading-relaxed text-center shadow-2xl">{err}</div>}
-              {!isL && <Input label="Registry Identity" value={n} onChange={setN} placeholder="How should we address you?" isDark={true} />}
-              <Input label="Email Identity" value={e} onChange={setE} placeholder="id@domain.com" isDark={true} />
+              {!isL && <Input label="Full Name" value={n} onChange={setN} placeholder="Identify yourself" isDark={true} />}
+              <Input label="Registry Email" value={e} onChange={setE} placeholder="id@domain.com" isDark={true} />
               <Input label="Registry Key" type="password" value={p} onChange={setP} placeholder="••••••••" isDark={true} />
               <button className="w-full h-22 text-[12px] bg-accent text-bg-base shadow-[0_20px_60px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.5em] rounded-[32px] mt-8 transition-all hover:scale-[1.02] active:scale-[0.98] active:brightness-90 flex items-center justify-center" onClick={handle} disabled={loading} style={{'--accent': accent, '--accent-rgb': `rgba(${rgb}, 0.3)`}}>
-                {loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Profile' : 'Initialize Vault')}
+                {loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Registry' : 'Join Registry')}
               </button>
               <div className="flex flex-col space-y-6 items-center pt-8 border-t border-white/5 mt-6">
                 <button onClick={() => setIsL(!isL)} className="text-[11px] font-[1000] text-text-dim uppercase tracking-[0.3em] hover:text-accent transition-all decoration-accent underline-offset-8">
-                  {isL ? "Request Access Entry" : "Return to Authenticator"}
+                  {isL ? "Request New Access" : "Return to Registry"}
                 </button>
                 <button onClick={() => signInAnonymously(auth)} className="text-[10px] font-black text-accent/20 uppercase tracking-[0.5em] hover:text-accent transition-all">
-                  Browse Anonymous
+                  Incognito Mode
                 </button>
               </div>
             </div>
           </Card>
         </motion.div>
-        <div className="text-center opacity-30 pt-10">
-           <span className="text-[10px] font-black uppercase tracking-[1.5em] text-white">SYSTEM ACTIVE</span>
+        <div className="text-center opacity-30 pt-10 font-inter">
+           <span className="text-[10px] font-black uppercase tracking-[2em] text-white ml-[2em]">SYSTEM ONLINE</span>
         </div>
       </div>
     </div>
@@ -334,9 +331,9 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark, accent }) => {
   const isCig = config.type === 'CIGARETTE'; const isJoint = config.type.startsWith('JOINT');
   const rgb = hexToRgb(accent);
   return (
-    <Card className={cn("relative flex flex-col group transition-all duration-1000 p-10 md:p-14 overflow-hidden shadow-2xl rounded-[64px]", isL ? "bg-danger/[0.04] border-danger/50 shadow-[0_0_80px_rgba(248,113,113,0.15)]" : (isDark ? "bg-white/[0.03] border-white/5 shadow-black/20" : "bg-white border-black/5 shadow-black/5 shadow-2xl"), isC ? "min-h-[400px]" : "min-h-[500px] md:min-h-[600px]")}>
-       <div className="flex flex-col items-center text-center space-y-2 mb-10 relative z-20"><span className={cn("text-[13px] font-[1000] tracking-[0.6em] uppercase transition-all duration-700", isL ? "text-danger" : "text-accent")}>{config.name}</span><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.3em] opacity-40">Target: {config.limit}</span></div>
-       <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-10">
+    <Card className={cn("relative flex flex-col group transition-all duration-1000 p-10 md:p-14 overflow-hidden shadow-2xl rounded-[64px] font-inter", isL ? "bg-danger/[0.04] border-danger/50 shadow-[0_0_80px_rgba(248,113,113,0.15)]" : (isDark ? "bg-white/[0.03] border-white/5 shadow-black/20" : "bg-white border-black/5 shadow-black/5 shadow-2xl"), isC ? "min-h-[400px]" : "min-h-[500px] md:min-h-[600px]")}>
+       <div className="flex flex-col items-center text-center space-y-2 mb-10 relative z-20"><span className={cn("text-[13px] font-[1000] tracking-[0.6em] uppercase transition-all duration-700", isL ? "text-danger" : "text-accent")}>{config.name}</span><span className="text-[9px] font-black text-text-dim uppercase tracking-[0.3em] opacity-40">Limit: {config.limit}</span></div>
+       <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-10 w-full overflow-hidden">
           {(isCig || isJoint) ? (
              <div className={cn("relative w-full h-14 md:h-16 rounded-full overflow-hidden transition-all duration-1000 border-2 shadow-2xl mt-4", isL ? "bg-danger border-danger/40" : (isDark ? "bg-[#111] border-white/10 shadow-[inset_0_4px_30px_rgba(0,0,0,0.9)]" : "bg-[#DDD] border-black/5 shadow-inner"))}>
                 <div className={cn("absolute left-0 inset-y-0 bg-[#1a1a1a] transition-all duration-1000 shadow-2xl", isL && "bg-danger/60 w-full")} style={{ width: isL ? '100%' : `${p * 72}%` }} />
@@ -377,9 +374,9 @@ const HistoryScreen = ({ logs, configs, todayString, onEdit, m, isDark }) => {
   }), [logs]);
   return (
     <div className="flex flex-col space-y-10 md:space-y-12 pb-20">
-       <StaggeredItem index={0}><Card className={cn("p-0 overflow-hidden shadow-2xl rounded-[48px]", isDark ? "bg-white/[0.03] border-accent/20 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="p-10 md:p-14 pb-8 md:pb-10 flex justify-between items-start"><div className="space-y-1.5 md:space-y-2"><span className="text-[10px] md:text-[11px] font-[1000] text-text-dim uppercase tracking-[0.5em]">Analytics Stream</span><h3 className={cn("text-4xl md:text-5xl font-[1000] text-accent mt-1 md:mt-2 uppercase tracking-tighter leading-none font-black transition-colors")}>Performance History</h3></div><div className="p-4 md:p-5 bg-accent-soft rounded-[28px] border border-accent/20 shadow-2xl text-accent font-black"><BarChart3 size={32} /></div></div><div className="h-[280px] md:h-[350px] w-full pr-10 md:pr-14 pl-4 md:pl-6 pb-10 md:pb-14"><ResponsiveContainer width="100%" height="100%"><LineChart data={chart}><CartesianGrid strokeDasharray="8 8" stroke="rgba(128,128,128,0.1)" vertical={false} /><XAxis dataKey="name" stroke="#888" fontSize={10} axisLine={false} tickLine={false} dy={20} fontVariant="black" /><Tooltip contentStyle={{ background: isDark ? '#0D0D0E' : '#FFF', border: '2px solid var(--accent)', borderRadius: '32px', fontWeight: '950', fontSize: '13px', textTransform:'uppercase', boxShadow:'0 30px 60px rgba(0,0,0,0.6)', color: isDark ? '#FFF' : '#1D1D1F' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 4, stroke: isDark ? '#020202' : '#FFF' }} activeDot={{ r: 14, fill: '#FFF', shadow: '0 0 30px var(--accent)' }} animationDuration={2500} /></LineChart></ResponsiveContainer></div></Card></StaggeredItem>
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10"><InsightCard Icon={TrendingUp} label="Streak" val={m.streak} suffix="Registry Units" color="text-orange-400" index={1} isDark={isDark} /><InsightCard Icon={Wallet} label="Retained" val={`$${m.savings.toFixed(2)}`} suffix="Resource Saved" color="text-emerald-400" index={2} isDark={isDark} /><InsightCard Icon={Activity} label="Impact" val={`${Math.floor(m.lost/60)}H`} suffix="Time Restored" color="text-rose-400" index={3} isDark={isDark} /></div>
-       <div className="space-y-10 md:space-y-12 pt-16 px-4"><div className="flex items-center justify-between px-2"><h4 className="text-[14px] font-[1000] text-accent uppercase tracking-[0.8em]">Registry Logs</h4><History size={20} className="text-accent/30" /></div><div className="grid gap-6 md:gap-8">{logs.sort((a,b)=>b.logDate.localeCompare(a.logDate)).map((log, i) => <StaggeredItem key={log.logDate} index={i+5}><Card className={cn("py-12 flex items-center justify-between group p-12 md:p-14 transition-all duration-700 shadow-2xl shadow-black/10 rounded-[48px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="flex flex-col space-y-2"><span className={cn("text-2xl md:text-3xl font-[1000] tracking-tighter uppercase leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{log.logDate === todayString ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-[900] text-text-dim uppercase tracking-[0.4em] mt-3 flex items-center"><History size={16} className="mr-3 opacity-30" /> {Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units tracked</span></div><div className="flex items-center space-x-10"><div className="flex -space-x-5 md:-space-x-6">{Object.entries(log.counts || {}).map(([cid, count]) => <div key={cid} className={cn("w-16 h-16 md:w-18 md:h-18 rounded-full border-[5px] md:border-[6px] flex items-center justify-center font-[1000] text-base shadow-2xl transition-all group-hover:-translate-y-4 shadow-black/20", isDark ? "bg-black border-white/10 text-white" : "bg-white border-black/10 text-black shadow-black/10")}>{count}</div>)}</div><button onClick={() => onEdit(log)} className={cn("p-5 md:p-6 rounded-[28px] md:rounded-[32px] transition-all hover:scale-110 shadow-inner", isDark ? "bg-white/5 text-text-dim hover:text-accent" : "bg-[#F5F5F7] text-black/40 hover:text-accent shadow-inner")}><Edit2 size={24} /></button></div></Card></StaggeredItem>)}</div></div>
+       <StaggeredItem index={0}><Card className={cn("p-0 overflow-hidden shadow-2xl rounded-[48px]", isDark ? "bg-white/[0.03] border-accent/20 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="p-10 md:p-14 pb-8 md:pb-10 flex justify-between items-start"><div className="space-y-1.5 md:space-y-2"><span className="text-[10px] md:text-[11px] font-[1000] text-text-dim uppercase tracking-[0.5em]">Analytics Stream</span><h3 className={cn("text-4xl md:text-5xl font-[1000] text-accent mt-1 md:mt-2 uppercase tracking-tighter leading-none font-black transition-colors")}>Registry Overview</h3></div><div className="p-4 md:p-5 bg-accent-soft rounded-[28px] border border-accent/20 shadow-2xl text-accent font-black"><BarChart3 size={32} /></div></div><div className="h-[280px] md:h-[350px] w-full pr-10 md:pr-14 pl-4 md:pl-6 pb-10 md:pb-14"><ResponsiveContainer width="100%" height="100%"><LineChart data={chart}><CartesianGrid strokeDasharray="8 8" stroke="rgba(128,128,128,0.1)" vertical={false} /><XAxis dataKey="name" stroke="#888" fontSize={10} axisLine={false} tickLine={false} dy={20} fontVariant="black" /><Tooltip contentStyle={{ background: isDark ? '#0D0D0E' : '#FFF', border: '2px solid var(--accent)', borderRadius: '32px', fontWeight: '950', fontSize: '13px', textTransform:'uppercase', boxShadow:'0 30px 60px rgba(0,0,0,0.6)', color: isDark ? '#FFF' : '#1D1D1F' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 4, stroke: isDark ? '#020202' : '#FFF' }} activeDot={{ r: 14, fill: '#FFF', shadow: '0 0 30px var(--accent)' }} animationDuration={2500} /></LineChart></ResponsiveContainer></div></Card></StaggeredItem>
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10"><InsightCard Icon={TrendingUp} label="Streak" val={m.streak} suffix="Registry Units" color="text-orange-400" index={1} isDark={isDark} /><InsightCard Icon={Wallet} label="Savings" val={`$${m.savings.toFixed(2)}`} suffix="Resource Saved" color="text-emerald-400" index={2} isDark={isDark} /><InsightCard Icon={Activity} label="Impact" val={`${Math.floor(m.lost/60)}H`} suffix="Time Restored" color="text-rose-400" index={3} isDark={isDark} /></div>
+       <div className="space-y-10 md:space-y-12 pt-16 px-4"><div className="flex items-center justify-between px-2"><h4 className="text-[14px] font-[1000] text-accent uppercase tracking-[0.8em]">Operational Logs</h4><History size={20} className="text-accent/30" /></div><div className="grid gap-6 md:gap-8">{logs.sort((a,b)=>b.logDate.localeCompare(a.logDate)).map((log, i) => <StaggeredItem key={log.logDate} index={i+5}><Card className={cn("py-12 flex items-center justify-between group p-12 md:p-14 transition-all duration-700 shadow-2xl shadow-black/10 rounded-[48px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="flex flex-col space-y-2"><span className={cn("text-2xl md:text-3xl font-[1000] tracking-tighter uppercase leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{log.logDate === todayString ? 'Current Period' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-[900] text-text-dim uppercase tracking-[0.4em] mt-3 flex items-center"><History size={16} className="mr-3 opacity-30" /> {Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units tracked</span></div><div className="flex items-center space-x-10"><div className="flex -space-x-5 md:-space-x-6">{Object.entries(log.counts || {}).map(([cid, count]) => <div key={cid} className={cn("w-16 h-16 md:w-18 md:h-18 rounded-full border-[5px] md:border-[6px] flex items-center justify-center font-[1000] text-base shadow-2xl transition-all group-hover:-translate-y-4 shadow-black/20", isDark ? "bg-black border-white/10 text-white" : "bg-white border-black/10 text-black shadow-black/10")}>{count}</div>)}</div><button onClick={() => onEdit(log)} className={cn("p-5 md:p-6 rounded-[28px] md:rounded-[32px] transition-all hover:scale-110 shadow-inner", isDark ? "bg-white/5 text-text-dim hover:text-accent" : "bg-[#F5F5F7] text-black/40 hover:text-accent shadow-inner")}><Edit2 size={24} /></button></div></Card></StaggeredItem>)}</div></div>
     </div>
   );
 };
@@ -457,12 +454,12 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
                 </div>
                 <div className="flex flex-wrap gap-6 justify-center">
                    {ACCENTS.map(x => (
-                      <button key={x.v} onClick={() => setLa(x.v)} className={cn("w-16 h-16 md:w-18 md:h-18 rounded-[24px] border-[5px] transition-all duration-700 shadow-2xl active:scale-90 relative", la === x.v ? "border-white scale-115 shadow-accent/60" : "border-transparent opacity-30 hover:opacity-100")} style={{ backgroundColor: x.v }}>
+                      <button key={x.v} onClick={() => setLa(x.v)} className={cn("w-16 h-16 md:w-18 md:h-18 rounded-[28px] border-[5px] transition-all duration-700 shadow-2xl active:scale-90 relative", la === x.v ? "border-white scale-115 shadow-accent/60" : "border-transparent opacity-30 hover:opacity-100")} style={{ backgroundColor: x.v }}>
                          {la === x.v && <motion.div layoutId="colorCheck" className="absolute inset-0 flex items-center justify-center text-white"><Check size={28} strokeWidth={5} /></motion.div>}
                       </button>
                    ))}
                 </div>
-                <button className="w-full h-22 rounded-full bg-accent text-bg-base shadow-[0_25px_80px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.4em] active:scale-95 transition-all text-xs flex items-center justify-center" onClick={applyTheme} style={{'--accent': la, '--accent-rgb': `rgba(${rgb}, 0.5)`}}><Zap className="mr-4" size={20} fill="currentColor" /> Apply Matrix Theme</button>
+                <button className="w-full h-22 rounded-full bg-accent text-bg-base shadow-[0_25px_80px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.4em] active:scale-95 transition-all text-xs flex items-center justify-center" onClick={applyTheme} style={{'--accent': la, '--accent-rgb': `rgba(${rgb}, 0.5)`}}><Zap className="mr-4" size={20} fill="currentColor" /> Apply Settings</button>
              </div>
           </div>
           <div className="pt-10 border-t border-white/10">
@@ -475,7 +472,7 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
        </Card>
 
        <Card className={cn("p-12 md:p-16 border-white/5 shadow-2xl rounded-[64px]", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}>
-          <div className="flex justify-between items-center mb-16 px-2 text-accent">
+          <div className="flex justify-between items-center mb-16 px-2 text-accent font-inter">
              <div className="space-y-3">
                 <h4 className={cn("text-3xl md:text-5xl font-[1000] uppercase tracking-tighter leading-none", !s.isDark && "text-[#1D1D1F]")}>Protocols</h4>
                 <p className="text-[11px] font-black text-text-dim uppercase tracking-[0.5em] opacity-40">Active counter stream</p>
@@ -492,24 +489,24 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
                             <button onClick={() => onReo(x.id, 'up')} className={cn("p-3.5 rounded-2xl transition-all hover:scale-125 shadow-xl border-2", s.isDark ? "bg-white/5 border-white/10 text-white/40" : "bg-black/5 border-black/10 text-black/20")}><ArrowUp size={18} strokeWidth={3} /></button>
                             <button onClick={() => onReo(x.id, 'down')} className={cn("p-3.5 rounded-2xl transition-all hover:scale-125 shadow-xl border-2", s.isDark ? "bg-white/5 border-white/10 text-white/40" : "bg-black/5 border-black/10 text-black/20")}><ArrowDown size={18} strokeWidth={3} /></button>
                          </div>
-                         <div className="flex flex-col space-y-2">
+                         <div className="flex flex-col space-y-2 font-inter">
                             <span className={cn("text-2xl md:text-3xl font-[1000] uppercase leading-none transition-all group-hover:text-accent tracking-tighter", !s.isDark && "text-[#1D1D1F]")}>{x.name}</span>
                             <span className="text-[11px] font-black text-text-dim uppercase tracking-[0.4em] opacity-40">Limit: {x.limit}</span>
                          </div>
                       </div>
                       <div className="flex items-center space-x-8 opacity-0 group-hover:opacity-100 duration-1000 transition-all translate-x-12 group-hover:translate-x-0">
-                         <button onClick={() => onDel(x.id)} className="p-6 rounded-[32px] bg-danger/10 text-danger/50 hover:text-danger border-2 border-danger/20 shadow-2xl transition-all hover:scale-110 active:scale-90"><Trash2 size={28} /></button>
+                         <button onClick={() => onDel(x.id)} className="p-6 rounded-[32px] bg-danger/10 text-danger/50 hover:text-danger border-2 border-danger/20 shadow-2xl transition-all hover:scale-110 active:scale-90 shrink-0"><Trash2 size={28} /></button>
                       </div>
                    </div>
                 ))}
              </div>
              <button className="w-full h-32 border-4 border-dashed border-white/10 rounded-[64px] hover:bg-accent/5 hover:border-accent group transition-all duration-700 flex items-center justify-center space-x-6" onClick={onAdd}>
-                <Plus className="group-hover:rotate-180 transition-transform duration-1000 text-accent" size={48} strokeWidth={3} />
-                <span className="text-lg font-[1000] tracking-[0.4em] uppercase text-text-dim group-hover:text-white">Add Matrix Link</span>
+                <Plus className="group-hover:rotate-180 transition-transform duration-1000 text-accent shrink-0" size={48} strokeWidth={3} />
+                <span className="text-lg font-[1000] tracking-[0.4em] uppercase text-text-dim group-hover:text-white font-inter">Add Matrix Link</span>
              </button>
           </div>
        </Card>
-       <button className="w-full h-24 rounded-full bg-danger text-white shadow-[0_30px_100px_rgba(248,113,113,0.3)] hover:scale-[1.02] active:scale-[0.98] text-sm font-[1000] uppercase tracking-[1em] transition-all" onClick={() => signOut(auth)}>Log Out Registry</button>
+       <button className="w-full h-24 rounded-full bg-danger text-white shadow-[0_30px_100px_rgba(248,113,113,0.3)] hover:scale-[1.02] active:scale-[0.98] text-sm font-[1000] uppercase tracking-[1em] transition-all font-inter" onClick={() => signOut(auth)}>Log Out Registry</button>
     </div>
   );
 };
@@ -518,8 +515,8 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
 
 const Toggle = ({ icon: Icon, label, active, onClick, isDark }) => (
   <div onClick={onClick} className={cn("flex items-center justify-between p-10 md:p-12 rounded-[56px] border-2 shadow-2xl transition-all hover:scale-[1.01] active:scale-[0.98] group cursor-pointer shadow-black/10", isDark ? "bg-white/[0.02] border-white/5 shadow-black/40" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}>
-     <div className="flex items-center space-x-6 md:space-x-8"><div className={cn("p-6 md:p-7 rounded-[28px] md:rounded-[32px] transition-all duration-700 shadow-2xl border-2", isDark ? "bg-white/5 border-white/5 shadow-black" : "bg-[#F0F2F5] border-black/5 shadow-inner shadow-black/10")}><Icon size={32} strokeWidth={3} className={cn(active ? "text-accent" : (isDark ? "text-white/20" : "text-black/20"))} /></div><span className={cn("text-sm md:text-base font-[1000] uppercase tracking-[0.6em] leading-none transition-all font-black transition-colors truncate", !isDark && "text-[#1D1C1E]")}>{label}</span></div>
-     <div className={cn("w-20 h-11 md:w-22 md:h-12 rounded-full p-2.5 transition-all duration-700 shadow-inner relative shadow-black/50 border-2", active ? "bg-accent border-accent/40 shadow-[0_0_30px_var(--accent-rgb)]" : "bg-black/30 border-white/5 shadow-black/80")} style={{'--accent-rgb': `rgba(${hexToRgb(active ? '#D4FF5C' : '#000')}, 0.5)`}}><motion.div animate={{ x: active ? (window.innerWidth > 768 ? 44 : 40) : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }} className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-white shadow-2xl shadow-black/40 border-2 border-black/10" /></div>
+     <div className="flex items-center space-x-6 md:space-x-8"><div className={cn("p-6 md:p-7 rounded-[28px] md:rounded-[32px] transition-all duration-700 shadow-2xl border-2 shrink-0", isDark ? "bg-white/5 border-white/5 shadow-black" : "bg-[#F0F2F5] border-black/5 shadow-inner shadow-black/10")}><Icon size={32} strokeWidth={3} className={cn(active ? "text-accent" : (isDark ? "text-white/20" : "text-black/20"))} /></div><span className={cn("text-sm md:text-base font-[1000] uppercase tracking-[0.6em] leading-none transition-all font-black transition-colors truncate font-inter", !isDark && "text-[#1D1C1E]")}>{label}</span></div>
+     <div className={cn("w-20 h-11 md:w-22 md:h-12 rounded-full p-2.5 transition-all duration-700 shadow-inner relative shadow-black/50 border-2 shrink-0", active ? "bg-accent border-accent/40 shadow-[0_0_30px_var(--accent-rgb)]" : "bg-black/30 border-white/5 shadow-black/80")} style={{'--accent-rgb': `rgba(${hexToRgb(active ? '#D4FF5C' : '#000')}, 0.5)`}}><motion.div animate={{ x: active ? (window.innerWidth > 768 ? 44 : 40) : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }} className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-white shadow-2xl shadow-black/40 border-2 border-black/10" /></div>
   </div>
 );
 
@@ -534,8 +531,8 @@ const AddForm = ({ onAdd, isDark, accent }) => {
     <div className="space-y-14">
        <Input label="Tracker Label" value={n} onChange={setN} placeholder="e.g. Protocol Alpha" isDark={isDark} />
        <Input label="Max Threshold" value={l} onChange={setL} type="number" isDark={isDark} />
-       <div className="space-y-10"><span className="text-[12px] font-[1000] text-text-dim uppercase tracking-[1em] ml-2">Visual Schema</span><div className="grid grid-cols-2 gap-6 md:grid-cols-2 md:gap-8">{['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => <button key={x} onClick={() => setT(x)} className={cn("h-20 md:h-24 rounded-[36px] border-2 font-[1000] text-[11px] uppercase tracking-[0.5em] transition-all duration-1000 shadow-2xl active:scale-95", t === x ? "bg-accent text-bg-base border-accent" : (isDark ? "bg-black/40 border-white/5 text-text-dim" : "bg-black/5 border-black/5 text-black/40"))} style={{'boxShadow': t === x ? `0 20px 60px rgba(${rgb}, 0.4)` : 'none'}}>{x.replace('_',' ')}</button>)}</div></div>
-       <button className="w-full h-24 rounded-full bg-accent text-bg-base shadow-[0_30px_100px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.8em] active:scale-95 transition-all text-sm mt-10" onClick={() => onAdd(n, t, l)} style={{'--accent-rgb': `rgba(${rgb}, 0.4)`}}>Deploy Registry</button>
+       <div className="space-y-10"><span className="text-[12px] font-[1000] text-text-dim uppercase tracking-[1em] ml-2 font-inter">Visual Schema</span><div className="grid grid-cols-2 gap-6 md:grid-cols-2 md:gap-8">{['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => <button key={x} onClick={() => setT(x)} className={cn("h-20 md:h-24 rounded-[36px] border-2 font-[1000] text-[11px] uppercase tracking-[0.5em] transition-all duration-1000 shadow-2xl active:scale-95 font-inter", t === x ? "bg-accent text-bg-base border-accent" : (isDark ? "bg-black/40 border-white/5 text-text-dim" : "bg-black/5 border-black/5 text-black/40"))} style={{'boxShadow': t === x ? `0 20px 60px rgba(${rgb}, 0.4)` : 'none'}}>{x.replace('_',' ')}</button>)}</div></div>
+       <button className="w-full h-24 rounded-full bg-accent text-bg-base shadow-[0_30px_100px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.8em] active:scale-95 transition-all text-sm mt-10 font-inter" onClick={() => onAdd(n, t, l)} style={{'--accent-rgb': `rgba(${rgb}, 0.4)`}}>Deploy Registry</button>
     </div>
   );
 };
@@ -545,9 +542,9 @@ const EditForm = ({ log, configs, onSave, isDark, accent }) => {
   const rgb = hexToRgb(accent);
   return (
     <div className="space-y-14">
-       <div className={cn("flex items-center space-x-10 p-10 rounded-[48px] border-2 shadow-inner", isDark ? "bg-black/60 border-white/5 shadow-black" : "bg-black/5 border-black/5 shadow-inner")}><div className="p-6 bg-accent-soft rounded-[32px] border-2 border-accent/20 shadow-accent/20 shadow-2xl"><Calendar size={36} strokeWidth={3} className="text-accent" /></div><span className={cn("text-xl md:text-2xl font-[1000] uppercase tracking-[0.6em] opacity-90", !isDark && "text-[#1D1D1F]")}>{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span></div>
-       <div className="max-h-[400px] overflow-y-auto pr-8 space-y-12 scrollbar-thin scrollbar-thumb-accent/40 pb-10">{configs.map(x => <Input key={x.id} label={x.name} value={c[x.id] || 0} type="number" onChange={v => setC({...c, [x.id]: parseInt(v) || 0})} isDark={isDark} />)}</div>
-       <button className="w-full h-24 rounded-full bg-accent text-bg-base shadow-[0_30px_100px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.8em] active:scale-95 transition-all text-sm" onClick={() => onSave(log.logDate, c)} style={{'--accent-rgb': `rgba(${rgb}, 0.4)`}}>Update Registry</button>
+       <div className={cn("flex items-center space-x-10 p-10 rounded-[48px] border-2 shadow-inner", isDark ? "bg-black/60 border-white/5 shadow-black" : "bg-black/5 border-black/5 shadow-inner")}><div className="p-6 bg-accent-soft rounded-[32px] border-2 border-accent/20 shadow-accent/20 shadow-2xl"><Calendar size={36} strokeWidth={3} className="text-accent" /></div><span className={cn("text-xl md:text-2xl font-[1000] uppercase tracking-[0.6em] opacity-90 font-inter", !isDark && "text-[#1D1D1F]")}>{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span></div>
+       <div className="max-h-[400px] overflow-y-auto pr-8 space-y-12 scrollbar-thin scrollbar-thumb-accent/40 pb-10 font-inter">{configs.map(x => <Input key={x.id} label={x.name} value={c[x.id] || 0} type="number" onChange={v => setC({...c, [x.id]: parseInt(v) || 0})} isDark={isDark} />)}</div>
+       <button className="w-full h-24 rounded-full bg-accent text-bg-base shadow-[0_30px_100px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.8em] active:scale-95 transition-all text-sm font-inter" onClick={() => onSave(log.logDate, c)} style={{'--accent-rgb': `rgba(${rgb}, 0.4)`}}>Update Registry</button>
     </div>
   );
 };
@@ -555,10 +552,10 @@ const EditForm = ({ log, configs, onSave, isDark, accent }) => {
 const InsightCard = ({ Icon, label, val, suffix, color, index, isDark }) => (
   <StaggeredItem index={index}>
     <Card className={cn("flex flex-col items-center text-center py-16 md:py-20 transition-all duration-1000 shadow-2xl group shadow-black/20 rounded-[64px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/10")}>
-      <div className={cn("p-10 md:p-12 rounded-[40px] md:rounded-[48px] mb-12 md:mb-16 transition-all duration-1000 group-hover:scale-115 shadow-2xl relative z-10 border-2", color, isDark ? "bg-white/[0.02] border-white/5" : "bg-[#F0F2F5] border-black/5 shadow-inner")}><Icon size={48} strokeWidth={2.5} /></div>
+      <div className={cn("p-10 md:p-12 rounded-[40px] md:rounded-[48px] mb-12 md:mb-16 transition-all duration-1000 group-hover:scale-115 shadow-2xl relative z-10 border-2 shrink-0", color, isDark ? "bg-white/[0.02] border-white/5" : "bg-[#F0F2F5] border-black/5 shadow-inner")}><Icon size={48} strokeWidth={2.5} /></div>
       <div className={cn("text-6xl md:text-8xl font-[1000] leading-none tracking-tighter mb-4 md:mb-6 relative z-10 drop-shadow-2xl transition-colors font-inter", !isDark && "text-[#1D1D1F]")}>{val}</div>
-      <div className="text-[12px] font-black text-text-dim uppercase tracking-[0.8em] relative z-10 opacity-30 font-bold">{suffix}</div>
-      <div className="mt-16 md:mt-20 pt-12 md:pt-16 border-t border-white/10 w-full flex items-center justify-center relative z-10 text-accent font-[1000] tracking-[1.5em] text-[10px] md:text-[11px] opacity-40 uppercase">{label}</div>
+      <div className="text-[12px] font-black text-text-dim uppercase tracking-[0.8em] relative z-10 opacity-30 font-bold font-inter">{suffix}</div>
+      <div className="mt-16 md:mt-20 pt-12 md:pt-16 border-t border-white/10 w-full flex items-center justify-center relative z-10 text-accent font-[1000] tracking-[1.5em] text-[10px] md:text-[11px] opacity-40 uppercase font-inter">{label}</div>
     </Card>
   </StaggeredItem>
 );
