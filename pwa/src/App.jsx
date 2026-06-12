@@ -18,14 +18,14 @@ import {
   signInAnonymously, signOut, updateProfile
 } from 'firebase/auth';
 import {
-  doc, setDoc, collection, onSnapshot, query, orderBy, limit, deleteDoc, updateDoc
+  doc, setDoc, collection, onSnapshot, query, orderBy, limit, deleteDoc, updateDoc, getDoc
 } from 'firebase/firestore';
 
 import { SmokingCalculator } from './utils/smokingCalculator';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 import { cn } from './utils/utils';
 
-const APP_VERSION = "6.0.0-PRO";
+const APP_VERSION = "7.0.0-ULTRA";
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
@@ -36,9 +36,9 @@ class ErrorBoundary extends Component {
       return (
         <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
           <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
-          <h2 className="text-3xl font-[950] uppercase tracking-tighter leading-none">System Reset Required</h2>
-          <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60 leading-relaxed">{this.state.error?.message || "There was a fatal error in the UI link."}</p>
-          <Button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-64 h-18 rounded-full shadow-2xl font-black uppercase tracking-widest">Re-Initialize App</Button>
+          <h2 className="text-3xl font-[950] uppercase tracking-tighter leading-none">Identity Error</h2>
+          <p className="text-text-dim text-sm mt-4 mb-10 max-w-xs font-bold opacity-60">{this.state.error?.message}</p>
+          <Button onClick={() => { localStorage.clear(); window.location.reload(); }} className="w-64 h-18 rounded-full shadow-2xl font-black uppercase tracking-widest bg-white text-black">Reset App</Button>
         </div>
       );
     }
@@ -121,7 +121,7 @@ const App = () => {
         }
       });
       return () => { cUnsub(); lUnsub(); sUnsub(); };
-    } catch (err) { setAppError("Data sync failure: " + err.message); }
+    } catch (err) { setAppError("Data sync failed: " + err.message); }
   }, [user]);
 
   const metrics = useMemo(() => {
@@ -146,9 +146,9 @@ const App = () => {
 
   function generateCoach(count, limit, streak) {
     const p = limit > 0 ? count / limit : 0;
-    if (count === 0 && streak > 0) return `On a ${streak}-day streak! Keep pushing.`;
+    if (count === 0 && streak > 0) return `On a ${streak}-day streak. Keep it clean.`;
     if (p >= 1.0) return "Daily threshold reached.";
-    return "Every session tracked is data for growth.";
+    return "Every session tracked is a data point for growth.";
   }
 
   const onInc = useCallback(async (id) => {
@@ -183,7 +183,7 @@ const App = () => {
       className={cn("flex flex-col min-h-screen font-inter transition-all duration-700 overflow-hidden select-none", themeClass)}
       style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent), fontSize: `${settings.fontScale}rem` }}
     >
-      <header className="fixed top-0 left-0 right-0 z-[100] pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-6 px-6 md:px-12 flex justify-between items-center bg-inherit/90 backdrop-blur-3xl border-b border-white/5">
+      <header className="fixed top-0 left-0 right-0 z-[100] pt-[calc(env(safe-area-inset-top)+0.5rem)] pb-5 px-6 md:px-12 flex justify-between items-center bg-inherit/90 backdrop-blur-3xl border-b border-white/5">
         <div className="flex flex-col">
           <h1 className="text-3xl md:text-4xl font-[1000] tracking-tighter uppercase leading-none transition-colors">tabak++</h1>
           <div className="flex items-center space-x-2 mt-1.5 text-accent">
@@ -191,34 +191,33 @@ const App = () => {
             <span className="text-[9px] font-black tracking-[0.4em] uppercase opacity-60">{activeTab}</span>
           </div>
         </div>
-        <div className="relative">
-          <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent overflow-hidden shadow-2xl transition-all active:scale-90 hover:border-accent/40">
-            {user.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <User size={24} />}
-          </button>
-          <AnimatePresence>
-            {showProfileMenu && (
-              <>
-                <div className="fixed inset-0 z-[90]" onClick={() => setShowProfileMenu(false)} />
-                <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className={cn("absolute right-0 mt-4 w-60 rounded-[32px] p-2 shadow-2xl border backdrop-blur-3xl z-[100]", settings.isDark ? "bg-black/95 border-white/10" : "bg-white/95 border-black/5 shadow-black/10")}>
-                  <div className="flex items-center space-x-4 p-4 mb-2 border-b border-white/5">
-                    <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent overflow-hidden">
-                       {user.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <UserCircle size={20} />}
-                    </div>
-                    <div className="flex flex-col truncate">
-                       <span className="text-xs font-black uppercase tracking-widest truncate">{user.displayName || 'User'}</span>
-                       <span className="text-[9px] font-bold opacity-40 uppercase tracking-tighter truncate">{user.email}</span>
-                    </div>
+        <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="relative w-11 h-11 md:w-12 md:h-12 rounded-[18px] bg-accent/10 border-2 border-accent/20 flex items-center justify-center text-accent overflow-hidden shadow-2xl transition-all active:scale-90 hover:border-accent/50 group">
+          {user.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <User size={24} />}
+          <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/10 transition-colors" />
+        </button>
+        <AnimatePresence>
+          {showProfileMenu && (
+            <>
+              <div className="fixed inset-0 z-[90]" onClick={() => setShowProfileMenu(false)} />
+              <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className={cn("absolute right-6 top-24 w-64 rounded-[40px] p-2 shadow-2xl border backdrop-blur-3xl z-[100]", settings.isDark ? "bg-black/95 border-white/10" : "bg-white/95 border-black/5 shadow-black/10")}>
+                <div className="flex items-center space-x-4 p-5 mb-2 border-b border-white/5">
+                  <div className="w-12 h-12 rounded-[20px] bg-accent/10 border-2 border-accent/20 flex items-center justify-center text-accent overflow-hidden">
+                     {user.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <UserCircle size={24} />}
                   </div>
-                  <button onClick={() => { setActiveTab('settings'); setShowProfileMenu(false); }} className="w-full flex items-center space-x-4 p-4 rounded-2xl hover:bg-accent/10 transition-colors text-xs font-black uppercase tracking-widest"><Settings size={16} className="text-accent" /><span>Profile</span></button>
-                  <button onClick={() => { signOut(auth); setShowProfileMenu(false); }} className="w-full flex items-center space-x-4 p-4 rounded-2xl hover:bg-danger/10 text-danger transition-colors text-xs font-black uppercase tracking-widest mt-1"><LogOut size={16} /><span>Sign Out</span></button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
+                  <div className="flex flex-col truncate">
+                     <span className="text-sm font-[1000] uppercase tracking-widest truncate">{user.displayName || 'Registry User'}</span>
+                     <span className="text-[10px] font-bold opacity-40 uppercase tracking-tighter truncate">{user.email}</span>
+                  </div>
+                </div>
+                <button onClick={() => { setActiveTab('settings'); setShowProfileMenu(false); }} className="w-full flex items-center space-x-4 p-5 rounded-[24px] hover:bg-accent/10 transition-colors text-xs font-black uppercase tracking-widest"><Settings size={18} className="text-accent" /><span>Profile</span></button>
+                <button onClick={() => { signOut(auth); setShowProfileMenu(false); }} className="w-full flex items-center space-x-4 p-5 rounded-[24px] hover:bg-danger/10 text-danger transition-colors text-xs font-black uppercase tracking-widest mt-1"><LogOut size={18} /><span>Log Out</span></button>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </header>
 
-      <main className="flex-1 overflow-y-auto pt-[calc(env(safe-area-inset-top)+6.5rem)] pb-[calc(env(safe-area-inset-bottom)+9rem)] px-4 md:px-12 max-w-5xl mx-auto w-full transition-all duration-500">
+      <main className="flex-1 overflow-y-auto pt-[calc(env(safe-area-inset-top)+6.5rem)] pb-[calc(env(safe-area-inset-bottom)+9rem)] px-5 md:px-12 max-w-5xl mx-auto w-full transition-all duration-500">
         <AnimatePresence mode="wait">
           {activeTab === 'tracker' && <TrackerScreen key="t" m={metrics} c={configs} onInc={onInc} onDec={onDec} isDark={settings.isDark} view={settings.layout} onAdd={() => setActiveTab('settings')} />}
           {activeTab === 'history' && <HistoryScreen key="y" logs={logs} configs={configs} m={metrics} todayString={today} onEdit={setEditTarget} isDark={settings.isDark} />}
@@ -235,16 +234,16 @@ const App = () => {
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 md:bottom-10 md:left-1/2 md:-translate-x-1/2 md:w-[600px] pb-[calc(env(safe-area-inset-bottom)+0.2rem)] md:pb-0 z-[110] px-4">
-        <div className={cn("backdrop-blur-3xl border rounded-t-[36px] md:rounded-[40px] flex justify-around items-center h-22 md:h-22 px-4 md:px-6 shadow-2xl transition-all duration-500", settings.isDark ? "bg-black/80 border-white/5 shadow-black" : "bg-white/80 border-black/5 shadow-black/5 shadow-2xl")}>
-          <NavItem id="tracker" icon={LayoutDashboard} active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} label="Tracker" isDark={settings.isDark} />
-          <NavItem id="history" icon={BarChart3} active={activeTab === 'history'} onClick={() => setActiveTab('history')} label="History" isDark={settings.isDark} />
-          <NavItem id="settings" icon={Settings} active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} label="Settings" isDark={settings.isDark} />
+        <div className={cn("backdrop-blur-3xl border rounded-t-[40px] md:rounded-[40px] flex justify-around items-center h-22 md:h-22 px-4 md:px-6 shadow-2xl transition-all duration-500", settings.isDark ? "bg-black/80 border-white/5 shadow-black" : "bg-white/80 border-black/5 shadow-black/5 shadow-2xl")}>
+          <NavItem id="tracker" icon={LayoutDashboard} active={activeTab === 'tracker'} onClick={() => setActiveTab('tracker')} label="Track" isDark={settings.isDark} />
+          <NavItem id="history" icon={BarChart3} active={activeTab === 'history'} onClick={() => setActiveTab('history')} label="Logs" isDark={settings.isDark} />
+          <NavItem id="settings" icon={Settings} active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} label="Control" isDark={settings.isDark} />
         </div>
       </nav>
 
       <AnimatePresence>
-        {showAdd && <Overlay onClose={() => setShowAdd(false)} title="Add Tracker" isDark={settings.isDark}><AddForm onAdd={async (n, t, l) => { const id = Math.random().toString(36).substr(2, 9); await setDoc(doc(db, 'users', user.uid, 'configs', id), { name: n, type: t, limit: parseInt(l) || 20, order: configs.length }); setShowAdd(false); }} isDark={settings.isDark} /></Overlay>}
-        {editTarget && <Overlay onClose={() => setEditTarget(null)} title="Edit Logs" isDark={settings.isDark}><EditForm log={editTarget} configs={configs} onSave={async (d, c) => { await setDoc(doc(db, 'users', user.uid, 'logs', d), { counts: c }, { merge: true }); setEditTarget(null); }} isDark={settings.isDark} /></Overlay>}
+        {showAdd && <Overlay onClose={() => setShowAdd(false)} title="New Tracker" isDark={settings.isDark}><AddForm onAdd={async (n, t, l) => { const id = Math.random().toString(36).substr(2, 9); await setDoc(doc(db, 'users', user.uid, 'configs', id), { name: n, type: t, limit: parseInt(l) || 20, order: configs.length }); setShowAdd(false); }} isDark={settings.isDark} /></Overlay>}
+        {editTarget && <Overlay onClose={() => setEditTarget(null)} title="Modify Data" isDark={settings.isDark}><EditForm log={editTarget} configs={configs} onSave={async (d, c) => { await setDoc(doc(db, 'users', user.uid, 'logs', d), { counts: c }, { merge: true }); setEditTarget(null); }} isDark={settings.isDark} /></Overlay>}
       </AnimatePresence>
     </div>
   );
@@ -266,42 +265,42 @@ const AuthScreen = ({ accent }) => {
   return (
     <div className="min-h-screen bg-[#020202] flex items-center justify-center p-6 text-white font-inter relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-full opacity-20">
-         <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-accent/20 rounded-full blur-[150px] animate-pulse" style={{'--accent': accent}} />
-         <div className="absolute bottom-[-10%] right-[-10%] w-[70%] h-[70%] bg-accent/10 rounded-full blur-[150px] animate-pulse" style={{animationDelay:'3s', '--accent': accent}} />
+         <div className="absolute top-[-15%] left-[-15%] w-[80%] h-[80%] bg-accent/10 rounded-full blur-[160px] animate-pulse" style={{'--accent': accent}} />
+         <div className="absolute bottom-[-15%] right-[-15%] w-[80%] h-[80%] bg-accent/5 rounded-full blur-[160px] animate-pulse" style={{animationDelay:'3s', '--accent': accent}} />
       </div>
 
       <div className="w-full max-w-md space-y-12 relative z-10">
-        <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', damping: 25 }} className="flex flex-col items-center text-center">
-          <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_80px_var(--accent)] text-bg-base transition-all hover:rotate-12 duration-700" style={{'--accent': accent}}>
-            <Zap size={48} fill="currentColor" strokeWidth={1} />
+        <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', damping: 20 }} className="flex flex-col items-center text-center">
+          <div className="w-24 h-24 bg-accent rounded-[36px] flex items-center justify-center mb-10 shadow-[0_0_100px_var(--accent)] text-bg-base transition-all hover:scale-110 duration-1000" style={{'--accent': accent}}>
+            <Zap size={52} fill="currentColor" strokeWidth={1.5} />
           </div>
           <h1 className="text-7xl font-[1000] tracking-tighter uppercase leading-none text-white drop-shadow-2xl">tabak++</h1>
-          <p className="mt-6 text-accent/60 font-black tracking-[0.4em] uppercase text-[10px]">Precision Progress Vault</p>
+          <p className="mt-8 text-accent/50 font-black tracking-[0.6em] uppercase text-[10px]">Private Logging Link</p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15, type: 'spring', stiffness: 100 }}>
-          <Card className="space-y-6 bg-white/[0.03] border-white/5 p-12 backdrop-blur-3xl shadow-2xl shadow-black rounded-[48px] border-t border-t-white/10">
-            <div className="flex flex-col space-y-7">
-              {err && <div className="p-5 bg-danger/10 border border-danger/20 rounded-2xl text-danger text-[11px] font-black uppercase tracking-widest leading-relaxed text-center">{err}</div>}
-              {!isL && <Input label="Display Name" value={n} onChange={setN} placeholder="How should we address you?" isDark={true} />}
-              <Input label="Email Address" value={e} onChange={setE} placeholder="email@address.com" isDark={true} />
-              <Input label="Security Key" type="password" value={p} onChange={setP} placeholder="••••••••" isDark={true} />
-              <Button className="w-full h-22 text-[12px] shadow-[0_20px_50px_rgba(0,0,0,0.4)] font-[1000] uppercase tracking-[0.4em] rounded-[28px] mt-6 transition-all hover:scale-[1.02] active:scale-[0.98]" onClick={handle} disabled={loading} style={{'--accent': accent}}>
-                {loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Profile' : 'Initialize Vault')}
-              </Button>
-              <div className="flex flex-col space-y-5 items-center pt-8 border-t border-white/5 mt-6">
-                <button onClick={() => setIsL(!isL)} className="text-[11px] font-[1000] text-text-dim uppercase tracking-[0.2em] hover:text-accent transition-all decoration-accent underline-offset-8">
-                  {isL ? "Request New Access" : "Back to Registry"}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 120 }}>
+          <Card className="space-y-6 bg-white/[0.04] border-white/5 p-12 backdrop-blur-3xl shadow-2xl shadow-black rounded-[60px] border-t border-t-white/10">
+            <div className="flex flex-col space-y-8">
+              {err && <div className="p-6 bg-danger/10 border border-danger/20 rounded-[32px] text-danger text-[11px] font-black uppercase tracking-widest leading-relaxed text-center shadow-2xl">{err}</div>}
+              {!isL && <Input label="Registry Identity" value={n} onChange={setN} placeholder="How should we label you?" isDark={true} />}
+              <Input label="Registry Email" value={e} onChange={setE} placeholder="id@domain.com" isDark={true} />
+              <Input label="Registry Key" type="password" value={p} onChange={setP} placeholder="••••••••" isDark={true} />
+              <button className="w-full h-22 text-[12px] bg-accent text-bg-base shadow-[0_20px_60px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.5em] rounded-[32px] mt-8 transition-all hover:scale-[1.02] active:scale-[0.98] active:brightness-90 flex items-center justify-center" onClick={handle} disabled={loading} style={{'--accent': accent, '--accent-rgb': `rgba(${hexToRgb(accent)}, 0.3)`}}>
+                {loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Profile' : 'Register Link')}
+              </button>
+              <div className="flex flex-col space-y-6 items-center pt-8 border-t border-white/5 mt-6">
+                <button onClick={() => setIsL(!isL)} className="text-[11px] font-[1000] text-text-dim uppercase tracking-[0.3em] hover:text-accent transition-all decoration-accent underline-offset-8">
+                  {isL ? "Request Access Entry" : "Back to Security"}
                 </button>
-                <button onClick={() => signInAnonymously(auth)} className="text-[10px] font-black text-accent/30 uppercase tracking-widest hover:text-accent transition-all">
-                  Browse Anonymous
+                <button onClick={() => signInAnonymously(auth)} className="text-[10px] font-black text-accent/20 uppercase tracking-[0.5em] hover:text-accent transition-all">
+                  Incognito Mode
                 </button>
               </div>
             </div>
           </Card>
         </motion.div>
-        <div className="text-center opacity-20 pt-8 group cursor-pointer hover:opacity-50 transition-opacity">
-           <span className="text-[10px] font-black uppercase tracking-[1em] text-white">v{APP_VERSION}</span>
+        <div className="text-center opacity-30 pt-10">
+           <span className="text-[10px] font-black uppercase tracking-[1.5em] text-white">SYSTEM ACTIVE</span>
         </div>
       </div>
     </div>
@@ -318,10 +317,10 @@ const NavItem = ({ icon: Icon, active, onClick, label, isDark }) => (
 
 const TrackerScreen = ({ m, c, onInc, onDec, view, isDark, onAdd }) => (
   <div className="flex flex-col space-y-8 pb-10">
-    <StaggeredItem index={0}><Card className={cn("p-10 relative overflow-hidden group shadow-2xl transition-all duration-700", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}><div className="flex justify-between items-end relative z-10 text-white"><div className="space-y-1.5"><span className="text-[9px] font-black text-text-dim uppercase tracking-[0.4em]">Remaining Today</span><div className={cn("text-6xl font-[1000] tracking-tighter leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{Math.max(0, m.limit - m.count)} <span className="text-sm text-accent uppercase tracking-widest font-black ml-3 leading-none">Units</span></div></div><div className="text-right space-y-2 hidden md:block"><div className="px-4 py-1.5 bg-accent-soft rounded-xl text-accent text-[9px] font-black uppercase border border-accent/20">{m.rank}</div><div className={cn("text-3xl font-[1000] opacity-40 leading-none tracking-tighter", !isDark && "text-[#1D1D1F]")}>{m.xp} XP</div></div></div><div className="w-full h-3 bg-black/10 rounded-full overflow-hidden mt-10 p-0.5 border border-white/5 relative z-10 shadow-inner"><motion.div animate={{ width: `${Math.min(1, m.progress) * 100}%` }} className={cn("h-full rounded-full transition-all duration-1000 shadow-2xl", m.progress >= 1 ? "bg-danger shadow-[0_0_30px_#F87171]" : "bg-accent shadow-[0_0_20px_var(--accent)]")} /></div></Card></StaggeredItem>
+    <StaggeredItem index={0}><Card className={cn("p-10 relative overflow-hidden group shadow-2xl transition-all duration-700 rounded-[48px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}><div className="flex justify-between items-end relative z-10 text-white"><div className="space-y-1.5"><span className="text-[9px] font-black text-text-dim uppercase tracking-[0.4em]">Remaining Units</span><div className={cn("text-6xl font-[1000] tracking-tighter leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{Math.max(0, m.limit - m.count)} <span className="text-sm text-accent uppercase tracking-widest font-black ml-3 leading-none">Left</span></div></div><div className="text-right space-y-2 hidden md:block"><div className="px-4 py-1.5 bg-accent-soft rounded-xl text-accent text-[9px] font-black uppercase border border-accent/20">{m.rank}</div><div className={cn("text-3xl font-[1000] opacity-40 leading-none tracking-tighter", !isDark && "text-[#1D1D1F]")}>{m.xp} XP</div></div></div><div className="w-full h-4 bg-black/10 rounded-full overflow-hidden mt-10 p-0.5 border border-white/5 relative z-10 shadow-inner"><motion.div animate={{ width: `${Math.min(1, m.progress) * 100}%` }} className={cn("h-full rounded-full transition-all duration-1000 shadow-2xl", m.progress >= 1 ? "bg-danger shadow-[0_0_30px_#F87171]" : "bg-accent shadow-[0_0_20px_var(--accent)]")} /></div></Card></StaggeredItem>
     <div className={cn("grid gap-6 md:gap-10", view === 'COMPACT' ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 lg:grid-cols-2")}>
        {c.sort((a,b) => a.order - b.order).map((config, i) => <StaggeredItem key={config.id} index={i+1}><CounterCard config={config} count={(m.todayLog.counts || {})[config.id] || 0} onInc={() => onInc(config.id)} onDec={() => onDec(config.id)} isC={view === 'COMPACT'} isDark={isDark} /></StaggeredItem>)}
-       <StaggeredItem index={c.length + 1}><button onClick={onAdd} className={cn("w-full border-2 border-dashed border-white/5 rounded-[36px] md:rounded-[48px] flex flex-col items-center justify-center space-y-4 hover:bg-white/[0.02] hover:border-accent/20 transition-all group relative overflow-hidden shadow-2xl shadow-black/10", view === 'COMPACT' ? "h-[320px]" : "h-[450px] md:h-[580px]")}><div className="w-16 h-16 rounded-[24px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-500 shadow-inner shadow-black/40 text-text-dim group-hover:text-accent"><Plus size={28} /></div><span className="text-[9px] font-black text-text-dim uppercase tracking-[0.4em] group-hover:text-white transition-colors">Add Tracker</span></button></StaggeredItem>
+       <StaggeredItem index={c.length + 1}><button onClick={onAdd} className={cn("w-full border-2 border-dashed border-white/10 rounded-[48px] flex flex-col items-center justify-center space-y-4 hover:bg-white/[0.02] hover:border-accent/20 transition-all group relative overflow-hidden shadow-2xl shadow-black/10", view === 'COMPACT' ? "h-[320px]" : "h-[450px] md:h-[580px]")}><div className="w-20 h-20 rounded-[40px] bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/10 transition-all duration-700 shadow-inner shadow-black/40 text-text-dim group-hover:text-accent border border-white/5"><Plus size={32} /></div><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.5em] group-hover:text-white transition-colors">Add Protocol</span></button></StaggeredItem>
     </div>
   </div>
 );
@@ -330,36 +329,36 @@ const CounterCard = ({ config, count, onInc, onDec, isC, isDark }) => {
   const isL = count >= config.limit; const p = Math.min(1, count / config.limit);
   const isCig = config.type === 'CIGARETTE'; const isJoint = config.type.startsWith('JOINT');
   return (
-    <Card className={cn("relative flex flex-col group transition-all duration-1000 p-10 md:p-12 overflow-hidden shadow-2xl", isL ? "bg-danger/[0.04] border-danger/50 shadow-[0_0_60px_rgba(248,113,113,0.15)]" : (isDark ? "bg-white/[0.03] border-white/5 shadow-black/20" : "bg-white border-black/5 shadow-black/5 shadow-2xl"), isC ? "min-h-[380px]" : "min-h-[480px] md:min-h-[580px]")}>
-       <div className="flex flex-col items-center text-center space-y-1.5 mb-8 relative z-20"><span className={cn("text-[11px] font-[1000] tracking-[0.5em] uppercase transition-all duration-700", isL ? "text-danger" : "text-accent")}>{config.name}</span><span className="text-[9px] font-black text-text-dim uppercase tracking-[0.2em] opacity-60 font-black">Limit: {config.limit}</span></div>
-       <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-6 md:py-10">
+    <Card className={cn("relative flex flex-col group transition-all duration-1000 p-10 md:p-14 overflow-hidden shadow-2xl rounded-[64px]", isL ? "bg-danger/[0.04] border-danger/50 shadow-[0_0_80px_rgba(248,113,113,0.15)]" : (isDark ? "bg-white/[0.03] border-white/5 shadow-black/20" : "bg-white border-black/5 shadow-black/5 shadow-2xl"), isC ? "min-h-[400px]" : "min-h-[500px] md:min-h-[600px]")}>
+       <div className="flex flex-col items-center text-center space-y-2 mb-10 relative z-20"><span className={cn("text-[13px] font-[1000] tracking-[0.6em] uppercase transition-all duration-700", isL ? "text-danger" : "text-accent")}>{config.name}</span><span className="text-[10px] font-black text-text-dim uppercase tracking-[0.3em] opacity-40">Target: {config.limit}</span></div>
+       <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-10">
           {(isCig || isJoint) ? (
-             <div className={cn("relative w-full h-12 md:h-14 rounded-full overflow-hidden transition-all duration-1000 border shadow-2xl", isL ? "bg-danger border-danger/40" : (isDark ? "bg-[#111] border-white/5 shadow-[inset_0_4px_20px_rgba(0,0,0,0.8)]" : "bg-[#EEE] border-black/5 shadow-inner"))}>
-                <div className={cn("absolute left-0 inset-y-0 bg-[#1a1a1a] transition-all duration-700", isL && "bg-danger/40 w-full")} style={{ width: isL ? '100%' : `${p * 72}%` }} />
-                {!isL && count > 0 && <div className="absolute inset-y-0 w-3 bg-[#FF3D00] shadow-[0_0_20px_#FF3D00] z-20" style={{ left: `calc(${p * 72}% - 1.5px)` }} />}
-                {!isL && <div className={cn("absolute right-[28%] inset-y-0 transition-all duration-700 shadow-xl", isCig ? "bg-white" : "bg-[#C8E6C9]")} style={{ left: `${p * 72}%` }} />}
-                <div className={cn("absolute inset-y-0 right-0 w-[28%] border-l border-black/20 z-[11]", isL ? "bg-danger" : (isCig ? "bg-[#D97706]" : "bg-[#333]"))} />
+             <div className={cn("relative w-full h-14 md:h-16 rounded-full overflow-hidden transition-all duration-1000 border-2 shadow-2xl", isL ? "bg-danger border-danger/40" : (isDark ? "bg-[#111] border-white/10 shadow-[inset_0_4px_30px_rgba(0,0,0,0.9)]" : "bg-[#DDD] border-black/5 shadow-inner"))}>
+                <div className={cn("absolute left-0 inset-y-0 bg-[#1a1a1a] transition-all duration-1000 shadow-2xl", isL && "bg-danger/60 w-full")} style={{ width: isL ? '100%' : `${p * 72}%` }} />
+                {!isL && count > 0 && <div className="absolute inset-y-0 w-3.5 bg-[#FF3D00] shadow-[0_0_30px_#FF3D00] z-20" style={{ left: `calc(${p * 72}% - 1.75px)` }} />}
+                {!isL && <div className={cn("absolute right-[28%] inset-y-0 transition-all duration-700 shadow-2xl", isCig ? "bg-white" : "bg-[#C8E6C9]")} style={{ left: `${p * 72}%` }} />}
+                <div className={cn("absolute inset-y-0 right-0 w-[28%] border-l-2 border-black/40 z-[11]", isL ? "bg-danger" : (isCig ? "bg-[#D97706]" : "bg-[#333]"))} />
              </div>
           ) : (
-             <div className="relative w-36 h-32 md:w-48 md:h-48 mb-8 flex items-center justify-center">
+             <div className="relative w-40 h-40 md:w-56 md:h-56 mb-10 flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="45" className={cn("fill-transparent stroke-[10]", isDark ? "stroke-white/5" : "stroke-black/5")} />
-                  <motion.circle cx="50" cy="50" r="45" className={cn("fill-transparent stroke-[10] transition-all duration-1000", isL ? "stroke-danger" : "stroke-accent")} strokeDasharray="283" initial={{ strokeDashoffset: 283 }} animate={{ strokeDashoffset: 283 - (Math.min(1, p) * 283) }} strokeLinecap="round" />
+                  <circle cx="50" cy="50" r="44" className={cn("fill-transparent stroke-[12]", isDark ? "stroke-white/5" : "stroke-black/5")} />
+                  <motion.circle cx="50" cy="50" r="44" className={cn("fill-transparent stroke-[12] transition-all duration-1000 drop-shadow-2xl", isL ? "stroke-danger" : "stroke-accent")} strokeDasharray="276" initial={{ strokeDashoffset: 276 }} animate={{ strokeDashoffset: 276 - (Math.min(1, p) * 276) }} strokeLinecap="round" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                   <div className={cn("text-5xl md:text-6xl font-[1000] tracking-tighter leading-none", isL ? "text-danger" : (isDark ? "text-white" : "text-[#1D1D1F]"))}>{count}</div>
-                   <Activity size={18} className={cn("mt-1", isL ? "text-danger" : "text-accent")} />
+                   <div className={cn("text-6xl md:text-8xl font-[1000] tracking-tighter leading-none transition-all", isL ? "text-danger" : (isDark ? "text-white" : "text-[#1D1D1F]"))}>{count}</div>
+                   <Activity size={24} className={cn("mt-2", isL ? "text-danger" : "text-accent")} />
                 </div>
              </div>
           )}
-          {(isCig || isJoint) && <div className={cn("font-[1000] tracking-[-0.08em] leading-none mt-8 transition-all drop-shadow-2xl", isC ? "text-7xl" : "text-9xl md:text-[12rem]", isL ? "text-danger" : (isDark ? "text-white" : "text-[#1D1D1F]"))}>{count}</div>}
+          {(isCig || isJoint) && <div className={cn("font-[1000] tracking-[-0.1em] leading-none mt-12 transition-all drop-shadow-2xl", isC ? "text-8xl" : "text-[10rem] md:text-[14rem]", isL ? "text-danger" : (isDark ? "text-white" : "text-[#1D1D1F]"))}>{count}</div>}
        </div>
-       <div className="flex justify-center items-center space-x-10 md:space-x-12 relative z-20 pt-6">
-          <motion.button whileTap={{ scale: 0.7 }} onClick={() => onDec(config.id)} className={cn("w-16 h-16 md:w-20 md:h-20 rounded-full border flex items-center justify-center transition-all shadow-xl active:scale-95", isDark ? "bg-white/5 border-white/10 text-white/40 hover:text-white" : "bg-[#F5F5F7] border border-black/5 text-black/20 hover:text-black shadow-inner")}>
-            <Minus size={28} />
+       <div className="flex justify-center items-center space-x-12 md:space-x-20 relative z-20 pt-8">
+          <motion.button whileTap={{ scale: 0.6 }} onClick={() => onDec(config.id)} className={cn("w-20 h-20 md:w-24 md:h-24 rounded-full border-4 flex items-center justify-center transition-all shadow-2xl active:scale-90", isDark ? "bg-white/5 border-white/10 text-white/30 hover:text-white" : "bg-[#F5F5F7] border-black/10 text-black/20 hover:text-black shadow-inner")}>
+            <Minus size={36} strokeWidth={3} />
           </motion.button>
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => onInc(config.id)} className={cn("w-16 h-16 md:w-20 md:h-20 rounded-full border-2 flex items-center justify-center transition-all shadow-2xl active:scale-90", isL ? "border-danger text-danger bg-danger/10 shadow-danger/20" : "border-accent text-accent bg-accent/5 hover:bg-accent hover:text-bg-base")}>
-            <Plus size={32} />
+          <motion.button whileTap={{ scale: 0.8 }} onClick={() => onInc(config.id)} className={cn("w-20 h-20 md:w-24 md:h-24 rounded-full border-4 flex items-center justify-center transition-all shadow-[0_20px_50px_var(--accent-rgb)] active:scale-95", isL ? "border-danger text-danger bg-danger/10 shadow-danger/30" : "border-accent text-accent bg-accent/10 hover:bg-accent hover:text-bg-base")} style={{'--accent-rgb': `rgba(${hexToRgb(settings.accent)}, 0.4)`}}>
+            <Plus size={44} strokeWidth={3} />
           </motion.button>
        </div>
     </Card>
@@ -373,9 +372,9 @@ const HistoryScreen = ({ logs, configs, todayString, onEdit, m, isDark }) => {
   }), [logs]);
   return (
     <div className="flex flex-col space-y-10 md:space-y-12 pb-20">
-       <StaggeredItem index={0}><Card className={cn("p-0 overflow-hidden shadow-2xl", isDark ? "bg-white/[0.03] border-accent/20 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="p-10 md:p-14 pb-8 md:pb-10 flex justify-between items-start"><div className="space-y-1.5 md:space-y-2"><span className="text-[10px] md:text-[11px] font-[1000] text-text-dim uppercase tracking-[0.5em]">Weekly Stats</span><h3 className={cn("text-4xl md:text-5xl font-[1000] text-accent mt-1 md:mt-2 uppercase tracking-tighter leading-none font-black transition-colors")}>Usage Overview</h3></div><div className="p-4 md:p-5 bg-accent-soft rounded-2xl md:rounded-[32px] border border-accent/20 shadow-2xl text-accent font-black"><BarChart3 size={32} /></div></div><div className="h-[280px] md:h-[350px] w-full pr-10 md:pr-14 pl-4 md:pl-6 pb-10 md:pb-14"><ResponsiveContainer width="100%" height="100%"><LineChart data={chart}><CartesianGrid strokeDasharray="8 8" stroke="rgba(128,128,128,0.1)" vertical={false} /><XAxis dataKey="name" stroke="#888" fontSize={10} axisLine={false} tickLine={false} dy={20} fontVariant="black" /><Tooltip contentStyle={{ background: isDark ? '#0D0D0E' : '#FFF', border: '1px solid var(--accent)', borderRadius: '24px', fontWeight: '950', fontSize: '13px', textTransform:'uppercase', boxShadow:'0 20px 50px rgba(0,0,0,0.4)', color: isDark ? '#FFF' : '#1D1D1F' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={6} dot={{ r: 6, fill: 'var(--accent)', strokeWidth: 3, stroke: isDark ? '#020202' : '#FFF' }} activeDot={{ r: 12, fill: '#FFF', shadow: '0 0 30px var(--accent)' }} animationDuration={2500} /></LineChart></ResponsiveContainer></div></Card></StaggeredItem>
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10"><InsightCard Icon={TrendingUp} label="Streak" val={m.streak} suffix="Days Active" color="text-orange-400" index={1} isDark={isDark} /><InsightCard Icon={Wallet} label="Savings" val={`$${m.savings.toFixed(2)}`} suffix="Total Saved" color="text-emerald-400" index={2} isDark={isDark} /><InsightCard Icon={Activity} label="Life Impact" val={`${Math.floor(m.lost/60)}H`} suffix="Time Lost" color="text-rose-400" index={3} isDark={isDark} /></div>
-       <div className="space-y-8 md:space-y-10 pt-12 md:pt-16 px-2 md:px-4"><div className="flex items-center justify-between px-2"><h4 className="text-[12px] md:text-[14px] font-[1000] text-accent uppercase tracking-[0.6em]">Daily History</h4><History size={18} className="text-accent/30" /></div><div className="grid gap-4 md:gap-6">{logs.sort((a,b)=>b.logDate.localeCompare(a.logDate)).map((log, i) => <StaggeredItem key={log.logDate} index={i+5}><Card className={cn("py-10 md:py-12 flex items-center justify-between group p-10 md:p-14 transition-all duration-700 shadow-2xl shadow-black/10", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="flex flex-col space-y-1.5 md:space-y-2"><span className={cn("text-2xl md:text-3xl font-[1000] tracking-tighter uppercase leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{log.logDate === todayString ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[10px] md:text-[11px] font-[900] text-text-dim uppercase tracking-[0.4em] mt-2 md:mt-3 flex items-center"><History size={14} className="mr-2.5 opacity-40" /> {Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units tracked</span></div><div className="flex items-center space-x-8 md:space-x-12"><div className="flex -space-x-4 md:-space-x-5">{Object.entries(log.counts || {}).map(([cid, count]) => <div key={cid} className={cn("w-14 h-14 md:w-16 md:h-16 rounded-full border-[4px] md:border-[5px] flex items-center justify-center font-[1000] text-sm md:text-base shadow-2xl transition-all group-hover:-translate-y-2.5", isDark ? "bg-black border-white/5 text-white" : "bg-white border-black/5 text-black shadow-black/10")}>{count}</div>)}</div><button onClick={() => onEdit(log)} className={cn("p-4 md:p-5 rounded-2xl md:rounded-[24px] transition-all hover:scale-110 shadow-inner", isDark ? "bg-white/5 text-text-dim hover:text-accent" : "bg-[#F5F5F7] text-black/40 hover:text-accent shadow-inner")}><Edit2 size={20} /></button></div></Card></StaggeredItem>)}</div></div>
+       <StaggeredItem index={0}><Card className={cn("p-0 overflow-hidden shadow-2xl rounded-[48px]", isDark ? "bg-white/[0.03] border-accent/20 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="p-10 md:p-14 pb-8 md:pb-10 flex justify-between items-start"><div className="space-y-1.5 md:space-y-2"><span className="text-[10px] md:text-[11px] font-[1000] text-text-dim uppercase tracking-[0.5em]">Analytics Link</span><h3 className={cn("text-4xl md:text-5xl font-[1000] text-accent mt-1 md:mt-2 uppercase tracking-tighter leading-none font-black transition-colors")}>Usage Registry</h3></div><div className="p-4 md:p-5 bg-accent-soft rounded-[28px] border border-accent/20 shadow-2xl text-accent font-black"><BarChart3 size={32} /></div></div><div className="h-[280px] md:h-[350px] w-full pr-10 md:pr-14 pl-4 md:pl-6 pb-10 md:pb-14"><ResponsiveContainer width="100%" height="100%"><LineChart data={chart}><CartesianGrid strokeDasharray="8 8" stroke="rgba(128,128,128,0.1)" vertical={false} /><XAxis dataKey="name" stroke="#888" fontSize={10} axisLine={false} tickLine={false} dy={20} fontVariant="black" /><Tooltip contentStyle={{ background: isDark ? '#0D0D0E' : '#FFF', border: '2px solid var(--accent)', borderRadius: '32px', fontWeight: '950', fontSize: '13px', textTransform:'uppercase', boxShadow:'0 30px 60px rgba(0,0,0,0.6)', color: isDark ? '#FFF' : '#1D1D1F' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 4, stroke: isDark ? '#020202' : '#FFF' }} activeDot={{ r: 14, fill: '#FFF', shadow: '0 0 30px var(--accent)' }} animationDuration={2500} /></LineChart></ResponsiveContainer></div></Card></StaggeredItem>
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10"><InsightCard Icon={TrendingUp} label="Streak" val={m.streak} suffix="Registry Units" color="text-orange-400" index={1} isDark={isDark} /><InsightCard Icon={Wallet} label="Savings" val={`$${m.savings.toFixed(2)}`} suffix="Total Retained" color="text-emerald-400" index={2} isDark={isDark} /><InsightCard Icon={Activity} label="Impact" val={`${Math.floor(m.lost/60)}H`} suffix="Time Re-assigned" color="text-rose-400" index={3} isDark={isDark} /></div>
+       <div className="space-y-10 md:space-y-12 pt-16 px-4"><div className="flex items-center justify-between px-2"><h4 className="text-[14px] font-[1000] text-accent uppercase tracking-[0.8em]">Operational Logs</h4><History size={20} className="text-accent/30" /></div><div className="grid gap-6 md:gap-8">{logs.sort((a,b)=>b.logDate.localeCompare(a.logDate)).map((log, i) => <StaggeredItem key={log.logDate} index={i+5}><Card className={cn("py-12 flex items-center justify-between group p-12 md:p-14 transition-all duration-700 shadow-2xl shadow-black/10 rounded-[48px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}><div className="flex flex-col space-y-2"><span className={cn("text-2xl md:text-3xl font-[1000] tracking-tighter uppercase leading-none transition-colors", !isDark && "text-[#1D1D1F]")}>{log.logDate === todayString ? 'Current Period' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-[900] text-text-dim uppercase tracking-[0.4em] mt-3 flex items-center"><History size={16} className="mr-3 opacity-30" /> {Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units committed</span></div><div className="flex items-center space-x-10"><div className="flex -space-x-5 md:-space-x-6">{Object.entries(log.counts || {}).map(([cid, count]) => <div key={cid} className={cn("w-16 h-16 md:w-18 md:h-18 rounded-full border-[5px] md:border-[6px] flex items-center justify-center font-[1000] text-base shadow-2xl transition-all group-hover:-translate-y-4 shadow-black/20", isDark ? "bg-black border-white/10 text-white" : "bg-white border-black/10 text-black shadow-black/10")}>{count}</div>)}</div><button onClick={() => onEdit(log)} className={cn("p-5 md:p-6 rounded-[28px] md:rounded-[32px] transition-all hover:scale-110 shadow-inner", isDark ? "bg-white/5 text-text-dim hover:text-accent" : "bg-[#F5F5F7] text-black/40 hover:text-accent shadow-inner")}><Edit2 size={24} /></button></div></Card></StaggeredItem>)}</div></div>
     </div>
   );
 };
@@ -385,118 +384,125 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
   const [ld, setLd] = useState(s.isDark);
   const [la, setLa] = useState(s.accent);
   const [photoURL, setPhotoURL] = useState(u.photoURL || '');
+  const [loading, setLoading] = useState(false);
   const fileRef = useRef(null);
 
   const applyTheme = () => {
     onUpd({ isDark: ld, accent: la });
-    setTimeout(() => window.location.reload(), 300);
+    setTimeout(() => window.location.reload(), 350);
   };
 
   const handleUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setLoading(true);
     const reader = new FileReader();
     reader.onload = async (ev) => {
-       const url = ev.target.result;
-       setPhotoURL(url);
-       await updateProfile(auth.currentUser, { photoURL: url });
-       // Also save to Firestore profile if needed
-       updateDoc(doc(db, 'users', u.uid), { photoURL: url });
+       try {
+          const url = ev.target.result;
+          await updateProfile(auth.currentUser, { photoURL: url });
+          await setDoc(doc(db, 'users', u.uid), { photoURL: url }, { merge: true });
+          setPhotoURL(url);
+          setLoading(false);
+       } catch (err) { alert("Upload failed: " + err.message); setLoading(false); }
     };
     reader.readAsDataURL(file);
   };
 
   return (
-    <div className="flex flex-col space-y-10 md:space-y-12 pb-40">
-       <Card className={cn("p-10 md:p-14 relative overflow-hidden shadow-2xl rounded-[48px]", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}>
-          <div className="flex items-center space-x-8 md:space-x-12 mb-12 md:mb-16 relative z-10">
-             <div className="relative group">
-                <div className="w-32 h-32 md:w-36 md:h-36 bg-accent rounded-[48px] border-2 border-accent/20 flex items-center justify-center text-6xl md:text-7xl font-[1000] text-bg-base shadow-2xl overflow-hidden shadow-accent/20 transition-all group-active:scale-95">
+    <div className="flex flex-col space-y-12 md:space-y-14 pb-40">
+       <Card className={cn("p-12 md:p-16 relative overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.4)] rounded-[60px]", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5")}>
+          <div className="flex items-center space-x-10 md:space-x-14 mb-14 md:mb-20 relative z-10">
+             <div className="relative group shrink-0">
+                <div className={cn("w-32 h-32 md:w-40 md:h-40 bg-accent rounded-[40px] border-4 border-white/10 flex items-center justify-center text-6xl md:text-8xl font-[1000] text-bg-base shadow-2xl overflow-hidden shadow-accent/20 transition-all group-active:scale-95", loading && "animate-pulse")}>
                    {photoURL ? <img src={photoURL} className="w-full h-full object-cover" alt="p" /> : al.charAt(0)}
                 </div>
-                <button onClick={() => fileRef.current?.click()} className="absolute bottom-[-8px] right-[-8px] w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center shadow-2xl border-4 border-[#020202] active:scale-90 transition-transform">
-                   <Camera size={20} />
+                <button onClick={() => fileRef.current?.click()} className="absolute bottom-[-10px] right-[-10px] w-14 h-14 rounded-[20px] bg-white text-black flex items-center justify-center shadow-[0_10px_40px_rgba(0,0,0,0.5)] border-4 border-black/90 active:scale-90 transition-transform">
+                   {loading ? <Loader2 size={24} className="animate-spin" /> : <Camera size={24} />}
                 </button>
                 <input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={handleUpload} />
              </div>
-             <div className="space-y-3">
-                <h4 className={cn("text-4xl md:text-5xl font-[1000] tracking-tighter uppercase leading-none transition-colors", !s.isDark && "text-[#1D1D1F]")}>{al}</h4>
-                <div className="flex items-center space-x-3">
-                   <div className="h-2 w-2 rounded-full bg-accent animate-pulse shadow-[0_0_15px_var(--accent)]" />
-                   <span className="text-[11px] font-black uppercase tracking-[0.4em] text-accent font-bold">Registry Confirmed</span>
+             <div className="space-y-4 min-w-0">
+                <h4 className={cn("text-4xl md:text-6xl font-[1000] tracking-tighter uppercase leading-none transition-colors truncate", !s.isDark && "text-[#1D1D1F]")}>{al}</h4>
+                <div className="flex items-center space-x-4">
+                   <div className="h-2.5 w-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_20px_var(--accent)]" />
+                   <span className="text-[12px] font-black uppercase tracking-[0.5em] text-accent/60">Verified Link</span>
                 </div>
              </div>
           </div>
-          <div className="space-y-8 relative z-10">
-             <Input label="Identity Label" value={al} onChange={setAl} isDark={s.isDark} />
-             <Button className="w-full h-22 rounded-full shadow-2xl text-[12px] font-[1000] uppercase tracking-widest active:scale-95 transition-all mt-4" onClick={() => onUpd({ displayName: al })}>Save Identity</Button>
+          <div className="space-y-12 relative z-10">
+             <Input label="Registry Identity" value={al} onChange={setAl} isDark={s.isDark} />
+             <button className="w-full h-22 rounded-full bg-accent text-bg-base shadow-[0_20px_60px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.4em] active:scale-95 transition-all text-xs flex items-center justify-center" onClick={() => onUpd({ displayName: al })} style={{'--accent-rgb': `rgba(${hexToRgb(settings.accent)}, 0.4)`}}>Commit Identification</button>
           </div>
        </Card>
 
-       <Card className={cn("p-10 md:p-14 space-y-12 md:space-y-16 shadow-2xl rounded-[48px]", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}>
-          <div className="flex flex-col space-y-10">
-             <div className="text-[11px] font-black uppercase tracking-[0.6em] opacity-40 mb-2">Display Schema</div>
+       <Card className={cn("p-12 md:p-16 space-y-14 md:space-y-20 shadow-2xl rounded-[60px]", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}>
+          <div className="flex flex-col space-y-12">
+             <div className="text-[12px] font-black uppercase tracking-[1em] opacity-30 mb-4 px-2">Core Settings</div>
              <Toggle icon={Moon} label="Dark Mode" active={ld} onClick={() => setLd(!ld)} isDark={s.isDark} />
-             <Toggle icon={Clock} label="Night Owl Mode" active={s.nightOwl} onClick={() => onUpd({ nightOwl: !s.nightOwl })} isDark={s.isDark} />
+             <Toggle icon={Clock} label="Night Owl" active={s.nightOwl} onClick={() => onUpd({ nightOwl: !s.nightOwl })} isDark={s.isDark} />
              <Toggle icon={Grid} label="Compact Grid" active={s.layout === 'COMPACT'} onClick={() => onUpd({ layout: s.layout === 'LARGE' ? 'COMPACT' : 'LARGE' })} isDark={s.isDark} />
 
-             <div className={cn("p-10 rounded-[48px] border space-y-12 shadow-inner transition-all mt-6", s.isDark ? "bg-black/40 border-white/5 shadow-black/40" : "bg-[#F0F2F5] border-black/5 shadow-inner")}>
-                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.5em] opacity-60">
+             <div className={cn("p-12 rounded-[56px] border-2 space-y-14 shadow-inner transition-all mt-10", s.isDark ? "bg-black/50 border-white/5" : "bg-[#F0F2F5] border-black/5 shadow-inner")}>
+                <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.8em] opacity-40">
                    <span>Accent Spectrum</span>
-                   <Sparkles size={16} className="opacity-30" />
+                   <Sparkles size={20} className="opacity-30" />
                 </div>
-                <div className="flex flex-wrap gap-5 justify-center">
+                <div className="flex flex-wrap gap-6 justify-center">
                    {ACCENTS.map(x => (
-                      <button key={x.v} onClick={() => setLa(x.v)} className={cn("w-14 h-14 rounded-2xl border-[4px] transition-all duration-700 shadow-2xl active:scale-90 relative", la === x.v ? "border-white scale-110 shadow-accent/50" : "border-transparent opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>
-                         {la === x.v && <motion.div layoutId="colorCheck" className="absolute inset-0 flex items-center justify-center text-white"><Check size={20} strokeWidth={4} /></motion.div>}
+                      <button key={x.v} onClick={() => setLa(x.v)} className={cn("w-16 h-16 md:w-18 md:h-18 rounded-[24px] border-[5px] transition-all duration-700 shadow-2xl active:scale-90 relative", la === x.v ? "border-white scale-115 shadow-accent/60" : "border-transparent opacity-30 hover:opacity-100")} style={{ backgroundColor: x.v }}>
+                         {la === x.v && <motion.div layoutId="colorCheck" className="absolute inset-0 flex items-center justify-center text-white"><Check size={28} strokeWidth={5} /></motion.div>}
                       </button>
                    ))}
                 </div>
-                <Button className="w-full h-22 rounded-full shadow-2xl text-[12px] font-[1000] uppercase tracking-widest active:scale-95 transition-all mt-6" onClick={applyTheme} style={{'--accent': la}}>Update Theme Settings</Button>
+                <button className="w-full h-22 rounded-full bg-accent text-bg-base shadow-[0_25px_80px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.4em] active:scale-95 transition-all text-xs flex items-center justify-center" onClick={applyTheme} style={{'--accent': la, '--accent-rgb': `rgba(${hexToRgb(la)}, 0.5)`}}><Zap className="mr-4" size={20} fill="currentColor" /> Update Core Theme</button>
              </div>
           </div>
-          <div className="pt-8 border-t border-white/10">
-             <div className="flex justify-between items-center px-2 mb-10">
-                <span className={cn("text-[11px] font-[1000] uppercase tracking-[0.5em]", s.isDark ? "text-text-dim" : "text-[#1D1D1F]/60")}>Typography Scale</span>
-                <span className="text-sm font-black text-accent">{Math.round(s.fontScale*100)}%</span>
+          <div className="pt-10 border-t border-white/10">
+             <div className="flex justify-between items-center px-4 mb-12">
+                <span className={cn("text-[12px] font-[1000] uppercase tracking-[0.6em]", s.isDark ? "text-text-dim" : "text-[#1D1D1F]/60")}>Retina Scale</span>
+                <span className="text-base font-[1000] text-accent tracking-widest">{Math.round(s.fontScale*100)}%</span>
              </div>
-             <input type="range" min="0.8" max="1.3" step="0.1" value={s.fontScale} onChange={e => onUpd({ fontScale: parseFloat(e.target.value) })} className="w-full h-2 bg-black/10 rounded-full appearance-none cursor-pointer accent-accent shadow-inner transition-all hover:bg-black/20" />
+             <input type="range" min="0.8" max="1.3" step="0.1" value={s.fontScale} onChange={e => onUpd({ fontScale: parseFloat(e.target.value) })} className="w-full h-3 bg-black/20 rounded-full appearance-none cursor-pointer accent-accent shadow-inner transition-all hover:bg-black/30" />
           </div>
        </Card>
 
-       <Card className={cn("p-10 md:p-14 border-white/5 shadow-2xl rounded-[48px]", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}>
-          <div className="flex justify-between items-center mb-16 px-1 md:px-2">
-             <div className="space-y-2">
-                <h4 className={cn("text-3xl md:text-4xl font-[1000] uppercase tracking-tighter leading-none", !s.isDark && "text-[#1D1D1F]")}>Trackers</h4>
-                <p className="text-[10px] md:text-[11px] font-black text-text-dim uppercase tracking-[0.4em] mt-3 opacity-60">Active counter protocols</p>
+       <Card className={cn("p-12 md:p-16 border-white/5 shadow-2xl rounded-[60px]", s.isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}>
+          <div className="flex justify-between items-center mb-16 px-2">
+             <div className="space-y-3">
+                <h4 className={cn("text-3xl md:text-5xl font-[1000] uppercase tracking-tighter leading-none", !s.isDark && "text-[#1D1D1F]")}>Protocols</h4>
+                <p className="text-[11px] font-black text-text-dim uppercase tracking-[0.5em] opacity-40">Active counter management</p>
              </div>
-             <div className={cn("p-5 rounded-[32px] shadow-2xl border", s.isDark ? "bg-white/5 border-white/5" : "bg-black/5 border-black/5 text-black/30")}><RefreshCcw size={28} /></div>
+             <div className={cn("p-6 rounded-[32px] shadow-2xl border-2", s.isDark ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10 text-black/40")}><RefreshCcw size={32} /></div>
           </div>
-          <div className="space-y-12">
-             <Input label="Price per unit ($)" value={s.globalPrice} onChange={(v) => onUpd({ globalPrice: v })} type="number" isDark={s.isDark} />
-             <div className="space-y-8">
+          <div className="space-y-14">
+             <Input label="Protocol Rate ($)" value={s.globalPrice} onChange={(v) => onUpd({ globalPrice: v })} type="number" isDark={s.isDark} />
+             <div className="space-y-10">
                 {c.map(x => (
-                   <div key={x.id} className={cn("flex items-center justify-between p-12 rounded-[56px] border group transition-all duration-1000 shadow-2xl hover:border-accent/40", s.isDark ? "bg-white/[0.01] border-white/5 shadow-black/40" : "bg-[#F5F5F7] border-black/5 shadow-inner")}>
-                      <div className="flex items-center space-x-10">
-                         <div className="flex flex-col space-y-3">
-                            <button onClick={() => onReo(x.id, 'up')} className={cn("p-3 rounded-xl transition-all hover:scale-110 shadow-lg", s.isDark ? "bg-white/5 text-text-dim" : "bg-black/5 text-[#1D1D1F]/20")}><ArrowUp size={16} /></button>
-                            <button onClick={() => onReo(x.id, 'down')} className={cn("p-3 rounded-xl transition-all hover:scale-110 shadow-lg", s.isDark ? "bg-white/5 text-text-dim" : "bg-black/5 text-[#1D1D1F]/20")}><ArrowDown size={16} /></button>
+                   <div key={x.id} className={cn("flex items-center justify-between p-12 md:p-14 rounded-[64px] border-2 group transition-all duration-1000 shadow-2xl hover:border-accent/50", s.isDark ? "bg-white/[0.01] border-white/5 shadow-black/40" : "bg-[#F5F5F7] border-black/5 shadow-inner")}>
+                      <div className="flex items-center space-x-12">
+                         <div className="flex flex-col space-y-4">
+                            <button onClick={() => onReo(x.id, 'up')} className={cn("p-3.5 rounded-2xl transition-all hover:scale-125 shadow-xl border-2", s.isDark ? "bg-white/5 border-white/10 text-white/40" : "bg-black/5 border-black/10 text-black/20")}><ArrowUp size={18} strokeWidth={3} /></button>
+                            <button onClick={() => onReo(x.id, 'down')} className={cn("p-3.5 rounded-2xl transition-all hover:scale-125 shadow-xl border-2", s.isDark ? "bg-white/5 border-white/10 text-white/40" : "bg-black/5 border-black/10 text-black/20")}><ArrowDown size={18} strokeWidth={3} /></button>
                          </div>
-                         <div className="flex flex-col space-y-1">
-                            <span className={cn("text-2xl font-[1000] uppercase leading-none transition-all group-hover:text-accent", !s.isDark && "text-[#1D1D1F]")}>{x.name}</span>
-                            <span className="text-[10px] md:text-[11px] font-black text-text-dim uppercase tracking-[0.3em] mt-2 opacity-60 font-black font-inter">Limit: {x.limit}</span>
+                         <div className="flex flex-col space-y-2">
+                            <span className={cn("text-2xl md:text-3xl font-[1000] uppercase leading-none transition-all group-hover:text-accent tracking-tighter", !s.isDark && "text-[#1D1D1F]")}>{x.name}</span>
+                            <span className="text-[11px] font-black text-text-dim uppercase tracking-[0.4em] opacity-40">Threshold: {x.limit}</span>
                          </div>
                       </div>
-                      <div className="flex items-center space-x-6 opacity-0 group-hover:opacity-100 duration-700 transition-all translate-x-8 group-hover:translate-x-0">
-                         <button onClick={() => onDel(x.id)} className="p-5 rounded-[24px] bg-danger/5 text-danger/40 hover:text-danger border border-danger/10 shadow-2xl transition-all hover:scale-110"><Trash2 size={24} /></button>
+                      <div className="flex items-center space-x-8 opacity-0 group-hover:opacity-100 duration-1000 transition-all translate-x-12 group-hover:translate-x-0">
+                         <button onClick={() => onDel(x.id)} className="p-6 rounded-[32px] bg-danger/10 text-danger/50 hover:text-danger border-2 border-danger/20 shadow-2xl transition-all hover:scale-110 active:scale-90"><Trash2 size={28} /></button>
                       </div>
                    </div>
                 ))}
              </div>
-             <Button variant="outline" className={cn("w-full border-dashed border-2 rounded-[56px] h-28 hover:bg-accent-soft hover:border-accent group transition-all transition-colors shadow-black/5", !s.isDark && "text-[#1D1D1F] border-black/10 shadow-inner")} onClick={onAdd}><Plus className="mr-6 group-hover:rotate-90 transition-transform duration-1000 text-accent scale-110" size={40} /><span className="text-base font-[1000] tracking-[0.3em]">Initialize Tracker</span></Button>
+             <button className="w-full border-4 border-dashed border-white/10 rounded-[64px] h-32 hover:bg-accent/5 hover:border-accent group transition-all duration-700 flex items-center justify-center space-x-6" onClick={onAdd}>
+                <Plus className="group-hover:rotate-180 transition-transform duration-1000 text-accent" size={48} strokeWidth={3} />
+                <span className="text-lg font-[1000] tracking-[0.4em] uppercase text-text-dim group-hover:text-white">Initialize Protocol</span>
+             </button>
           </div>
        </Card>
-       <Button variant="danger" className="w-full h-24 rounded-full shadow-2xl hover:scale-[1.01] active:scale-[0.98] text-sm font-black uppercase tracking-widest transition-all shadow-black/50" onClick={() => signOut(auth)}>Sign Out</Button>
+       <button className="w-full h-24 rounded-full bg-danger text-white shadow-[0_30px_100px_rgba(248,113,113,0.3)] hover:scale-[1.02] active:scale-[0.98] text-sm font-[1000] uppercase tracking-[0.8em] transition-all" onClick={() => signOut(auth)}>Terminate Link</button>
     </div>
   );
 };
@@ -504,24 +510,24 @@ const SettingsScreen = ({ c, u, s, onAdd, onUpd, onReo, onDel }) => {
 // --- HELPERS ---
 
 const Toggle = ({ icon: Icon, label, active, onClick, isDark }) => (
-  <div onClick={onClick} className={cn("flex items-center justify-between p-8 md:p-10 rounded-[48px] border shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group cursor-pointer shadow-black/5", isDark ? "bg-white/[0.02] border-white/5 shadow-black/40" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}>
-     <div className="flex items-center space-x-5 md:space-x-7"><div className={cn("p-5 md:p-6 rounded-2xl md:rounded-[32px] transition-all duration-700 shadow-2xl", isDark ? "bg-white/5 border border-white/5 shadow-black" : "bg-[#F0F2F5] border-black/5 shadow-inner shadow-black/10")}><Icon size={28} className={cn(active ? "text-accent" : (isDark ? "text-white/40" : "text-black/40"))} /></div><span className={cn("text-xs md:text-sm font-[1000] uppercase tracking-[0.5em] leading-none transition-all font-black transition-colors", !isDark && "text-[#1D1C1E]")}>{label}</span></div>
-     <div className={cn("w-16 h-10 md:w-20 md:h-11 rounded-full p-2 md:p-2.5 transition-all duration-500 shadow-inner relative shadow-black/30", active ? "bg-accent shadow-[0_0_20px_var(--accent)]" : "bg-black/20 shadow-black/50")}><motion.div animate={{ x: active ? (window.innerWidth > 768 ? 36 : 24) : 0 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-white shadow-2xl shadow-black/40" /></div>
+  <div onClick={onClick} className={cn("flex items-center justify-between p-10 md:p-12 rounded-[56px] border-2 shadow-2xl transition-all hover:scale-[1.01] active:scale-[0.98] group cursor-pointer shadow-black/10", isDark ? "bg-white/[0.02] border-white/5 shadow-black/40" : "bg-white border-black/5 shadow-black/5 shadow-2xl")}>
+     <div className="flex items-center space-x-6 md:space-x-8"><div className={cn("p-6 md:p-7 rounded-[28px] md:rounded-[32px] transition-all duration-700 shadow-2xl border-2", isDark ? "bg-white/5 border-white/5 shadow-black" : "bg-[#F0F2F5] border-black/5 shadow-inner shadow-black/10")}><Icon size={32} strokeWidth={3} className={cn(active ? "text-accent" : (isDark ? "text-white/20" : "text-black/20"))} /></div><span className={cn("text-sm md:text-base font-[1000] uppercase tracking-[0.6em] leading-none transition-all font-black transition-colors truncate", !isDark && "text-[#1D1C1E]")}>{label}</span></div>
+     <div className={cn("w-20 h-11 md:w-22 md:h-12 rounded-full p-2.5 transition-all duration-700 shadow-inner relative shadow-black/50 border-2", active ? "bg-accent border-accent/40 shadow-[0_0_30px_var(--accent-rgb)]" : "bg-black/30 border-white/5 shadow-black/80")} style={{'--accent-rgb': `rgba(${hexToRgb(active ? '#D4FF5C' : '#000')}, 0.5)`}}><motion.div animate={{ x: active ? (window.innerWidth > 768 ? 44 : 40) : 0 }} transition={{ type: 'spring', stiffness: 400, damping: 25 }} className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-white shadow-2xl shadow-black/40 border-2 border-black/10" /></div>
   </div>
 );
 
 const Overlay = ({ children, onClose, title, isDark }) => (
-  <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/95 backdrop-blur-3xl overflow-y-auto font-inter"><motion.div initial={{ y: 200, scale: 0.95, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 200, scale: 0.95, opacity: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 120 }} className="w-full max-w-xl my-auto"><Card className={cn("p-12 md:p-16 relative border-2 shadow-2xl shadow-black rounded-[64px]", isDark ? "bg-[#0A0A0A] border-accent/40 shadow-accent/10" : "bg-white border-black/5 shadow-black/40 shadow-2xl")}><button onClick={onClose} className={cn("absolute top-10 md:top-14 right-10 md:right-14 p-5 md:p-6 rounded-[28px] md:rounded-[32px] transition-all group", isDark ? "bg-white/5 text-text-dim hover:text-white" : "bg-black/5 text-[#1D1D1F]/40 hover:text-black")}><X size={28} className="group-hover:rotate-90 transition-transform duration-700" /></button><div className="flex items-center space-x-6 md:space-x-8 text-accent mb-16 md:mb-20 border-b border-white/10 pb-10 md:pb-12"><div className="p-5 md:p-6 bg-accent-soft rounded-2xl md:rounded-[32px] border border-accent/20 shadow-2xl text-accent shadow-accent/20"><Activity size={32} className="animate-pulse" /></div><h3 className={cn("text-4xl md:text-5xl font-[1000] tracking-tighter uppercase leading-none font-inter", !isDark && "text-[#1D1D1F]")}>{title}</h3></div><div className={cn(!isDark && "text-[#1D1D1F]")}>{children}</div></Card></motion.div></div>
+  <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/98 backdrop-blur-3xl overflow-y-auto font-inter"><motion.div initial={{ y: 300, scale: 0.9, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 300, scale: 0.9, opacity: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 100 }} className="w-full max-w-2xl my-auto"><Card className={cn("p-12 md:p-16 relative border-4 shadow-[0_50px_150px_rgba(0,0,0,0.8)] rounded-[70px]", isDark ? "bg-[#050505] border-white/5" : "bg-white border-black/5 shadow-black/40 shadow-2xl")}><button onClick={onClose} className={cn("absolute top-10 md:top-14 right-10 md:right-14 p-6 md:p-7 rounded-[32px] transition-all group border-2 shadow-2xl", isDark ? "bg-white/5 border-white/5 text-white/30 hover:text-white" : "bg-black/5 border-black/5 text-[#1D1D1F]/20 hover:text-black")}><X size={32} strokeWidth={3} className="group-hover:rotate-180 transition-transform duration-1000" /></button><div className="flex items-center space-x-8 text-accent mb-16 md:mb-20 border-b border-white/10 pb-12"><div className="p-7 md:p-8 bg-accent-soft rounded-[36px] border-2 border-accent/20 shadow-2xl text-accent shadow-accent/20"><Activity size={40} strokeWidth={3} className="animate-pulse" /></div><h3 className={cn("text-5xl md:text-7xl font-[1000] tracking-tighter uppercase leading-none font-inter", !isDark && "text-[#1D1D1F]")}>{title}</h3></div><div className={cn(!isDark && "text-[#1D1D1F]")}>{children}</div></Card></motion.div></div>
 );
 
 const AddForm = ({ onAdd, isDark }) => {
   const [n, setN] = useState(''); const [l, setL] = useState('20'); const [t, setT] = useState('CIGARETTE');
   return (
-    <div className="space-y-12 md:space-y-14">
-       <Input label="Protocol Label" value={n} onChange={setN} placeholder="e.g. Unit A" isDark={isDark} />
-       <Input label="Max Limit" value={l} onChange={setL} type="number" isDark={isDark} />
-       <div className="space-y-6 md:space-y-8"><span className="text-[11px] md:text-[12px] font-black text-text-dim uppercase tracking-[0.6em] ml-1">Visual Schema</span><div className="grid grid-cols-2 gap-4 md:grid-cols-2 md:gap-6">{['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => <button key={x} onClick={() => setT(x)} className={cn("h-16 md:h-20 rounded-2xl md:rounded-[32px] border font-[1000] text-[10px] md:text-[11px] uppercase tracking-[0.4em] transition-all duration-1000 shadow-2xl active:scale-95", t === x ? "bg-accent text-bg-base border-accent shadow-[0_0_60px_var(--accent)]" : (isDark ? "bg-black/5 border-black/5 text-text-dim" : "bg-black/5 border-black/5 text-black/40"))} >{x.replace('_',' ')}</button>)}</div></div>
-       <Button size="lg" className="w-full shadow-2xl h-22 rounded-full text-sm md:text-base font-[1000] uppercase active:scale-95 shadow-black/60 shadow-black/40" onClick={() => onAdd(n, t, l)}>Save Tracker</Button>
+    <div className="space-y-14">
+       <Input label="Registry Label" value={n} onChange={setN} placeholder="ASSIGN_TRACKER_ID" isDark={isDark} />
+       <Input label="Maximum Capacity" value={l} onChange={setL} type="number" isDark={isDark} />
+       <div className="space-y-10"><span className="text-[12px] font-[1000] text-text-dim uppercase tracking-[1em] ml-2">Visual Mapping</span><div className="grid grid-cols-2 gap-6 md:grid-cols-2 md:gap-8">{['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => <button key={x} onClick={() => setT(x)} className={cn("h-20 md:h-24 rounded-[36px] border-2 font-[1000] text-[11px] uppercase tracking-[0.5em] transition-all duration-1000 shadow-2xl active:scale-95", t === x ? "bg-accent text-bg-base border-accent shadow-[0_0_80px_var(--accent-rgb)]" : (isDark ? "bg-black/40 border-white/5 text-text-dim" : "bg-black/5 border-black/5 text-black/40"))} style={{'--accent-rgb': `rgba(${hexToRgb(t === x ? '#D4FF5C' : '#000')}, 0.4)`}}>{x.replace('_',' ')}</button>)}</div></div>
+       <button className="w-full h-24 rounded-full bg-accent text-bg-base shadow-[0_30px_100px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.8em] active:scale-95 transition-all text-sm mt-10" onClick={() => onAdd(n, t, l)}>Authorize Protocol</button>
     </div>
   );
 };
@@ -529,26 +535,26 @@ const AddForm = ({ onAdd, isDark }) => {
 const EditForm = ({ log, configs, onSave, isDark }) => {
   const [c, setC] = useState({ ...(log.counts || {}) });
   return (
-    <div className="space-y-12 md:space-y-14">
-       <div className={cn("flex items-center space-x-6 md:space-x-8 p-6 md:p-8 rounded-[36px] md:rounded-[42px] border shadow-inner", isDark ? "bg-black/40 border-white/5 shadow-black/30" : "bg-black/5 border-black/5 shadow-inner")}><div className="p-4 md:p-5 bg-accent-soft rounded-2xl md:rounded-[28px] border border-accent/20 shadow-accent/20 shadow-xl"><Calendar size={28} className="text-accent" /></div><span className={cn("text-base md:text-lg font-black uppercase tracking-[0.4em] opacity-90", !isDark && "text-[#1D1D1F]")}>{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span></div>
-       <div className="max-h-[350px] md:max-h-[400px] overflow-y-auto pr-6 md:pr-8 space-y-10 md:space-y-12 scrollbar-thin scrollbar-thumb-accent/40 pb-10">{configs.map(x => <Input key={x.id} label={x.name} value={c[x.id] || 0} type="number" onChange={v => setC({...c, [x.id]: parseInt(v) || 0})} isDark={isDark} />)}</div>
-       <Button size="lg" className="w-full h-22 rounded-full shadow-2xl text-sm md:text-base font-[1000] transition-all hover:scale-[1.02] active:scale-95 shadow-black/50" onClick={() => onSave(log.logDate, c)}>Save History</Button>
+    <div className="space-y-14">
+       <div className={cn("flex items-center space-x-10 p-10 rounded-[48px] border-2 shadow-inner", isDark ? "bg-black/60 border-white/5 shadow-black" : "bg-black/5 border-black/5 shadow-inner")}><div className="p-6 bg-accent-soft rounded-[32px] border-2 border-accent/20 shadow-accent/20 shadow-2xl"><Calendar size={36} strokeWidth={3} className="text-accent" /></div><span className={cn("text-xl md:text-2xl font-[1000] uppercase tracking-[0.6em] opacity-90", !isDark && "text-[#1D1D1F]")}>{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' })}</span></div>
+       <div className="max-h-[400px] overflow-y-auto pr-8 space-y-12 scrollbar-thin scrollbar-thumb-accent/40 pb-10">{configs.map(x => <Input key={x.id} label={x.name} value={c[x.id] || 0} type="number" onChange={v => setC({...c, [x.id]: parseInt(v) || 0})} isDark={isDark} />)}</div>
+       <button className="w-full h-24 rounded-full bg-accent text-bg-base shadow-[0_30px_100px_var(--accent-rgb)] font-[1000] uppercase tracking-[0.8em] active:scale-95 transition-all text-sm" onClick={() => onSave(log.logDate, c)}>Registry Commit</button>
     </div>
   );
 };
 
 const InsightCard = ({ Icon, label, val, suffix, color, index, isDark }) => (
   <StaggeredItem index={index}>
-    <Card className={cn("flex flex-col items-center text-center py-12 md:py-16 transition-all duration-1000 shadow-2xl group shadow-black/5 shadow-black/10 shadow-2xl rounded-[48px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5")}>
-      <div className={cn("p-6 md:p-8 rounded-[36px] md:rounded-[40px] mb-10 md:mb-12 transition-all duration-1000 group-hover:scale-110 shadow-2xl relative z-10", color, isDark ? "bg-white/[0.04]" : "bg-[#F0F2F5] shadow-inner")}><Icon size={40} /></div>
-      <div className={cn("text-5xl md:text-7xl font-[1000] leading-none tracking-tighter mb-3 md:mb-4 relative z-10 drop-shadow-2xl transition-colors font-inter", !isDark && "text-[#1D1D1F]")}>{val}</div>
-      <div className="text-[10px] md:text-[12px] font-black text-text-dim uppercase tracking-[0.6em] relative z-10 opacity-70 font-bold">{suffix}</div>
-      <div className="mt-12 md:mt-16 pt-10 md:pt-12 border-t border-white/10 w-full flex items-center justify-center relative z-10 text-accent font-black tracking-[0.8em] text-[9px] md:text-[10px] opacity-60 uppercase font-black">{label}</div>
+    <Card className={cn("flex flex-col items-center text-center py-16 md:py-20 transition-all duration-1000 shadow-2xl group shadow-black/20 rounded-[64px]", isDark ? "bg-white/[0.03] border-white/5 shadow-black" : "bg-white border-black/5 shadow-black/10")}>
+      <div className={cn("p-10 md:p-12 rounded-[40px] md:rounded-[48px] mb-12 md:mb-16 transition-all duration-1000 group-hover:scale-115 shadow-2xl relative z-10 border-2", color, isDark ? "bg-white/[0.02] border-white/5" : "bg-[#F0F2F5] border-black/5 shadow-inner")}><Icon size={48} strokeWidth={2.5} /></div>
+      <div className={cn("text-6xl md:text-8xl font-[1000] leading-none tracking-tighter mb-4 md:mb-6 relative z-10 drop-shadow-2xl transition-colors font-inter", !isDark && "text-[#1D1D1F]")}>{val}</div>
+      <div className="text-[12px] font-black text-text-dim uppercase tracking-[0.8em] relative z-10 opacity-30 font-bold">{suffix}</div>
+      <div className="mt-16 md:mt-20 pt-12 md:pt-16 border-t border-white/10 w-full flex items-center justify-center relative z-10 text-accent font-[1000] tracking-[1.5em] text-[10px] md:text-[11px] opacity-40 uppercase">{label}</div>
     </Card>
   </StaggeredItem>
 );
 
-const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter"><AlertCircle className="text-danger mb-6" size={48} /><h2 className="text-2xl font-black uppercase tracking-tighter leading-none mb-2 text-white font-black font-inter">Sync Failed</h2><p className="text-text-dim text-sm max-w-xs">{msg}</p><Button onClick={() => window.location.reload()} className="mt-8 rounded-full font-black uppercase tracking-widest px-8 h-16">Restart</Button></div>;
-const LoadingView = () => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center space-y-6 text-accent font-inter"><Loader2 className="animate-spin" size={56} /><span className="text-[10px] font-black tracking-[0.6em] uppercase text-accent font-black">Syncing Neural Link</span></div>;
+const ErrorView = ({ msg }) => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter"><AlertCircle className="text-danger mb-10" size={64} /><h2 className="text-3xl font-[1000] uppercase tracking-tighter leading-none mb-4 text-white">Registry Failure</h2><p className="text-text-dim text-sm max-w-xs font-bold opacity-60 leading-relaxed">{msg}</p><Button onClick={() => window.location.reload()} className="mt-12 rounded-full font-black uppercase tracking-[0.5em] px-12 h-20 bg-white text-black shadow-2xl">Re-Link</Button></div>;
+const LoadingView = () => <div className="min-h-screen bg-[#020202] flex flex-col items-center justify-center space-y-8 text-accent font-inter"><Loader2 className="animate-spin" size={72} strokeWidth={3} /><span className="text-[11px] font-black tracking-[1em] uppercase text-accent font-black animate-pulse">Syncing Registry</span></div>;
 
 export default AppWrapper;
