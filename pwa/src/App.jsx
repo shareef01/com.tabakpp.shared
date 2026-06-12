@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 
 // --- FIREBASE ---
-import { auth, db } from './firebase';
+import { auth, db, storage } from './firebase';
 import {
   onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   signInAnonymously, signOut, updateProfile
@@ -20,6 +20,7 @@ import {
 import {
   doc, setDoc, collection, onSnapshot, query, orderBy, limit, deleteDoc, updateDoc, getDoc, writeBatch
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // --- UTILS ---
 import { SmokingCalculator } from './utils/smokingCalculator';
@@ -27,7 +28,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "18.11.0-HISTORY-FIX";
+const APP_VERSION = "19.0.1-STABLE-STORAGE";
 
 const hexToRgb = (hex) => {
   try {
@@ -46,7 +47,7 @@ const ACCENTS = [
 class ErrorBoundaryUI extends Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
-  componentDidCatch(error, info) { console.error("FATAL_MOUNT:", error, info); }
+  componentDidCatch(error, info) { console.error("MOUNT_ERR:", error, info); }
   render() {
     if (this.state.hasError) {
       return (
@@ -155,7 +156,7 @@ const TrackerCard = React.memo(({ config, count, onInc, onDec, index }) => {
           <span className={cn("text-[12px] font-black tracking-[0.8em] uppercase transition-all duration-700 mt-5", isL ? "text-danger" : "text-accent opacity-30 group-hover:opacity-60")}>{config.name}</span>
         </div>
       </div>
-      <div className="w-full flex justify-between items-center pt-8 mt-auto relative z-10 px-2">
+      <div className="w-full flex justify-between items-center pt-8 mt-auto relative z-10 px-2 font-inter">
         <button onClick={onDec} className="w-18 h-18 rounded-[24px] bg-white/[0.04] border border-white/[0.05] flex items-center justify-center text-white/30 hover:text-white active:scale-90 transition-all shadow-xl"><Minus size={32} strokeWidth={3} /></button>
         <button onClick={onInc} className={cn("w-18 h-18 rounded-[28px] flex items-center justify-center text-black active:scale-90 transition-all shadow-[0_20px_50px_var(--accent-rgb)]", isL ? "bg-danger shadow-[0_20px_50px_rgba(248,113,113,0.6)]" : "bg-accent")} style={{'--accent-rgb': 'rgba(0,210,255,0.4)'}}><Plus size={32} strokeWidth={4} /></button>
       </div>
@@ -174,8 +175,8 @@ const ProtocolListItem = React.memo(({ config, idx, total, onReo, onEdit, onDel 
         {config.type.startsWith('JOINT') ? <Crown size={28} /> : (config.type === 'SIMPLE' ? <Activity size={28} /> : <Zap size={28} />)}
       </div>
       <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-        <span className="text-xl md:text-2xl font-[900] tracking-tight uppercase group-hover:text-white transition-colors truncate">{config.name}</span>
-        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] opacity-40">Target: {config.limit}</span>
+        <span className="text-xl md:text-2xl font-[900] tracking-tight uppercase group-hover:text-white transition-colors truncate font-inter">{config.name}</span>
+        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] font-inter opacity-40">Target: {config.limit}</span>
       </div>
     </div>
     <div className="flex flex-row items-center gap-4 shrink-0">
@@ -185,10 +186,6 @@ const ProtocolListItem = React.memo(({ config, idx, total, onReo, onEdit, onDel 
   </div>
 ));
 
-/**
- * <InsightCard />
- * RESTORED: This was accidentally missing or unreferenced, causing the History page crash.
- */
 const InsightCard = React.memo(({ icon: Icon, label, val, sub, color }) => (
   <Card className="p-12 bg-white/[0.02] border border-white/[0.03] flex flex-col items-center text-center shadow-2xl rounded-[56px] group hover:border-accent/20 transition-all duration-700">
      <div className={cn("p-6 rounded-[28px] bg-white/[0.03] mb-8 shadow-inner border border-white/5 group-hover:scale-110 transition-transform duration-700", color)}><Icon size={40} /></div>
@@ -196,6 +193,14 @@ const InsightCard = React.memo(({ icon: Icon, label, val, sub, color }) => (
      <span className="text-[12px] font-black text-white/20 uppercase tracking-[0.5em] font-inter group-hover:text-white/40">{sub}</span>
      <div className="mt-10 pt-10 border-t border-white/[0.05] w-full text-[11px] font-black uppercase tracking-[0.8em] text-accent opacity-20 font-inter group-hover:opacity-40">{label}</div>
   </Card>
+));
+
+const NavBtn = React.memo(({ id, icon: Icon, label, active, onClick }) => (
+  <button onClick={onClick} className="relative flex-1 py-3 flex flex-col items-center gap-1.5 group transition-all duration-500 font-inter">
+    <div className={cn("absolute -top-3 w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_12px_var(--accent)] transition-all duration-500", active ? "opacity-100 scale-100" : "opacity-0 scale-0")} />
+    <Icon size={24} className={cn("transition-all duration-500", active ? "text-accent scale-110 drop-shadow-[0_0_10px_var(--accent-rgb)]" : "text-white/20 group-hover:text-white/40")} style={{'--accent-rgb': 'rgba(0,210,255,0.4)'}} strokeWidth={active ? 3 : 2} />
+    <span className={cn("text-[9px] font-black uppercase tracking-[0.3em] transition-all duration-500 font-inter", active ? "text-white opacity-100" : "text-white/20 opacity-0 group-hover:opacity-40 translate-y-2 group-hover:translate-y-0 font-inter")}>{label}</span>
+  </button>
 ));
 
 // --- MODALS & OVERLAYS ---
@@ -239,7 +244,7 @@ const ProfileModal = ({ user, onClose }) => (
   </div>
 );
 
-// --- MAIN APP ---
+// --- MAIN APP COMPONENT ---
 
 const App = () => {
   const [user, setUser] = useState(null); const [authLoading, setAuthLoading] = useState(true); const [activeTab, setActiveTab] = useState('track'); const [appError, setAppError] = useState(null); const [showProfile, setShowProfile] = useState(false); const [showAdd, setShowAdd] = useState(false); const [editTarget, setEditTarget] = useState(null); const [editProtocol, setEditProtocol] = useState(null); const [logs, setLogs] = useState([]); const [configs, setConfigs] = useState([]); const [settings, setSettings] = useState({ accent: '#00d2ff', isDark: true, layout: 'LARGE', fontScale: 1, nightOwl: false, globalPrice: '0.5' });
@@ -273,7 +278,7 @@ const App = () => {
         <AnimatePresence mode="wait">
           {activeTab === 'track' && ( <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} transition={{ type: 'spring', damping: 20, stiffness: 100 }} className="space-y-10"><MetricBanner m={metrics} /><div className="flex items-center justify-between px-2 mb-[-1.5rem]"><h4 className="text-[10px] font-black text-white/20 tracking-[0.8em] uppercase">Master Registry</h4><div className="w-1.5 h-1.5 rounded-full bg-accent/40" /></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">{configs.sort((a,b)=>a.order-b.order).map((c, i) => ( <TrackerCard key={c.id} config={c} count={(metrics.todayLog.counts || {})[c.id] || 0} onInc={() => onInc(c.id)} onDec={() => onDec(c.id)} index={i} /> ))}<button onClick={() => setShowAdd(true)} className="bg-white/[0.01] rounded-[48px] border-2 border-dashed border-white/[0.05] flex flex-col items-center justify-center space-y-5 hover:bg-accent/5 hover:border-accent/20 transition-all min-h-[520px] group shadow-2xl font-inter"><div className="w-16 h-16 rounded-[28px] bg-white/[0.03] flex items-center justify-center text-white/10 group-hover:text-accent group-hover:bg-accent/10 transition-all border border-white/5 shadow-inner"><Plus size={32} /></div><span className="text-[10px] font-black uppercase tracking-[0.5em] text-white/10 group-hover:text-accent transition-colors">Add Protocol</span></button></div></motion.div> )}
           {activeTab === 'history' && <HistoryScreen logs={logs} configs={configs} m={metrics} onEdit={setEditTarget} userId={user.uid} today={today} />}
-          {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={onReorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} onDel={async (id) => { if(window.confirm(`Permanently terminate protocol?`)) await deleteDoc(doc(db, 'users', user.uid, 'configs', id)); }} />}
+          {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={onReorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} onDel={async (id) => { if(window.confirm(`Permanently terminate protocol?`)) try { await deleteDoc(doc(db, 'users', user.uid, 'configs', id)); } catch (e) { alert(e.message); } }} />}
         </AnimatePresence>
       </main>
       <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Control" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
@@ -288,9 +293,9 @@ const HistoryScreen = ({ logs, configs, m, onEdit, userId, today }) => {
   const onDelete = async (logDate) => { if (window.confirm("Delete record?")) try { await deleteDoc(doc(db, 'users', userId, 'logs', logDate)); } catch (e) { alert(e.message); } };
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 font-inter">
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[48px] shadow-2xl"><div className="flex justify-between items-start mb-12 text-left font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black text-white/30 tracking-[0.8em] uppercase">Visual Stream</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter">Registry Logs</span></div><div className="p-4 bg-accent/10 rounded-[20px] text-accent"><BarChart3 size={32} strokeWidth={2.5} /></div></div><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}><CartesianGrid strokeDasharray="8 8" stroke="#ffffff03" vertical={false} /><XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} dy={15} /><Tooltip contentStyle={{ background: '#121316', border: 'none', borderRadius: '24px', fontSize: '12px' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 5, stroke: '#0a0a0c' }} activeDot={{ r: 12, fill: '#fff', shadow: '0 0 20px #00d2ff' }} animationDuration={2000} /></LineChart></ResponsiveContainer></div></Card>
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-8"><InsightCard icon={TrendingUp} label="Streak" val={m.streak} sub="Days Active" color="text-amber-400" /><InsightCard icon={Wallet} label="Retained" val={`$${m.savings.toFixed(2)}`} sub="Capital Saved" color="text-emerald-400" /><InsightCard icon={Activity} label="Impact" val={`${Math.floor(m.lost/60)}H`} sub="Time Restored" color="text-rose-400" /></div>
-       <div className="space-y-8 pt-12 text-left font-inter"><h4 className="text-[10px] font-black text-white/20 tracking-[1em] uppercase px-4">Timeline Feed</h4>{logs.map((log, i) => ( <StaggeredItem key={log.logDate} index={i}><div className="bg-white/[0.02] p-10 rounded-[48px] border border-white/[0.03] flex items-center justify-between group hover:border-accent/20 transition-all shadow-2xl font-inter"><div className="flex flex-col gap-3 text-left font-inter"><span className="text-2xl font-[1000] tracking-tighter uppercase leading-none">{log.logDate === today ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] flex items-center gap-3">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units registered</span></div><div className="flex items-center gap-4"><button onClick={() => onEdit(log)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-accent transition-all shadow-xl font-inter"><Edit2 size={24} /></button><button onClick={() => onDelete(log.logDate)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-danger transition-all shadow-xl font-inter"><Trash2 size={24} /></button></div></div></StaggeredItem> ))}</div>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[48px] shadow-2xl"><div className="flex justify-between items-start mb-12 text-left font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black text-white/30 tracking-[0.8em] uppercase">Visual Stream</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter">Registry Logs</span></div><div className="p-4 bg-accent/10 rounded-[20px] text-accent"><BarChart3 size={32} strokeWidth={2.5} /></div></div><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}><CartesianGrid strokeDasharray="8 8" stroke="#ffffff03" vertical={false} /><XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} dy={15} /><Tooltip contentStyle={{ background: '#121316', border: 'none', borderRadius: '24px', fontSize: '12px' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 5, stroke: '#0a0a0c' }} animationDuration={2000} /></LineChart></ResponsiveContainer></div></Card>
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-8"><InsightCard icon={TrendingUp} label="Streak" val={m.streak} sub="Days Active" color="text-amber-400" /><InsightCard icon={Wallet} label="Retained" val={`$${(m.savings || 0).toFixed(2)}`} sub="Capital Saved" color="text-emerald-400" /><InsightCard icon={Activity} label="Impact" val={`${Math.floor((m.lost || 0)/60)}H`} sub="Time Restored" color="text-rose-400" /></div>
+       <div className="space-y-8 pt-12 text-left font-inter"><h4 className="text-[10px] font-black text-white/20 tracking-[1em] uppercase px-4 text-left font-inter">Timeline Feed</h4>{logs.map((log, i) => ( <StaggeredItem key={log.logDate} index={i}><div className="bg-white/[0.02] p-10 rounded-[48px] border border-white/[0.03] flex items-center justify-between group hover:border-accent/20 transition-all shadow-2xl font-inter"><div className="flex flex-col gap-3 text-left font-inter"><span className="text-2xl font-[1000] tracking-tighter uppercase leading-none">{log.logDate === today ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] flex items-center gap-3">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units registered</span></div><div className="flex items-center gap-4"><button onClick={() => onEdit(log)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-accent transition-all shadow-xl font-inter"><Edit2 size={24} /></button><button onClick={() => onDelete(log.logDate)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-danger transition-all shadow-xl font-inter"><Trash2 size={24} /></button></div></div></StaggeredItem> ))}</div>
     </motion.div>
   );
 };
@@ -298,40 +303,28 @@ const HistoryScreen = ({ logs, configs, m, onEdit, userId, today }) => {
 const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd, onDel }) => {
   const [n, setN] = useState(user?.displayName || ''); const [la, setLa] = useState(settings.accent); const [loading, setLoading] = useState(false); const fileRef = useRef(null);
   const applyTheme = () => { onUpd({ accent: la }); setTimeout(() => window.location.reload(), 300); };
-  const handleUpload = (e) => { const file = e.target.files[0]; if (!file) return; setLoading(true); const reader = new FileReader(); reader.onload = async (ev) => { const url = ev.target.result; try { await updateProfile(auth.currentUser, { photoURL: url }); await setDoc(doc(db, 'users', user.uid), { photoURL: url }, { merge: true }); setLoading(false); window.location.reload(); } catch (err) { alert(err.message); setLoading(false); } }; reader.readAsDataURL(file); };
+  const handleUpload = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    setLoading(true);
+    try {
+      const storageRef = ref(storage, `profile_pictures/${user.uid}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      await updateProfile(auth.currentUser, { photoURL: url });
+      await setDoc(doc(db, 'users', user.uid), { photoURL: url }, { merge: true });
+      setLoading(false);
+      window.location.reload();
+    } catch (err) { alert("Upload failed: " + err.message); setLoading(false); }
+  };
   return (
     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 max-w-3xl mx-auto font-inter text-left">
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] space-y-12 shadow-2xl font-inter"><div className="flex flex-col items-center gap-10 font-inter"><div className="relative group cursor-pointer active:scale-95 transition-all" onClick={() => fileRef.current?.click()}><div className={cn("w-40 h-40 rounded-[48px] bg-accent/5 border-2 border-accent/20 flex items-center justify-center overflow-hidden shadow-2xl transition-all duration-700", loading && "animate-pulse opacity-50")}>{user?.photoURL ? <img src={user.photoURL} className="w-full h-full object-cover" alt="p" /> : <User size={64} className="text-accent" />}</div><div className="absolute -bottom-3 -right-3 w-14 h-14 bg-white text-black rounded-[22px] flex items-center justify-center shadow-2xl border-4 border-[#020202]"><Camera size={24} strokeWidth={2.5} /></div><input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={handleUpload} /></div><div className="w-full space-y-10 font-inter"><div className="relative group font-inter"><span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest opacity-40 font-inter">Identity Label</span><input value={n} onChange={e=>setN(e.target.value)} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-lg font-[1000] focus:border-accent/40 outline-none transition-all font-inter shadow-inner" /></div><button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-2xl flex items-center justify-center gap-4 font-inter">Commit Profile <ChevronRight size={24} /></button></div></div></Card>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] space-y-12 shadow-2xl font-inter"><div className="flex flex-col items-center gap-10 font-inter"><div className="relative group cursor-pointer active:scale-95 transition-all" onClick={() => fileRef.current?.click()}><div className={cn("w-40 h-40 rounded-[48px] bg-accent/5 border-2 border-accent/20 flex items-center justify-center overflow-hidden shadow-2xl transition-all duration-700", loading && "animate-pulse opacity-50")}>{user?.photoURL ? <img src={user.photoURL} className="w-full h-full object-cover" alt="p" /> : <User size={64} className="text-accent" />}</div><div className="absolute -bottom-3 -right-3 w-14 h-14 bg-white text-black rounded-[22px] flex items-center justify-center shadow-2xl border-4 border-[#020202]"><Camera size={24} strokeWidth={2.5} /></div><input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={handleUpload} /></div><div className="w-full space-y-10 font-inter"><div className="relative group font-inter"><span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest opacity-40 font-inter">Identity Label</span><input value={n} onChange={e=>setN(e.target.value)} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-lg font-[1000] focus:border-accent/40 outline-none transition-all font-inter shadow-inner" /></div><button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-2xl flex items-center justify-center gap-4 font-inter font-black">Commit Profile <ChevronRight size={24} /></button></div></div></Card>
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] space-y-10 shadow-2xl font-inter"><div className="space-y-10 font-inter"><div className="px-2 font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2 font-inter">Interface Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter">Accent Spectrum</span></div><div className="grid grid-cols-3 gap-6 font-inter">{ACCENTS.map(x => ( <button key={x.v} onClick={() => setLa(x.v)} className={cn("h-16 rounded-[24px] border-2 transition-all duration-500 relative flex items-center justify-center", la === x.v ? "border-white scale-105 shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>{la === x.v && <Check size={24} className="text-white drop-shadow-md" strokeWidth={4} />}</button> ))}</div><button onClick={applyTheme} className="w-full h-20 bg-accent text-black font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all flex items-center justify-center gap-4 shadow-2xl font-inter font-black"><Zap size={22} fill="currentColor" /> Apply Scheme</button></div></Card>
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] space-y-10 shadow-2xl font-inter"><div className="flex items-center justify-between px-2 font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 font-inter">Active Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter">Protocols</span></div><button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] hover:brightness-110 active:scale-90 transition-all shadow-2xl font-inter"><Plus size={32} strokeWidth={3} /></button></div><div className="space-y-6 font-inter">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div></Card>
        <button onClick={() => signOut(auth)} className="w-full h-22 border-2 border-danger/30 text-danger font-black uppercase tracking-[0.6em] rounded-[32px] hover:bg-danger/5 transition-all flex items-center justify-center gap-6 active:scale-95 shadow-2xl shadow-danger/5 font-inter font-black"><LogOut size={28} /> Terminate Sessions</button>
     </motion.div>
   );
 };
-
-const ErrorView = ({ msg }) => (
-  <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
-    <AlertCircle className="text-danger mb-12" size={120} strokeWidth={2} />
-    <h2 className="text-5xl font-[1000] uppercase tracking-tighter leading-none mb-8 font-inter">Sync Failure</h2>
-    <p className="text-white/20 text-sm max-w-sm font-bold opacity-60 leading-relaxed uppercase tracking-widest mb-16 font-inter">{msg}</p>
-    <button onClick={() => window.location.reload()} className="rounded-[32px] font-[1000] uppercase tracking-[0.6em] px-20 h-24 bg-white text-black shadow-2xl active:scale-95 transition-all font-inter font-black">Re-Link System</button>
-  </div>
-);
-
-const LoadingView = () => (
-  <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center space-y-12 text-accent font-inter font-black">
-    <Loader2 className="animate-spin" size={100} strokeWidth={3} />
-    <span className="text-sm font-black tracking-[1.5em] uppercase text-accent animate-pulse ml-[1.2em] font-inter">Synchronizing Registry</span>
-  </div>
-);
-
-const NavBtn = React.memo(({ id, icon: Icon, label, active, onClick }) => (
-  <button onClick={onClick} className="relative flex-1 py-3 flex flex-col items-center gap-1.5 group transition-all duration-500 font-inter">
-    <div className={cn("absolute -top-3 w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_12px_var(--accent)] transition-all duration-500", active ? "opacity-100 scale-100" : "opacity-0 scale-0")} />
-    <Icon size={24} className={cn("transition-all duration-500", active ? "text-accent scale-110 drop-shadow-[0_0_100px_var(--accent-rgb)]" : "text-white/20 group-hover:text-white/40")} style={{'--accent-rgb': 'rgba(0,210,255,0.4)'}} strokeWidth={active ? 3 : 2} />
-    <span className={cn("text-[9px] font-black uppercase tracking-[0.3em] transition-all duration-500 font-inter", active ? "text-white opacity-100" : "text-white/20 opacity-0 group-hover:opacity-40 translate-y-2 group-hover:translate-y-0 font-inter")}>{label}</span>
-  </button>
-));
 
 // --- APP WRAPPER EXPORT ---
 const AppWrapper = () => (
