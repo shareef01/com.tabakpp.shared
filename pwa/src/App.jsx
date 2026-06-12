@@ -26,14 +26,25 @@ import { SmokingCalculator } from './utils/smokingCalculator';
 import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
+// --- GLOBAL CONSTANTS & HELPERS ---
 const APP_VERSION = "15.5.0-MASTER-FIX";
+
+const hexToRgb = (hex) => {
+  const h = hex || '#00d2ff';
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 210, 255';
+};
+
+const ACCENTS = [
+  { n: 'Cyan', v: '#00d2ff' }, { n: 'Lime', v: '#D4FF5C' }, { n: 'Emerald', v: '#4ADE80' },
+  { n: 'Violet', v: '#A78BFA' }, { n: 'Amber', v: '#FBBF24' }, { n: 'Rose', v: '#FB7185' }
+];
 
 // --- REUSABLE UI COMPONENTS (iOS OPTIMIZED) ---
 
 /**
  * <TopBanner />
- * REBUILT: Ultra-modern, notch-safe header with glassmorphism.
- * Replaces the missing/faulty TopBanner and resolves the ReferenceError.
+ * Ultra-modern, notch-safe header with glassmorphism.
  */
 function TopBanner({ user, onProfileClick }) {
   return (
@@ -65,7 +76,7 @@ function TopBanner({ user, onProfileClick }) {
 
 /**
  * <MetricBanner />
- * Displays daily progress units. (Used inside the track tab)
+ * Displays daily progress units.
  */
 function MetricBanner({ m }) {
   return (
@@ -92,6 +103,162 @@ function MetricBanner({ m }) {
     </section>
   );
 }
+
+/**
+ * <SmokingProgress />
+ * Optimized burning visuals.
+ */
+const SmokingProgress = ({ count, limit, variant }) => {
+  const isL = count >= limit;
+  const tobaccoPct = Math.max(0, 1 - (count / limit));
+  const isJoint = variant === 'KING' || variant === 'QUEEN';
+
+  return (
+    <div className={cn(
+      "relative h-11 rounded-full overflow-hidden border-2 transition-all duration-1000 flex items-center shadow-2xl",
+      variant === 'KING' ? "w-64" : (variant === 'QUEEN' ? "w-48" : "w-56"),
+      isL ? "bg-danger border-danger shadow-[0_0_50px_rgba(255,0,0,0.6)]" : "bg-white/[0.03] border-white/10"
+    )}>
+      {!isL && (
+        <div
+          className={cn(
+            "absolute h-full transition-all duration-1000 ease-out",
+            isJoint ? "bg-gradient-to-r from-white/80 to-white" : "bg-white shadow-[0_0_20px_white]"
+          )}
+          style={{ width: `${tobaccoPct * 72}%`, right: '28%' }}
+        />
+      )}
+      {!isL && count > 0 && (
+        <div className="absolute h-full w-3 bg-danger shadow-[0_0_25px_red] z-20 transition-all duration-1000 ease-out" style={{ right: `calc(28% + ${tobaccoPct * 72}% - 1.5px)` }} />
+      )}
+      <div className={cn("absolute right-0 h-full w-[28%] border-l-2 transition-all duration-1000", isL ? "bg-danger border-white/20" : (isJoint ? "bg-[#2a2a2e] border-white/5" : "bg-[#f59e0b] border-black/20"))} />
+    </div>
+  );
+};
+
+const GenericBarProgress = ({ count, limit }) => {
+  const isL = count >= limit;
+  const progress = Math.min(1, count / limit);
+  return (
+    <div className={cn("w-56 h-11 rounded-full overflow-hidden border-2 p-1.5 transition-all duration-1000 shadow-2xl", isL ? "bg-danger/20 border-danger" : "bg-white/[0.03] border-white/10")}>
+      <div className={cn("h-full rounded-full transition-all duration-1000", isL ? "bg-danger shadow-[0_0_30px_red]" : "bg-accent shadow-[0_0_20px_var(--accent)]")} style={{ width: `${progress * 100}%` }} />
+    </div>
+  );
+};
+
+const RingProgress = ({ count, limit }) => {
+  const isL = count >= limit;
+  const progress = Math.min(1, count / limit);
+  return (
+    <div className="relative w-32 h-32 flex items-center justify-center shadow-2xl rounded-full">
+      <svg className="absolute inset-0 w-full h-full -rotate-90 overflow-visible p-2" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-white/[0.03]" />
+        <motion.circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="10" fill="transparent" strokeDasharray="264" initial={{ strokeDashoffset: 264 }} animate={{ strokeDashoffset: 264 - (progress * 264) }} className={cn("transition-colors duration-1000", isL ? "text-danger" : "text-accent")} strokeLinecap="round" />
+      </svg>
+      <HeartPulse size={24} className={cn("transition-all duration-1000", isL ? "text-danger scale-125" : "text-accent animate-pulse")} />
+    </div>
+  );
+};
+
+const TrackerCard = ({ config, count, onInc, onDec, index }) => {
+  const isL = count >= config.limit;
+  const isKing = config.type === 'JOINT_KING';
+  const isQueen = config.type === 'JOINT_QUEEN';
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05, type: 'spring', damping: 15 }} className={cn("bg-white/[0.02] rounded-[56px] border-2 p-10 flex flex-col items-center justify-between min-h-[520px] transition-all duration-700 group relative overflow-hidden shadow-2xl font-inter", isL ? "border-danger/30 shadow-[0_0_60px_rgba(248,113,113,0.1)]" : "border-white/[0.03] hover:border-accent/20")}>
+      <span className="text-[10px] font-black text-white/20 tracking-[0.6em] uppercase relative z-10">Target: {config.limit}</span>
+
+      <div className="flex-1 w-full flex flex-col items-center justify-center space-y-12 relative z-10 py-10">
+        <div className="w-full flex justify-center h-24 items-center">
+          {config.type === 'CIGARETTE' && <SmokingProgress count={count} limit={config.limit} variant="CIGARETTE" />}
+          {config.type === 'SIMPLE' && <RingProgress count={count} limit={config.limit} />}
+          {isKing && <SmokingProgress count={count} limit={config.limit} variant="KING" />}
+          {isQueen && <SmokingProgress count={count} limit={config.limit} variant="QUEEN" />}
+          {(!['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].includes(config.type)) && <GenericBarProgress count={count} limit={config.limit} />}
+        </div>
+        <div className="flex flex-col items-center">
+          <div className="flex items-center gap-3">
+            {(isKing || isQueen) && <Crown size={24} className={cn("transition-all duration-700", isL ? "text-danger drop-shadow-[0_0_15px_red]" : (isKing ? "text-amber-400 opacity-40" : "text-purple-400 opacity-40"))} />}
+            <motion.span key={count} initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={cn("text-7xl font-[1000] tracking-tighter tabular-nums transition-all duration-700 leading-none", isL ? "text-danger drop-shadow-[0_0_30px_rgba(248,113,113,0.4)]" : "text-white")}>{count}</motion.span>
+          </div>
+          <span className={cn("text-[12px] font-black tracking-[0.8em] uppercase transition-all duration-700 mt-5", isL ? "text-danger" : "text-accent opacity-30 group-hover:opacity-60")}>{config.name}</span>
+        </div>
+      </div>
+
+      <div className="w-full flex justify-between items-center pt-8 mt-auto relative z-10">
+        <button onClick={onDec} className="w-16 h-16 rounded-[24px] bg-white/[0.04] border border-white/[0.05] flex items-center justify-center text-white/30 hover:text-white active:scale-90 transition-all shadow-xl"><Minus size={28} strokeWidth={3} /></button>
+        <button onClick={onInc} className={cn("w-16 h-16 rounded-[24px] flex items-center justify-center text-black active:scale-90 transition-all shadow-[0_20px_50px_var(--accent-rgb)]", isL ? "bg-danger shadow-[0_20px_50px_rgba(248,113,113,0.6)]" : "bg-accent")} style={{'--accent-rgb': 'rgba(0,210,255,0.4)'}}><Plus size={28} strokeWidth={4} /></button>
+      </div>
+    </motion.div>
+  );
+};
+
+const IPhoneTrackingCard = ({ config, idx, total, onReo, onEdit, onDelete }) => (
+  <div className="flex flex-row justify-between items-center w-full p-6 bg-white/[0.03] rounded-[32px] border border-white/[0.05] group hover:border-accent/30 transition-all duration-500 shadow-xl overflow-hidden min-h-[100px]">
+    <div className="flex flex-row items-center gap-6 min-w-0 flex-1">
+      <div className="flex flex-col gap-2 shrink-0">
+        <button onClick={() => onReo(config.id, 'up')} disabled={idx === 0} className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75 shrink-0"><ArrowUp size={18} strokeWidth={3} /></button>
+        <button onClick={() => onReo(config.id, 'down')} disabled={idx === total - 1} className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75 shrink-0"><ArrowDown size={18} strokeWidth={3} /></button>
+      </div>
+      <div className="w-14 h-14 bg-white/[0.03] border border-white/5 rounded-[18px] flex items-center justify-center text-accent/50 group-hover:text-accent transition-all shrink-0">
+        {config.type.startsWith('JOINT') ? <Crown size={28} /> : <Activity size={28} />}
+      </div>
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <span className="text-xl font-[900] tracking-tight uppercase group-hover:text-white transition-colors truncate">{config.name}</span>
+        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] leading-relaxed">Target: {config.limit}</span>
+      </div>
+    </div>
+    <div className="flex flex-row items-center gap-4 ml-4 shrink-0">
+      <button onClick={() => onEdit(config)} className="w-11 h-11 rounded-[14px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-accent hover:border-accent/20 transition-all shadow-md"><Edit2 size={18} /></button>
+      <button onClick={() => onDelete(config.id)} className="w-11 h-11 rounded-[14px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-danger hover:border-danger/20 transition-all shadow-md"><Trash2 size={18} /></button>
+    </div>
+  </div>
+);
+
+const IPhoneModifyModal = ({ isOpen, onClose, title, actionLabel, onAction, children }) => (
+  <AnimatePresence>
+    {isOpen && (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/85 backdrop-blur-2xl">
+        <motion.div initial={{ opacity: 0, scale: 0.9, y: 100 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 100 }} className="bg-[#121318] border border-white/10 rounded-[56px] w-full max-w-lg p-10 flex flex-col shadow-2xl relative overflow-hidden font-inter" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 2rem)' }}>
+          <div className="flex justify-between items-center mb-10">
+            <h3 className="text-3xl font-[1000] uppercase tracking-tighter truncate pr-6">{title}</h3>
+            <button onClick={onClose} className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all shrink-0 active:scale-90"><X size={24} /></button>
+          </div>
+          <div className="flex-1 overflow-y-auto mb-10 space-y-10 scrollbar-thin scrollbar-thumb-white/5 pr-2">{children}</div>
+          <button onClick={onAction} className="w-full h-18 md:h-20 bg-accent text-black font-[1000] uppercase tracking-[0.4em] rounded-[24px] shadow-2xl active:scale-95 transition-all flex items-center justify-center px-6"><span className="whitespace-nowrap text-xs md:text-sm">{actionLabel}</span></button>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
+);
+
+const ProtocolFormOverlay = ({ isOpen, onClose, onApply, title, initialData = null }) => {
+  const [n, setN] = useState(initialData?.name || '');
+  const [l, setL] = useState(initialData?.limit || '20');
+  const [t, setT] = useState(initialData?.type || 'CIGARETTE');
+  return (
+    <IPhoneModifyModal isOpen={isOpen} onClose={onClose} title={title} actionLabel={initialData ? "Apply Modification" : "Authorize logic"} onAction={() => onApply({ name: n, limit: parseInt(l) || 20, type: t })}>
+      <div className="space-y-10">
+        <div className="relative group">
+          <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest opacity-40">Descriptor</span>
+          <input value={n} onChange={e=>setN(e.target.value)} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-lg font-[1000] focus:border-accent/40 outline-none transition-all font-inter" placeholder="Protocol Label" />
+        </div>
+        <div className="relative group">
+          <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest opacity-40">Threshold</span>
+          <input type="number" value={l} onChange={e=>setL(e.target.value)} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-lg font-[1000] focus:border-accent/40 outline-none transition-all font-inter" />
+        </div>
+        <div className="space-y-5">
+          <span className="text-[10px] font-black uppercase tracking-[0.8em] text-white/20 ml-2">Visual Schematic</span>
+          <div className="grid grid-cols-2 gap-5">
+            {['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => (
+              <button key={x} onClick={() => setT(x)} className={cn("h-18 rounded-[32px] border-2 font-black text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-4 active:scale-95", t === x ? "border-accent bg-accent/10 text-accent shadow-[0_0_30px_rgba(0,210,255,0.2)]" : "border-white/5 text-white/20 hover:border-white/10")}>{x.includes('KING') && <Crown size={18} />} {x.replace('_',' ')}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </IPhoneModifyModal>
+  );
+};
 
 // --- GLOBAL ERROR BOUNDARY ---
 class ErrorBoundaryUI extends Component {
@@ -316,75 +483,6 @@ const App = () => {
         {editTarget && <EditOverlay log={editTarget} configs={configs} onClose={() => setEditTarget(null)} user={user} />}
       </AnimatePresence>
     </div>
-  );
-};
-
-// --- REUSABLE REACT COMPONENTS ---
-
-const IPhoneTrackingCard = ({ config, idx, total, onReo, onEdit, onDelete }) => (
-  <div className="flex flex-row justify-between items-center w-full p-6 bg-white/[0.03] rounded-[32px] border border-white/[0.05] group hover:border-accent/30 transition-all duration-500 shadow-xl overflow-hidden min-h-[100px]">
-    <div className="flex flex-row items-center gap-6 min-w-0 flex-1">
-      <div className="flex flex-col gap-2 shrink-0">
-        <button onClick={() => onReo(config.id, 'up')} disabled={idx === 0} className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75 shrink-0"><ArrowUp size={18} strokeWidth={3} /></button>
-        <button onClick={() => onReo(config.id, 'down')} disabled={idx === total - 1} className="w-11 h-11 rounded-xl bg-white/[0.05] flex items-center justify-center text-white/30 hover:text-accent disabled:opacity-0 transition-all active:scale-75 shrink-0"><ArrowDown size={18} strokeWidth={3} /></button>
-      </div>
-      <div className="w-14 h-14 bg-white/[0.03] border border-white/5 rounded-[18px] flex items-center justify-center text-accent/50 group-hover:text-accent transition-all shrink-0">
-        {config.type.startsWith('JOINT') ? <Crown size={28} /> : <Activity size={28} />}
-      </div>
-      <div className="flex flex-col gap-0.5 min-w-0">
-        <span className="text-xl font-[900] tracking-tight uppercase group-hover:text-white transition-colors truncate">{config.name}</span>
-        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] leading-relaxed">Target: {config.limit}</span>
-      </div>
-    </div>
-    <div className="flex flex-row items-center gap-4 ml-4 shrink-0">
-      <button onClick={() => onEdit(config)} className="w-11 h-11 rounded-[14px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-accent hover:border-accent/20 transition-all shadow-md"><Edit2 size={18} /></button>
-      <button onClick={() => onDelete(config.id)} className="w-11 h-11 rounded-[14px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/20 hover:text-danger hover:border-danger/20 transition-all shadow-md"><Trash2 size={18} /></button>
-    </div>
-  </div>
-);
-
-const IPhoneModifyModal = ({ isOpen, onClose, title, actionLabel, onAction, children }) => (
-  <AnimatePresence>
-    {isOpen && (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/85 backdrop-blur-2xl">
-        <motion.div initial={{ opacity: 0, scale: 0.9, y: 100 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 100 }} className="bg-[#121318] border border-white/10 rounded-[56px] w-full max-w-lg p-10 flex flex-col shadow-2xl relative overflow-hidden font-inter" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 2rem)' }}>
-          <div className="flex justify-between items-center mb-10">
-            <h3 className="text-3xl font-[1000] uppercase tracking-tighter truncate pr-6">{title}</h3>
-            <button onClick={onClose} className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all shrink-0 active:scale-90"><X size={24} /></button>
-          </div>
-          <div className="flex-1 overflow-y-auto mb-10 space-y-10 scrollbar-thin scrollbar-thumb-white/5 pr-2">{children}</div>
-          <button onClick={onAction} className="w-full h-18 md:h-20 bg-accent text-black font-[1000] uppercase tracking-[0.4em] rounded-[24px] shadow-2xl active:scale-95 transition-all flex items-center justify-center px-6"><span className="whitespace-nowrap text-xs md:text-sm">{actionLabel}</span></button>
-        </motion.div>
-      </div>
-    )}
-  </AnimatePresence>
-);
-
-const ProtocolFormOverlay = ({ isOpen, onClose, onApply, title, initialData = null }) => {
-  const [n, setN] = useState(initialData?.name || '');
-  const [l, setL] = useState(initialData?.limit || '20');
-  const [t, setT] = useState(initialData?.type || 'CIGARETTE');
-  return (
-    <IPhoneModifyModal isOpen={isOpen} onClose={onClose} title={title} actionLabel={initialData ? "Apply Modification" : "Authorize logic"} onAction={() => onApply({ name: n, limit: parseInt(l) || 20, type: t })}>
-      <div className="space-y-10">
-        <div className="relative group">
-          <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest opacity-40">Descriptor</span>
-          <input value={n} onChange={e=>setN(e.target.value)} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-lg font-[1000] focus:border-accent/40 outline-none transition-all font-inter" placeholder="Protocol Label" />
-        </div>
-        <div className="relative group">
-          <span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest opacity-40">Threshold</span>
-          <input type="number" value={l} onChange={e=>setL(e.target.value)} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-lg font-[1000] focus:border-accent/40 outline-none transition-all font-inter" />
-        </div>
-        <div className="space-y-5">
-          <span className="text-[10px] font-black uppercase tracking-[0.8em] text-white/20 ml-2">Visual Schematic</span>
-          <div className="grid grid-cols-2 gap-5">
-            {['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => (
-              <button key={x} onClick={() => setT(x)} className={cn("h-18 rounded-[32px] border-2 font-black text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-4 active:scale-95", t === x ? "border-accent bg-accent/10 text-accent shadow-[0_0_30px_rgba(0,210,255,0.2)]" : "border-white/5 text-white/20 hover:border-white/10")}>{x.includes('KING') && <Crown size={18} />} {x.replace('_',' ')}</button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </IPhoneModifyModal>
   );
 };
 
