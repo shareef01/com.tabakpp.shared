@@ -5,7 +5,8 @@ import {
   Activity, Zap, ShieldCheck, HeartPulse, Flame, X,
   LogOut, Camera, Calendar, RefreshCcw, Loader2, AlertCircle,
   TrendingUp, Wallet, Clock, Grid, Moon, Sparkles, Check, Edit2, Trash2, Crown,
-  ArrowUp, ArrowDown, ChevronRight, Apple, Github, Key, Mail, Fingerprint
+  ArrowUp, ArrowDown, ChevronRight, Apple, Github, Key, Mail, Fingerprint,
+  Layout, Maximize, Minimize
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -32,7 +33,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "22.6.0-WIDGET-CALIBRATED";
+const APP_VERSION = "23.0.0-PRO-DASHBOARD";
 
 const hexToRgb = (hex) => {
   try {
@@ -102,20 +103,11 @@ const SmokingProgress = React.memo(({ count, limit, variant, size = 'LARGE' }) =
   );
 });
 
-/**
- * <RingProgress />
- * REFACTORED: Calibrated sizes to prevent clipping in MEDIUM widgets.
- */
 const RingProgress = React.memo(({ count, limit, size = 'LARGE' }) => {
   const isL = count >= limit; const progress = Math.min(1, count / limit);
-  const isSmall = size === 'SMALL';
-  const isMedium = size === 'MEDIUM';
-
+  const isSmall = size === 'SMALL'; const isMedium = size === 'MEDIUM';
   return (
-    <div className={cn(
-      "relative flex items-center justify-center shadow-2xl rounded-full transition-all duration-500",
-      isSmall ? "w-20 h-20" : (isMedium ? "w-24 h-24" : "w-32 h-32")
-    )}>
+    <div className={cn("relative flex items-center justify-center shadow-2xl rounded-full transition-all duration-500", isSmall ? "w-20 h-20" : (isMedium ? "w-24 h-24" : "w-32 h-32"))}>
       <svg className="absolute inset-0 w-full h-full -rotate-90 overflow-visible p-1.5" viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-white/[0.03]" />
         <motion.circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="10" fill="transparent" strokeDasharray="264" initial={{ strokeDashoffset: 264 }} animate={{ strokeDashoffset: 264 - (progress * 264) }} className={cn("transition-colors duration-1000", isL ? "text-danger" : "text-accent")} strokeLinecap="round" />
@@ -129,20 +121,12 @@ const GenericBarProgress = React.memo(({ count, limit, size = 'LARGE' }) => {
   const isL = count >= limit; const progress = Math.min(1, count / limit);
   const isSmall = size === 'SMALL'; const isMedium = size === 'MEDIUM';
   return (
-    <div className={cn(
-      "rounded-full overflow-hidden border-2 p-1.5 transition-all duration-1000 shadow-2xl",
-      isSmall ? "h-9 w-40" : (isMedium ? "h-10 w-48" : "h-11 w-56"),
-      isL ? "bg-danger/20 border-danger" : "bg-white/[0.03] border-white/10"
-    )}>
+    <div className={cn("rounded-full overflow-hidden border-2 p-1.5 transition-all duration-1000 shadow-2xl", isSmall ? "h-9 w-40" : (isMedium ? "h-10 w-48" : "h-11 w-56"), isL ? "bg-danger/20 border-danger" : "bg-white/[0.03] border-white/10")}>
       <div className={cn("h-full rounded-full transition-all duration-1000", isL ? "bg-danger shadow-[0_0_30px_red]" : "bg-accent shadow-[0_0_20px_var(--accent)]")} style={{ width: `${progress * 100}%` }} />
     </div>
   );
 });
 
-/**
- * <TrackerCard />
- * REFACTORED: Calibrated geometry for MEDIUM size to prevent text/gauge overlap.
- */
 const TrackerCard = React.memo(({ config, count, onInc, onDec, index, globalSize = 'LARGE' }) => {
   const isL = count >= config.limit;
   const isSmall = globalSize === 'SMALL'; const isMedium = globalSize === 'MEDIUM'; const isLarge = globalSize === 'LARGE';
@@ -150,7 +134,6 @@ const TrackerCard = React.memo(({ config, count, onInc, onDec, index, globalSize
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05, type: 'spring', damping: 15 }} className={cn("bg-white/[0.02] rounded-[56px] border-2 flex flex-col items-center justify-between transition-all duration-700 group relative overflow-hidden shadow-2xl font-inter", isLarge ? "min-h-[520px] p-10" : (isMedium ? "min-h-[420px] p-9" : "min-h-[260px] p-6"), isL ? "border-danger/30 shadow-[0_0_60px_rgba(248,113,113,0.1)]" : "border-white/[0.03] hover:border-accent/20")}>
       {!isSmall && <span className={cn("font-black text-white/20 tracking-[0.4em] uppercase relative z-10 truncate w-full text-center shrink-0", isLarge ? "text-[10px]" : "text-[8px]")}>Limit: {config.limit}</span>}
       <div className={cn("flex-1 w-full flex flex-col items-center justify-center relative z-10 min-h-0", isSmall ? "space-y-4" : "space-y-8")}>
-        {/* Visual Gauge Container - Dynamic height to prevent clipping */}
         <div className={cn("w-full flex justify-center items-center shrink-0", isSmall ? "h-20" : (isMedium ? "h-28" : "h-32"))}>
           {config.type === 'CIGARETTE' && <SmokingProgress count={count} limit={config.limit} variant="CIGARETTE" size={globalSize} />}
           {config.type === 'SIMPLE' && <RingProgress count={count} limit={config.limit} size={globalSize} />}
@@ -158,13 +141,11 @@ const TrackerCard = React.memo(({ config, count, onInc, onDec, index, globalSize
           {config.type === 'JOINT_QUEEN' && <SmokingProgress count={count} limit={config.limit} variant="QUEEN" size={globalSize} />}
           {(!['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].includes(config.type)) && <GenericBarProgress count={count} limit={config.limit} size={globalSize} />}
         </div>
-        {/* Text Area - Relative scaling and padding */}
         <div className="flex flex-col items-center text-center min-w-0 w-full px-2">
           <motion.span key={count} initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={cn("font-[1000] tracking-tighter tabular-nums transition-all duration-700 leading-none shrink-0", isLarge ? "text-7xl" : (isMedium ? "text-6xl" : "text-4xl"), isL ? "text-danger drop-shadow-[0_0_30px_rgba(248,113,113,0.4)]" : "text-white")}>{count}</motion.span>
           <span className={cn("font-black tracking-[0.4em] uppercase transition-all duration-700 truncate w-full shrink-0", isSmall ? "text-[9px] mt-2" : "text-[12px] mt-4", isL ? "text-danger" : "text-accent opacity-40 group-hover:opacity-100")}>{config.name}</span>
         </div>
       </div>
-      {/* Controls Area */}
       <div className={cn("w-full flex justify-between items-center relative z-10 px-2 shrink-0", isSmall ? "mt-2 pb-1" : "mt-8 pb-2")}>
         <button onClick={onDec} className={cn("rounded-full bg-white/[0.08] border border-white/10 flex items-center justify-center text-white/30 hover:text-white active:scale-90 transition-all shadow-xl backdrop-blur-md", isSmall ? "w-10 h-10" : "w-16 h-16")}><Minus size={isSmall ? 20 : 28} strokeWidth={3} /></button>
         <button onClick={onInc} className={cn("rounded-full flex items-center justify-center text-black active:scale-90 transition-all backdrop-blur-md", isSmall ? "w-10 h-10" : "w-16 h-16", isL ? "bg-danger shadow-[0_0_50px_rgba(248,113,113,0.6)]" : "bg-accent shadow-[0_20px_50px_var(--accent-rgb)]")} style={{'--accent-rgb': 'rgba(0,210,255,0.4)'}}><Plus size={isSmall ? 20 : 28} strokeWidth={4} /></button>
@@ -173,7 +154,42 @@ const TrackerCard = React.memo(({ config, count, onInc, onDec, index, globalSize
   );
 });
 
-// --- SUB-COMPONENTS ---
+// --- REFINED SUB-COMPONENTS ---
+
+/**
+ * <SegmentedControl />
+ * PROFESSIONAL: Sleek dashboard size switcher for the Main Activity.
+ * Use for global widget scaling with fluid motion.
+ */
+const SegmentedControl = React.memo(({ value, onChange }) => {
+  const options = ['SMALL', 'MEDIUM', 'LARGE'];
+  return (
+    <div className="relative bg-white/[0.03] border border-white/[0.05] p-1 rounded-full flex items-center shadow-inner overflow-hidden max-w-[320px] mx-auto mb-10">
+      {options.map((opt) => (
+        <button
+          key={opt}
+          onClick={() => onChange({ widgetSize: opt })}
+          className={cn(
+            "relative flex-1 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-500 z-10",
+            value === opt ? "text-black" : "text-white/30 hover:text-white/60"
+          )}
+        >
+          {opt}
+        </button>
+      ))}
+      {/* Sliding Highlight */}
+      <motion.div
+        className="absolute h-[calc(100%-8px)] bg-accent rounded-full shadow-[0_0_20px_var(--accent-rgb)]"
+        initial={false}
+        animate={{
+          width: `calc((100% - 8px) / 3)`,
+          x: value === 'SMALL' ? 4 : (value === 'MEDIUM' ? 'calc(100% / 3 + 1.5px)' : 'calc(200% / 3 - 1px)')
+        }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      />
+    </div>
+  );
+});
 
 const TopBanner = React.memo(({ user, onNavigate }) => {
   const [isOpen, setIsOpen] = useState(false); const dropdownRef = useRef(null);
@@ -181,8 +197,8 @@ const TopBanner = React.memo(({ user, onNavigate }) => {
   const handleLogout = async () => { setIsOpen(false); if (window.confirm("Log out of session?")) await signOut(auth); };
   return (
     <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
-      <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
-        <div className="flex flex-col text-left font-inter"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Dashboard</span></div>
+      <div className="max-w-7xl mx-auto flex justify-between items-center px-6 font-inter">
+        <div className="flex flex-col text-left"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Dashboard</span></div>
         <div className="relative" ref={dropdownRef}>
           <button onClick={() => setIsOpen(!isOpen)} className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden">
             <User size={20} strokeWidth={3} /><div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -308,6 +324,13 @@ const AppContent = () => {
         <AnimatePresence mode="wait">
           {activeTab === 'track' && (
             <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-10">
+
+              {/* REPOSITIONED: Sleek Segmented Control for Layout Size */}
+              <div className="flex flex-col items-center gap-3">
+                 <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.5em]">Calibrate View</span>
+                 <SegmentedControl value={settings.widgetSize} onChange={onUpdateSettings} />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                  {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
                    <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} />
@@ -320,7 +343,7 @@ const AppContent = () => {
           {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={reorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} onDel={deleteProtocol} />}
         </AnimatePresence>
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Settings" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6 font-inter"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Settings" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
       <AnimatePresence>{showAdd && <ProtocolFormOverlay isOpen={showAdd} onClose={() => setShowAdd(false)} onApply={handleAddProtocol} title="New Counter" />}{editProtocol && <ProtocolFormOverlay isOpen={!!editProtocol} onClose={() => setEditProtocol(null)} onApply={handleUpdateProtocol} title="Edit Counter" initialData={editProtocol} />}{editTarget && <EditOverlay log={editTarget} configs={configs} onClose={() => setEditTarget(null)} user={user} />}</AnimatePresence>
     </div>
   );
@@ -336,18 +359,6 @@ const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd,
        </div></Card>
 
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
-          <div className="space-y-10 font-inter">
-             <div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2 font-inter">Display Preferences</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Dashboard Size</span></div>
-             <div className="grid grid-cols-3 gap-4 font-inter">
-                {['SMALL', 'MEDIUM', 'LARGE'].map(x => (
-                   <button key={x} onClick={() => onUpd({ widgetSize: x })} className={cn("h-16 rounded-[24px] border-2 font-black text-[10px] uppercase transition-all flex items-center justify-center font-inter", settings.widgetSize === x ? "border-accent bg-accent/10 text-accent shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")}>{x}</button>
-                ))}
-             </div>
-             <p className="text-[10px] font-black text-white/20 uppercase tracking-widest px-2 leading-relaxed font-inter">Recalibrate the layout of all your dashboard counters.</p>
-          </div>
-       </Card>
-
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
           <div className="space-y-10 font-inter"><div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2 font-inter">Personalization</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Accent Color</span></div><div className="grid grid-cols-3 gap-6 font-inter">{ACCENTS.map(x => ( <button key={x.v} onClick={() => setLa(x.v)} className={cn("h-16 rounded-[24px] border-2 transition-all duration-500 relative flex items-center justify-center font-inter", la === x.v ? "border-white scale-105 shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>{la === x.v && <Check size={24} className="text-white drop-shadow-md" strokeWidth={4} />}</button> ))}</div><button onClick={() => onUpd({ accent: la })} className="w-full h-20 bg-white/[0.1] border border-white/5 text-white font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-xl hover:bg-white/[0.15] font-inter">Save Color</button></div></Card>
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
           <div className="flex items-center justify-between gap-8 mb-10 px-2 font-inter">
@@ -355,15 +366,9 @@ const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd,
                 <h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 font-inter">Management</h3>
                 <span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black block truncate">Active Counters</span>
              </div>
-             <button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl active:scale-90 transition-all font-inter shrink-0">
-                <Plus size={32} />
-             </button>
+             <button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl active:scale-90 transition-all font-inter shrink-0"><Plus size={32} /></button>
           </div>
-          <div className="space-y-6 font-inter">
-             {configs.sort((a,b)=>a.order-b.order).map((c, idx) => (
-                <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} />
-             ))}
-          </div>
+          <div className="space-y-6 font-inter">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div>
        </Card>
     </motion.div>
   );
