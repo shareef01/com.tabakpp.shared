@@ -1,26 +1,35 @@
-# 🚬 TABAK++ | Master Production PWA
-**Version: 28.5.0-STABLE**
+# 🚬 TABAK++ | High-Fidelity Health Optimization PWA
+**Version: 28.5.0-PRODUCTION**
 
-TABAK++ is a high-fidelity Progressive Web App engineered for quit-control tracking. It features an **Obsidian Dark** aesthetic with neon accents and cinematic animations.
-
----
-
-## 🛠️ Technology Stack
-The application is built using a modern, high-performance stack for zero-flicker UI and real-time data persistence.
-
-- **Frontend Core**: [React.js](https://reactjs.org/) (Functional Components + Hooks)
-- **State Management**: [Model-View-ViewModel (MVVM)](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel) pattern for synchronized UI states.
-- **Backend/Database**: [Firebase Firestore](https://firebase.google.com/products/firestore) (Real-time `onSnapshot` listeners).
-- **Authentication**: [Firebase Auth](https://firebase.google.com/products/auth) (Secure email/password session management).
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) (Obsidian design system with neon-lime #D4FF32 accents).
-- **Animations**: [Framer Motion](https://www.framer.com/motion/) (Cinematic "Burning Cigarette" hero and spring-physics transitions).
-- **Icons**: [Lucide React](https://lucide.dev/) (High-density stroke icons).
-- **Charts**: [Recharts](https://recharts.org/) (High-fidelity historical data visualization).
+TABAK++ is a premium, engineering-focused Progressive Web App designed to provide high-density tracking for health optimization. It represents a master-class in modern UI/UX, featuring an **Obsidian Dark** aesthetic, real-time cloud synchronization, and cinematic interaction design.
 
 ---
 
-## 🌐 Online Production Testing
-The application is live and can be tested on any modern browser or installed as a native app.
+## 💡 Concept & Objective
+The project aims to solve the "tracking friction" problem in health behavioral change by providing a zero-flicker, mathematically precise interface. Unlike traditional trackers, TABAK++ focuses on **visual urgency** and **reward-based mechanics** (XP, capital savings, health recovery metrics) to drive consistent user engagement.
+
+---
+
+## 🛠️ Technical Contributions & Stack
+
+### 🚀 Frontend & State Synchronization
+- **React.js (Functional Core)**: Leveraged for high-performance component rendering and zero-latency UI updates.
+- **MVVM Architecture**: Implemented a strict **Model-View-ViewModel** pattern to decouple complex health calculations from the UI layer, ensuring data integrity across high-frequency interactions.
+- **Real-Time Synchronization**: Engineered a multi-tab sync system using **Firebase Firestore `onSnapshot`** listeners, allowing seamless data persistence across devices without manual refreshes.
+
+### 🎭 Aesthetic Engineering
+- **Obsidian Design System**: Developed a custom dark-mode aesthetic using **Tailwind CSS**, focused on high-contrast neon accents and Apple-standard touch targets (44px).
+- **Cinematic Animations**: Authored a custom animation engine using **Framer Motion** for the "Burning Cigarette" hero and spring-physics transitions, creating a native-app feel within a web environment.
+- **Accessibility Hardening**: Calibrated global contrast ratios (60-80% opacity standards) and micro-copy font scaling to ensure legibility on high-DPI retina displays.
+
+### 🔐 Professional Engineering Standards
+- **Secret Externalization**: Implemented a secure environment management system using **Vite Environment Variables**. Sensitive API credentials are never exposed in source control, reflecting industry-standard security practices.
+- **PWA Deployment**: Configured for **standalone installation** on iOS and Android, utilizing Service Workers for offline resilience and native-feel window management.
+
+---
+
+## 🌐 Online Production Showcase
+The application is live and can be tested as a standalone native-app replacement.
 
 **Live URL**: [https://tabakpp.web.app](https://tabakpp.web.app)
 
@@ -29,29 +38,13 @@ For the best experience, install TABAK++ as a standalone application on your dev
 
 #### **iOS Safari**
 1. Open the URL in Safari.
-2. Tap the **Share** icon (square with arrow).
-3. Scroll down and select **"Add to Home Screen"**.
-4. Launch from your home screen for a fullscreen, standalone experience.
+2. Tap the **Share** icon.
+3. Select **"Add to Home Screen"**.
 
 #### **Android Chrome**
 1. Open the URL in Chrome.
-2. Tap the **three dots** (menu).
+2. Tap the **menu** (three dots).
 3. Select **"Install App"**.
-
----
-
-## 🔐 Security & Deployment
-- **Environment Management**: Secrets (Firebase API keys) are externalized via `.env` using Vite's `import.meta.env` system to ensure security on GitHub.
-- **Hosting**: Deployed via [Firebase Hosting](https://firebase.google.com/products/hosting).
-
-**To deploy updates**:
-```bash
-# Build the production bundle
-npm run build
-
-# Push to Firebase
-firebase deploy --only hosting:tabakpp
-```
 
 ---
 **TABAK++ is engineered for resilience, legibility, and speed.**
