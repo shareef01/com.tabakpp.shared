@@ -13,7 +13,12 @@ export const useRegistry = (user, today) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
 
     const unsubConfigs = RegistryService.subscribeToConfigs(
       user.uid,
@@ -23,13 +28,19 @@ export const useRegistry = (user, today) => {
         ]);
         setLoading(false);
       },
-      (err) => setError(err.message)
+      (err) => {
+        setError(err.message);
+        setLoading(false);
+      }
     );
 
     const unsubLogs = RegistryService.subscribeToLogs(
       user.uid,
       (data) => setLogs(data),
-      (err) => setError(err.message)
+      (err) => {
+        setError(err.message);
+        setLoading(false);
+      }
     );
 
     return () => {

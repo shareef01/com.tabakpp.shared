@@ -14,8 +14,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Senior Staff Engineer Note: Explicitly setting local persistence to ensure
-    // iPhone Safari sessions survive browser closes and cross-tab navigation.
+    let unsubscribe;
+
     const initAuth = async () => {
       try {
         await setPersistence(auth, browserLocalPersistence);
@@ -23,26 +23,19 @@ export const AuthProvider = ({ children }) => {
         console.error("Auth persistence failure:", error);
       }
 
-      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-        setUser(u => {
-          // Only update state if the user object has actually changed to prevent re-render loops
-          if (u?.uid === currentUser?.uid && u?.photoURL === currentUser?.photoURL && u?.displayName === currentUser?.displayName) {
-            return u;
-          }
-          return currentUser;
-        });
+      unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        setUser(currentUser);
         setLoading(false);
       }, (error) => {
-        console.error("Auth state change failure:", error);
+        console.error("Auth error:", error);
         setLoading(false);
       });
-
-      return unsubscribe;
     };
 
-    const cleanup = initAuth();
+    initAuth();
+
     return () => {
-      if (typeof cleanup === 'function') cleanup();
+      if (unsubscribe) unsubscribe();
     };
   }, []);
 
