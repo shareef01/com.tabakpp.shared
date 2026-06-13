@@ -26,7 +26,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "21.2.0-STABLE-MASTER";
+const APP_VERSION = "21.5.0-SMOOTH-SCALING";
 
 const hexToRgb = (hex) => {
   try {
@@ -41,7 +41,27 @@ const ACCENTS = [
   { n: 'Violet', v: '#A78BFA' }, { n: 'Amber', v: '#FBBF24' }, { n: 'Rose', v: '#FB7185' }
 ];
 
-// --- ERROR & LOADING STATES ---
+// --- ERROR BOUNDARY ---
+class GlobalErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, info) { console.error("FATAL_APP_CRASH:", error, info); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
+          <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
+          <h2 className="text-3xl font-[1000] uppercase tracking-tighter leading-none mb-4">Registry Fault</h2>
+          <p className="text-white/40 text-sm mb-10 max-w-md font-bold leading-relaxed">{this.state.error?.toString() || "Logic sync error."}</p>
+          <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="px-10 h-18 rounded-full bg-white text-black font-black uppercase tracking-widest active:scale-95 transition-all shadow-2xl">Reset Environment</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// --- VISUAL COMPONENTS ---
 
 const LoadingView = () => (
   <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center space-y-12 text-accent font-inter font-black">
@@ -58,27 +78,6 @@ const ErrorView = ({ msg }) => (
     <button onClick={() => window.location.reload()} className="rounded-[32px] font-[1000] uppercase tracking-[0.6em] px-20 h-24 bg-white text-black shadow-2xl active:scale-95 transition-all font-inter font-black">Re-Link System</button>
   </div>
 );
-
-class GlobalErrorBoundary extends Component {
-  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
-  static getDerivedStateFromError(error) { return { hasError: true, error }; }
-  componentDidCatch(error, info) { console.error("FATAL_APP_CRASH:", error, info); }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
-          <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
-          <h2 className="text-3xl font-[1000] uppercase tracking-tighter leading-none mb-4 font-inter">Registry Fault</h2>
-          <p className="text-white/40 text-sm mb-10 max-w-md font-bold leading-relaxed font-inter">{this.state.error?.toString() || "Logic sync error."}</p>
-          <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="px-10 h-18 rounded-full bg-white text-black font-black uppercase tracking-widest active:scale-95 transition-all shadow-2xl font-inter">Reset Environment</button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-// --- VISUAL COMPONENTS ---
 
 const SmokingProgress = React.memo(({ count, limit, variant, size = 'LARGE' }) => {
   const isL = count >= limit; const tobaccoPct = Math.max(0, 1 - (count / limit)); const isJoint = variant === 'KING' || variant === 'QUEEN';
@@ -116,19 +115,19 @@ const GenericBarProgress = React.memo(({ count, limit, size = 'LARGE' }) => {
   );
 });
 
-const TrackerCard = React.memo(({ config, count, onInc, onDec, index }) => {
-  const isL = count >= config.limit; const size = config.size || 'LARGE';
-  const isSmall = size === 'SMALL'; const isMedium = size === 'MEDIUM'; const isLarge = size === 'LARGE';
+const TrackerCard = React.memo(({ config, count, onInc, onDec, index, globalSize = 'LARGE' }) => {
+  const isL = count >= config.limit;
+  const isSmall = globalSize === 'SMALL'; const isMedium = globalSize === 'MEDIUM'; const isLarge = globalSize === 'LARGE';
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05, type: 'spring', damping: 15 }} className={cn("bg-white/[0.02] rounded-[56px] border-2 flex flex-col items-center justify-between transition-all duration-700 group relative overflow-hidden shadow-2xl font-inter", isLarge ? "min-h-[520px] p-10" : (isMedium ? "min-h-[380px] p-8" : "min-h-[260px] p-6"), isL ? "border-danger/30 shadow-[0_0_60px_rgba(248,113,113,0.1)]" : "border-white/[0.03] hover:border-accent/20")}>
       {!isSmall && <span className="text-[10px] font-black text-white/20 tracking-[0.6em] uppercase relative z-10">Target: {config.limit}</span>}
       <div className="flex-1 w-full flex flex-col items-center justify-center relative z-10 space-y-8">
         <div className={cn("w-full flex justify-center items-center", isSmall ? "h-16" : "h-24")}>
-          {config.type === 'CIGARETTE' && <SmokingProgress count={count} limit={config.limit} variant="CIGARETTE" size={size} />}
-          {config.type === 'SIMPLE' && <RingProgress count={count} limit={config.limit} size={size} />}
-          {config.type === 'JOINT_KING' && <SmokingProgress count={count} limit={config.limit} variant="KING" size={size} />}
-          {config.type === 'JOINT_QUEEN' && <SmokingProgress count={count} limit={config.limit} variant="QUEEN" size={size} />}
-          {(!['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].includes(config.type)) && <GenericBarProgress count={count} limit={config.limit} size={size} />}
+          {config.type === 'CIGARETTE' && <SmokingProgress count={count} limit={config.limit} variant="CIGARETTE" size={globalSize} />}
+          {config.type === 'SIMPLE' && <RingProgress count={count} limit={config.limit} size={globalSize} />}
+          {config.type === 'JOINT_KING' && <SmokingProgress count={count} limit={config.limit} variant="KING" size={globalSize} />}
+          {config.type === 'JOINT_QUEEN' && <SmokingProgress count={count} limit={config.limit} variant="QUEEN" size={globalSize} />}
+          {(!['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].includes(config.type)) && <GenericBarProgress count={count} limit={config.limit} size={globalSize} />}
         </div>
         <div className="flex flex-col items-center text-center">
           <motion.span key={count} initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={cn("font-[1000] tracking-tighter tabular-nums transition-all duration-700 leading-none", isLarge ? "text-7xl" : (isMedium ? "text-5xl" : "text-4xl"), isL ? "text-danger drop-shadow-[0_0_30px_rgba(248,113,113,0.4)]" : "text-white")}>{count}</motion.span>
@@ -143,20 +142,16 @@ const TrackerCard = React.memo(({ config, count, onInc, onDec, index }) => {
   );
 });
 
-// --- REFINED SUB-COMPONENTS ---
-
 const TopBanner = React.memo(({ user, onNavigate }) => {
   const [isOpen, setIsOpen] = useState(false); const dropdownRef = useRef(null);
   useEffect(() => { const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false); }; if (isOpen) document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, [isOpen]);
-  const handleLogout = async () => { setIsOpen(false); if (window.confirm("Terminate this session?")) await signOut(auth); };
+  const handleLogout = async () => { setIsOpen(false); if (window.confirm("Terminate session?")) await signOut(auth); };
   return (
     <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
       <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
         <div className="flex flex-col text-left font-inter"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Registry Portal</span></div>
         <div className="relative" ref={dropdownRef}>
-          <button onClick={() => setIsOpen(!isOpen)} className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden">
-            <User size={20} strokeWidth={3} /><div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
+          <button onClick={() => setIsOpen(!isOpen)} className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden"><User size={20} strokeWidth={3} /><div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" /></button>
           <AnimatePresence>{isOpen && ( <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-4 w-56 bg-[#121316] border border-white/[0.05] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl p-3 overflow-hidden font-inter z-[110]"><div className="px-4 py-3 border-b border-white/[0.03] mb-2"><span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] block">Active identity</span><span className="text-sm font-bold text-white truncate block mt-1">{user?.displayName || 'Registry User'}</span></div><button onClick={() => { onNavigate('control'); setIsOpen(false); }} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-white/60 hover:text-white hover:bg-white/[0.03] transition-all group text-left font-black uppercase tracking-widest text-[10px]"><Settings size={18} /> Settings</button><button onClick={handleLogout} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-rose-500/60 hover:text-rose-500 hover:bg-rose-500/5 transition-all text-left font-black uppercase tracking-widest text-[10px]"><LogOut size={18} /> Log Out</button></motion.div> )}</AnimatePresence>
         </div>
       </div>
@@ -199,8 +194,8 @@ const ProtocolListItem = React.memo(({ config, idx, total, onReo, onEdit, onDel 
         {config.type.startsWith('JOINT') ? <Crown size={28} /> : (config.type === 'SIMPLE' ? <Activity size={28} /> : <Zap size={28} />)}
       </div>
       <div className="flex flex-col gap-0.5 min-w-0 flex-1 overflow-hidden">
-        <span className="text-xl md:text-2xl font-[900] tracking-tight uppercase group-hover:text-white transition-colors truncate">{config.name}</span>
-        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] opacity-40 truncate">Target: {config.limit} • {config.size || 'LARGE'}</span>
+        <span className="text-xl md:text-2xl font-[900] tracking-tight uppercase group-hover:text-white transition-colors truncate leading-tight font-inter">{config.name}</span>
+        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] font-inter opacity-40 truncate">Target: {config.limit}</span>
       </div>
     </div>
     <div className="flex flex-row items-center gap-4 shrink-0 ml-2">
@@ -271,13 +266,9 @@ const EditOverlay = ({ log, configs, onClose, user }) => {
 
 const ProtocolFormOverlay = ({ isOpen, onClose, onApply, title, initialData = null }) => {
   const [n, setN] = useState(initialData?.name || ''); const [l, setL] = useState(initialData?.limit || '20'); const [t, setT] = useState(initialData?.type || 'CIGARETTE');
-  const [s, setS] = useState(initialData?.size || 'LARGE');
   return (
-    <IPhoneModifyModal isOpen={isOpen} onClose={onClose} title={title} actionLabel={initialData ? "Apply Modification" : "Authorize logic"} onAction={() => onApply({ name: n, limit: parseInt(l) || 20, type: t, size: s })}>
+    <IPhoneModifyModal isOpen={isOpen} onClose={onClose} title={title} actionLabel={initialData ? "Apply Modification" : "Authorize logic"} onAction={() => onApply({ name: n, limit: parseInt(l) || 20, type: t })}>
       <div className="space-y-10 text-left font-inter"><Input label="Descriptor" value={n} onChange={setN} isDark /><Input label="Threshold" type="number" value={l} onChange={setL} isDark />
-        <div className="space-y-5"><span className="text-[10px] font-black uppercase tracking-[0.8em] text-white/20">Widget Scale</span><div className="grid grid-cols-3 gap-4">
-          {['SMALL', 'MEDIUM', 'LARGE'].map(x => ( <button key={x} onClick={() => setS(x)} className={cn("h-14 rounded-[20px] border-2 font-black text-[10px] uppercase transition-all", s === x ? "border-accent bg-accent/10 text-accent" : "border-white/5 opacity-40")}>{x}</button> ))}
-        </div></div>
         <div className="space-y-5"><span className="text-[10px] font-black uppercase tracking-[0.8em] text-white/20">Visual Schematic</span><div className="grid grid-cols-2 gap-5">{['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => ( <button key={x} onClick={() => setT(x)} className={cn("h-18 rounded-[32px] border-2 font-black text-[10px] md:text-[12px] uppercase transition-all", t === x ? "border-accent bg-accent/10 text-accent" : "border-white/5 opacity-40")}>{x.replace('_',' ')}</button> ))}</div></div>
       </div>
     </IPhoneModifyModal>
@@ -286,7 +277,7 @@ const ProtocolFormOverlay = ({ isOpen, onClose, onApply, title, initialData = nu
 
 const AuthScreen = ({ accent }) => {
   const [isL, setIsL] = useState(true); const [e, setE] = useState(''); const [p, setP] = useState(''); const [n, setN] = useState(''); const [loading, setLoading] = useState(false); const [err, setErr] = useState('');
-  const handle = async () => { setLoading(true); setErr(''); try { if (isL) { await signInWithEmailAndPassword(auth, e, p); } else { const c = await createUserWithEmailAndPassword(auth, e, p); await updateProfile(c.user, { displayName: n }); await setDoc(doc(db, 'users', c.user.uid), { name: n, accent: '#00d2ff', isDark: true }); } } catch (e) { setErr(e.message); } finally { setLoading(false); } };
+  const handle = async () => { setLoading(true); setErr(''); try { if (isL) { await signInWithEmailAndPassword(auth, e, p); } else { const c = await createUserWithEmailAndPassword(auth, e, p); await updateProfile(c.user, { displayName: n }); await setDoc(doc(db, 'users', c.user.uid), { name: n, accent: '#00d2ff', isDark: true, widgetSize: 'LARGE' }); } } catch (e) { setErr(e.message); } finally { setLoading(false); } };
   return (
     <div className="min-h-screen bg-[#020202] flex items-center justify-center p-8 text-white font-inter relative overflow-hidden font-inter">
       <div className="w-full max-w-[450px] space-y-16 relative z-10"><div className="flex flex-col items-center text-center"><Zap size={48} className="text-accent mb-10" /><h1 className="text-7xl font-[1000] tracking-tighter uppercase font-inter font-black">TABAK<span className="text-accent">++</span></h1></div><div className="bg-white/[0.02] border border-white/[0.05] p-12 rounded-[56px] space-y-10 shadow-2xl">
@@ -296,18 +287,31 @@ const AuthScreen = ({ accent }) => {
   );
 };
 
-// --- MAIN APP ---
+// --- ARCHITECTURAL CORE ---
 
 const AppContent = () => {
   const { user, loading: authLoading } = useAuth();
-  const [settings, setSettings] = useState({ accent: '#00d2ff' });
+  const [settings, setSettings] = useState({ accent: '#00d2ff', widgetSize: 'LARGE' });
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
   const registry = useRegistry(user, today);
   const { configs, logs, metrics, loading: registryLoading, error: registryError, increment, decrement, reorder, addProtocol, updateProtocol, deleteProtocol } = registry || { configs: [], logs: [], metrics: {}, loading: true, error: null };
   const [activeTab, setActiveTab] = useState('track'); const [showAdd, setShowAdd] = useState(false); const [editTarget, setEditTarget] = useState(null); const [editProtocol, setEditProtocol] = useState(null);
 
-  useEffect(() => { if (!user) return; return onSnapshot(doc(db, 'users', user.uid), (s) => { if (s.exists()) { const d = s.data(); setSettings(p => ({ ...p, accent: d.accent || '#00d2ff' })); } }); }, [user]);
-  const onUpdateSettings = useCallback(async (upd) => { if (!user) return; try { await updateDoc(doc(db, 'users', user.uid), upd); } catch (e) { console.error(e); } }, [user]);
+  useEffect(() => {
+    if (!user) return;
+    return onSnapshot(doc(db, 'users', user.uid), (s) => {
+      if (s.exists()) {
+        const d = s.data();
+        setSettings(p => ({ ...p, accent: d.accent || '#00d2ff', widgetSize: d.widgetSize || 'LARGE' }));
+      }
+    });
+  }, [user]);
+
+  const onUpdateSettings = useCallback(async (upd) => {
+    if (!user) return;
+    try { await updateDoc(doc(db, 'users', user.uid), upd); } catch (e) { console.error(e); }
+  }, [user]);
+
   const handleAddProtocol = async (data) => { try { await addProtocol(data); setShowAdd(false); } catch (e) { alert(e.message); } };
   const handleUpdateProtocol = async (data) => { try { await updateProtocol(editProtocol.id, data); setEditProtocol(null); } catch (e) { alert(e.message); } };
 
@@ -325,7 +329,7 @@ const AppContent = () => {
             <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-10">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                  {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
-                   <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} />
+                   <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} />
                  ))}
               </div>
               <MetricBanner m={metrics} />
@@ -336,22 +340,44 @@ const AppContent = () => {
         </AnimatePresence>
       </main>
       <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Control" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
-      <AnimatePresence>{showAdd && <ProtocolFormOverlay isOpen={showAdd} onClose={() => setShowAdd(false)} onApply={handleAddProtocol} title="New Protocol" />}{editProtocol && <ProtocolFormOverlay isOpen={!!editProtocol} onClose={() => setEditProtocol(null)} onApply={handleUpdateProtocol} title="Modify Protocol" initialData={editProtocol} />}{editTarget && <EditOverlay log={editTarget} configs={configs} onClose={() => setEditTarget(null)} user={user} />}</AnimatePresence>
+      <AnimatePresence>
+        {showAdd && <ProtocolFormOverlay isOpen={showAdd} onClose={() => setShowAdd(false)} onApply={handleAddProtocol} title="New Protocol" />}
+        {editProtocol && <ProtocolFormOverlay isOpen={!!editProtocol} onClose={() => setEditProtocol(null)} onApply={handleUpdateProtocol} title="Modify Protocol" initialData={editProtocol} />}
+        {editTarget && <EditOverlay log={editTarget} configs={configs} onClose={() => setEditTarget(null)} user={user} />}
+      </AnimatePresence>
     </div>
   );
 };
 
+// --- SETTINGS (VIEW) ---
+
 const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd, onDel }) => {
   const [n, setN] = useState(user?.displayName || ''); const [la, setLa] = useState(settings.accent);
-  const handleThemeApply = () => { onUpd({ accent: la }); };
   return (
     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 max-w-3xl mx-auto font-inter text-left">
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex flex-col items-center gap-10 font-inter">
           <div className="w-40 h-40 rounded-[48px] bg-accent/5 border-2 border-accent/20 flex items-center justify-center overflow-hidden shadow-2xl"><User size={64} className="text-accent" strokeWidth={3} /></div>
-          <div className="w-full space-y-10 font-inter"><Input label="Identity Label" value={n} onChange={setN} isDark /><button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all">Commit Profile</button></div>
+          <div className="w-full space-y-10 font-inter"><Input label="Identity Label" value={n} onChange={setN} isDark /><button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all">Commit Profile</button></div>
        </div></Card>
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="space-y-10 font-inter"><div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2 font-inter">Interface Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Accent Spectrum</span></div><div className="grid grid-cols-3 gap-6 font-inter">{ACCENTS.map(x => ( <button key={x.v} onClick={() => setLa(x.v)} className={cn("h-16 rounded-[24px] border-2 transition-all duration-500 relative flex items-center justify-center", la === x.v ? "border-white scale-105 shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>{la === x.v && <Check size={24} className="text-white drop-shadow-md" strokeWidth={4} />}</button> ))}</div><button onClick={handleThemeApply} className="w-full h-20 bg-white/[0.1] border border-white/5 text-white font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-xl hover:bg-white/[0.15]">Apply Scheme</button></div></Card>
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex items-center justify-between px-2 font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 font-inter">Active Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Protocols</span></div><button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl active:scale-90 transition-all"><Plus size={32} /></button></div><div className="space-y-6 font-inter">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div></Card>
+
+       {/* REFACTORED: Global Widget Scaling Control */}
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
+          <div className="space-y-10 font-inter">
+             <div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2">Display Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase">Global Widget Scale</span></div>
+             <div className="grid grid-cols-3 gap-4">
+                {['SMALL', 'MEDIUM', 'LARGE'].map(x => (
+                   <button key={x} onClick={() => onUpd({ widgetSize: x })} className={cn("h-16 rounded-[24px] border-2 font-black text-[10px] uppercase transition-all flex items-center justify-center", settings.widgetSize === x ? "border-accent bg-accent/10 text-accent shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")}>
+                      {x}
+                   </button>
+                ))}
+             </div>
+             <p className="text-[10px] font-black text-white/20 uppercase tracking-widest px-2 leading-relaxed">This setting immediately recalibrates the density of all counter widgets on your dashboard.</p>
+          </div>
+       </Card>
+
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
+          <div className="space-y-10 font-inter"><div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2">Interface Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Accent Spectrum</span></div><div className="grid grid-cols-3 gap-6 font-inter">{ACCENTS.map(x => ( <button key={x.v} onClick={() => setLa(x.v)} className={cn("h-16 rounded-[24px] border-2 transition-all duration-500 relative flex items-center justify-center", la === x.v ? "border-white scale-105 shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>{la === x.v && <Check size={24} className="text-white drop-shadow-md" strokeWidth={4} />}</button> ))}</div><button onClick={() => onUpd({ accent: la })} className="w-full h-20 bg-white/[0.1] border border-white/5 text-white font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-xl hover:bg-white/[0.15]">Apply Scheme</button></div></Card>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex items-center justify-between px-2 font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30">Active Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Protocols</span></div><button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl active:scale-90 transition-all"><Plus size={32} /></button></div><div className="space-y-6 font-inter">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={reorder} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div></Card>
     </motion.div>
   );
 };
