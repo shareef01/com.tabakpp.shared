@@ -33,7 +33,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "23.0.0-PRO-DASHBOARD";
+const APP_VERSION = "23.1.0-HEADER-CONTROLS";
 
 const hexToRgb = (hex) => {
   try {
@@ -157,33 +157,35 @@ const TrackerCard = React.memo(({ config, count, onInc, onDec, index, globalSize
 // --- REFINED SUB-COMPONENTS ---
 
 /**
- * <SegmentedControl />
- * PROFESSIONAL: Sleek dashboard size switcher for the Main Activity.
- * Use for global widget scaling with fluid motion.
+ * <HeaderSizeControl />
+ * PROFESSIONAL: Simplified icon-only layout switcher for the Top Banner.
  */
-const SegmentedControl = React.memo(({ value, onChange }) => {
-  const options = ['SMALL', 'MEDIUM', 'LARGE'];
+const HeaderSizeControl = React.memo(({ value, onChange }) => {
+  const options = [
+    { id: 'SMALL', icon: LayoutGrid },
+    { id: 'MEDIUM', icon: Layout },
+    { id: 'LARGE', icon: Maximize }
+  ];
   return (
-    <div className="relative bg-white/[0.03] border border-white/[0.05] p-1 rounded-full flex items-center shadow-inner overflow-hidden max-w-[320px] mx-auto mb-10">
+    <div className="relative bg-white/[0.03] border border-white/[0.05] p-0.5 rounded-[18px] flex items-center shadow-inner overflow-hidden">
       {options.map((opt) => (
         <button
-          key={opt}
-          onClick={() => onChange({ widgetSize: opt })}
+          key={opt.id}
+          onClick={() => onChange({ widgetSize: opt.id })}
           className={cn(
-            "relative flex-1 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-500 z-10",
-            value === opt ? "text-black" : "text-white/30 hover:text-white/60"
+            "relative p-2.5 transition-all duration-500 z-10 rounded-[14px]",
+            value === opt.id ? "text-black" : "text-white/20 hover:text-white/60"
           )}
         >
-          {opt}
+          <opt.icon size={16} strokeWidth={3} />
         </button>
       ))}
-      {/* Sliding Highlight */}
       <motion.div
-        className="absolute h-[calc(100%-8px)] bg-accent rounded-full shadow-[0_0_20px_var(--accent-rgb)]"
+        className="absolute h-[calc(100%-4px)] bg-accent rounded-[14px] shadow-[0_0_15px_var(--accent-rgb)]"
         initial={false}
         animate={{
-          width: `calc((100% - 8px) / 3)`,
-          x: value === 'SMALL' ? 4 : (value === 'MEDIUM' ? 'calc(100% / 3 + 1.5px)' : 'calc(200% / 3 - 1px)')
+          width: 36,
+          x: value === 'SMALL' ? 2 : (value === 'MEDIUM' ? 38 : 74)
         }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       />
@@ -191,7 +193,7 @@ const SegmentedControl = React.memo(({ value, onChange }) => {
   );
 });
 
-const TopBanner = React.memo(({ user, onNavigate }) => {
+const TopBanner = React.memo(({ user, onNavigate, widgetSize, onUpdateSettings }) => {
   const [isOpen, setIsOpen] = useState(false); const dropdownRef = useRef(null);
   useEffect(() => { const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false); }; if (isOpen) document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, [isOpen]);
   const handleLogout = async () => { setIsOpen(false); if (window.confirm("Log out of session?")) await signOut(auth); };
@@ -199,11 +201,17 @@ const TopBanner = React.memo(({ user, onNavigate }) => {
     <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
       <div className="max-w-7xl mx-auto flex justify-between items-center px-6 font-inter">
         <div className="flex flex-col text-left"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Dashboard</span></div>
-        <div className="relative" ref={dropdownRef}>
-          <button onClick={() => setIsOpen(!isOpen)} className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden">
-            <User size={20} strokeWidth={3} /><div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
-          <AnimatePresence>{isOpen && ( <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-4 w-56 bg-[#121316] border border-white/[0.05] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl p-3 overflow-hidden font-inter z-[110]"><div className="px-4 py-3 border-b border-white/[0.03] mb-2"><span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] block">Logged In As</span><span className="text-sm font-bold text-white truncate block mt-1">{user?.displayName || 'User'}</span></div><button onClick={() => { onNavigate('control'); setIsOpen(false); }} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-white/60 hover:text-white hover:bg-white/[0.03] transition-all group text-left font-black uppercase tracking-widest text-[10px]"><Settings size={18} /> Settings</button><button onClick={handleLogout} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-rose-500/60 hover:text-rose-500 hover:bg-rose-500/5 transition-all text-left font-black uppercase tracking-widest text-[10px]"><LogOut size={18} /> Log Out</button></motion.div> )}</AnimatePresence>
+
+        {/* REFACTORED: Unified Header Actions Container */}
+        <div className="flex items-center gap-6">
+          <HeaderSizeControl value={widgetSize} onChange={onUpdateSettings} />
+
+          <div className="relative" ref={dropdownRef}>
+            <button onClick={() => setIsOpen(!isOpen)} className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden">
+              <User size={20} strokeWidth={3} /><div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+            <AnimatePresence>{isOpen && ( <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-4 w-56 bg-[#121316] border border-white/[0.05] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl p-3 overflow-hidden font-inter z-[110]"><div className="px-4 py-3 border-b border-white/[0.03] mb-2"><span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] block">Logged In As</span><span className="text-sm font-bold text-white truncate block mt-1">{user?.displayName || 'User'}</span></div><button onClick={() => { onNavigate('control'); setIsOpen(false); }} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-white/60 hover:text-white hover:bg-white/[0.03] transition-all group text-left font-black uppercase tracking-widest text-[10px]"><Settings size={18} /> Settings</button><button onClick={handleLogout} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-rose-500/60 hover:text-rose-500 hover:bg-rose-500/5 transition-all text-left font-black uppercase tracking-widest text-[10px]"><LogOut size={18} /> Log Out</button></motion.div> )}</AnimatePresence>
+          </div>
         </div>
       </div>
     </header>
@@ -319,18 +327,13 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen w-full bg-[#020202] text-white font-inter selection:bg-accent/30 overflow-x-hidden flex flex-col font-inter" style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent) }}>
-      <TopBanner user={user} onNavigate={setActiveTab} />
+      {/* REFACTORED: Header now receives size settings directly */}
+      <TopBanner user={user} onNavigate={setActiveTab} widgetSize={settings.widgetSize} onUpdateSettings={onUpdateSettings} />
+
       <main className="flex-1 overflow-y-auto pt-10 pb-[calc(env(safe-area-inset-bottom)+12rem)] px-5 max-w-7xl mx-auto w-full transition-all duration-500 overflow-x-hidden font-inter">
         <AnimatePresence mode="wait">
           {activeTab === 'track' && (
             <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-10">
-
-              {/* REPOSITIONED: Sleek Segmented Control for Layout Size */}
-              <div className="flex flex-col items-center gap-3">
-                 <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.5em]">Calibrate View</span>
-                 <SegmentedControl value={settings.widgetSize} onChange={onUpdateSettings} />
-              </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                  {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
                    <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} />
@@ -357,7 +360,6 @@ const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd,
           <div className="w-40 h-40 rounded-[48px] bg-accent/5 border-2 border-accent/20 flex items-center justify-center overflow-hidden shadow-2xl font-inter"><User size={64} className="text-accent" strokeWidth={3} /></div>
           <div className="w-full space-y-10 font-inter"><Input label="Profile Name" value={n} onChange={setN} isDark /><button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all font-inter">Update Profile</button></div>
        </div></Card>
-
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
           <div className="space-y-10 font-inter"><div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2 font-inter">Personalization</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Accent Color</span></div><div className="grid grid-cols-3 gap-6 font-inter">{ACCENTS.map(x => ( <button key={x.v} onClick={() => setLa(x.v)} className={cn("h-16 rounded-[24px] border-2 transition-all duration-500 relative flex items-center justify-center font-inter", la === x.v ? "border-white scale-105 shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>{la === x.v && <Check size={24} className="text-white drop-shadow-md" strokeWidth={4} />}</button> ))}</div><button onClick={() => onUpd({ accent: la })} className="w-full h-20 bg-white/[0.1] border border-white/5 text-white font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-xl hover:bg-white/[0.15] font-inter">Save Color</button></div></Card>
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
@@ -398,51 +400,30 @@ const AuthScreen = ({ accent }) => {
 
   return (
     <div className="min-h-screen bg-[#020202] flex items-center justify-center p-8 text-white font-inter relative overflow-hidden font-inter">
-      {/* HERO ANIMATION */}
       <div className="absolute inset-0 z-0 flex items-center justify-center opacity-20 pointer-events-none overflow-hidden">
         <div className="relative w-[800px] h-4">
            <div className="absolute inset-0 bg-gradient-to-r from-white/40 via-white/60 to-white/10 rounded-full blur-sm" />
-           <motion.div
-             animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6], filter: ["blur(4px)", "blur(12px)", "blur(4px)"] }}
-             transition={{ duration: 2, repeat: Infinity }}
-             className="absolute right-0 h-12 w-12 -top-4 bg-orange-600 rounded-full shadow-[0_0_50px_#ea580c]"
-           />
-           <div className="absolute right-0 -top-40">
-             {[...Array(6)].map((_, i) => (
-               <motion.div
-                 key={i}
-                 initial={{ y: 0, opacity: 0, scale: 0.5 }}
-                 animate={{ y: -200, opacity: [0, 0.5, 0], scale: [0.5, 2, 3], x: [0, 20, -20, 10] }}
-                 transition={{ duration: 4, repeat: Infinity, delay: i * 0.8 }}
-                 className="absolute w-20 h-20 bg-white/5 rounded-full blur-3xl"
-               />
-             ))}
-           </div>
+           <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6], filter: ["blur(4px)", "blur(12px)", "blur(4px)"] }} transition={{ duration: 2, repeat: Infinity }} className="absolute right-0 h-12 w-12 -top-4 bg-orange-600 rounded-full shadow-[0_0_50px_#ea580c]" />
+           <div className="absolute right-0 -top-40">{[...Array(6)].map((_, i) => ( <motion.div key={i} initial={{ y: 0, opacity: 0, scale: 0.5 }} animate={{ y: -200, opacity: [0, 0.5, 0], scale: [0.5, 2, 3], x: [0, 20, -20, 10] }} transition={{ duration: 4, repeat: Infinity, delay: i * 0.8 }} className="absolute w-20 h-20 bg-white/5 rounded-full blur-3xl" /> ))}</div>
         </div>
       </div>
-
       <div className="w-full max-w-[450px] space-y-16 relative z-10">
         <div className="flex flex-col items-center text-center">
           <div className="p-6 bg-accent/5 rounded-[40px] border border-accent/20 mb-10 shadow-2xl"><Zap size={48} className="text-accent animate-pulse" /></div>
           <h1 className="text-7xl font-[1000] tracking-tighter uppercase font-inter font-black">TABAK<span className="text-accent">++</span></h1>
           <span className="text-[10px] font-black text-white/40 tracking-[0.8em] uppercase mt-4">Quit Control System</span>
         </div>
-
         <div className="bg-white/[0.02] border border-white/[0.05] p-12 rounded-[64px] space-y-10 shadow-2xl backdrop-blur-3xl relative overflow-hidden">
           <div className="space-y-8 relative z-10">
             {msg.c && <div className={cn("p-6 rounded-[24px] text-center font-black text-[10px] uppercase tracking-widest", msg.t === 'FAULT' ? "bg-danger/10 text-danger border border-danger/20" : "bg-accent/10 text-accent border border-accent/20")}>{msg.c}</div>}
             {mode === 'REGISTER' && <Input label="Full Name" value={n} onChange={setN} isDark />}
             <Input label="Email Address" type="email" value={e} onChange={setE} isDark />
             {mode !== 'RESET' && <Input label="Password" type="password" value={p} onChange={setP} isDark />}
-            <button className="w-full h-20 bg-accent text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5)]" onClick={handle}>
-              {loading ? <Loader2 className="animate-spin" /> : (mode === 'LOGIN' ? 'Sign In' : (mode === 'REGISTER' ? 'Create Account' : 'Reset Password'))}
-            </button>
+            <button className="w-full h-20 bg-accent text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5)]" onClick={handle}>{loading ? <Loader2 className="animate-spin" /> : (mode === 'LOGIN' ? 'Sign In' : (mode === 'REGISTER' ? 'Create Account' : 'Reset Password'))}</button>
           </div>
           <div className="flex flex-col gap-5 pt-4">
             {mode === 'LOGIN' && <button onClick={() => setMode('RESET')} className="w-full text-center opacity-40 uppercase text-[9px] tracking-widest font-black font-inter hover:opacity-100 transition-opacity">Forgot Password?</button>}
-            <button onClick={() => setMode(mode === 'LOGIN' ? 'REGISTER' : 'LOGIN')} className="w-full text-center opacity-40 uppercase text-[9px] tracking-widest font-black font-inter hover:opacity-100 transition-opacity">
-              {mode === 'LOGIN' ? "Need an account? Sign Up" : "Back to Sign In"}
-            </button>
+            <button onClick={() => setMode(mode === 'LOGIN' ? 'REGISTER' : 'LOGIN')} className="w-full text-center opacity-40 uppercase text-[9px] tracking-widest font-black font-inter hover:opacity-100 transition-opacity">{mode === 'LOGIN' ? "Need an account? Sign Up" : "Back to Sign In"}</button>
           </div>
         </div>
       </div>
