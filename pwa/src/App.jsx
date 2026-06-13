@@ -349,7 +349,22 @@ const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd,
 
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
           <div className="space-y-10 font-inter"><div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2 font-inter">Personalization</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Accent Color</span></div><div className="grid grid-cols-3 gap-6 font-inter">{ACCENTS.map(x => ( <button key={x.v} onClick={() => setLa(x.v)} className={cn("h-16 rounded-[24px] border-2 transition-all duration-500 relative flex items-center justify-center font-inter", la === x.v ? "border-white scale-105 shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>{la === x.v && <Check size={24} className="text-white drop-shadow-md" strokeWidth={4} />}</button> ))}</div><button onClick={() => onUpd({ accent: la })} className="w-full h-20 bg-white/[0.1] border border-white/5 text-white font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-xl hover:bg-white/[0.15] font-inter">Save Color</button></div></Card>
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex items-center justify-between px-2 font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 font-inter">Management</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Active Counters</span></div><button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl active:scale-90 transition-all font-inter"><Plus size={32} /></button></div><div className="space-y-6 font-inter">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div></Card>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
+          <div className="flex items-center justify-between gap-8 mb-10 px-2 font-inter">
+             <div className="space-y-2 text-left font-inter min-w-0 flex-1">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 font-inter">Management</h3>
+                <span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black block truncate">Active Counters</span>
+             </div>
+             <button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl active:scale-90 transition-all font-inter shrink-0">
+                <Plus size={32} />
+             </button>
+          </div>
+          <div className="space-y-6 font-inter">
+             {configs.sort((a,b)=>a.order-b.order).map((c, idx) => (
+                <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} />
+             ))}
+          </div>
+       </Card>
     </motion.div>
   );
 };
