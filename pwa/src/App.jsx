@@ -15,7 +15,6 @@ import {
 import { auth, db, storage } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
 import { doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // --- CONTEXT & HOOKS ---
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -27,7 +26,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "20.7.0-DESIGN-RESTORED";
+const APP_VERSION = "20.8.0-UI-REFINED";
 
 const hexToRgb = (hex) => {
   try {
@@ -78,7 +77,7 @@ class GlobalErrorBoundary extends Component {
   }
 }
 
-// --- HIGH-FIDELITY COUNTER VISUALS ---
+// --- CORE UI COMPONENTS ---
 
 const LoadingView = () => (
   <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center space-y-12 text-accent font-inter font-black">
@@ -96,10 +95,6 @@ const ErrorView = ({ msg }) => (
   </div>
 );
 
-/**
- * <SmokingProgress />
- * RESTORED: Optimized burning visuals for Cigarettes and Joints.
- */
 const SmokingProgress = React.memo(({ count, limit, variant }) => {
   const isL = count >= limit;
   const tobaccoPct = Math.max(0, 1 - (count / limit));
@@ -112,13 +107,7 @@ const SmokingProgress = React.memo(({ count, limit, variant }) => {
       isL ? "bg-danger border-danger shadow-[0_0_50px_rgba(255,0,0,0.6)]" : "bg-white/[0.03] border-white/10"
     )}>
       {!isL && (
-        <div
-          className={cn(
-            "absolute h-full transition-all duration-1000 ease-out",
-            isJoint ? "bg-gradient-to-r from-white/80 to-white" : "bg-white shadow-[0_0_20px_white]"
-          )}
-          style={{ width: `${tobaccoPct * 72}%`, right: '28%' }}
-        />
+        <div className={cn("absolute h-full transition-all duration-1000 ease-out", isJoint ? "bg-gradient-to-r from-white/80 to-white" : "bg-white shadow-[0_0_20px_white]")} style={{ width: `${tobaccoPct * 72}%`, right: '28%' }} />
       )}
       {!isL && count > 0 && (
         <div className="absolute h-full w-3 bg-danger shadow-[0_0_25px_red] z-20 transition-all duration-1000 ease-out" style={{ right: `calc(28% + ${tobaccoPct * 72}% - 1.5px)` }} />
@@ -128,10 +117,6 @@ const SmokingProgress = React.memo(({ count, limit, variant }) => {
   );
 });
 
-/**
- * <RingProgress />
- * RESTORED: SVG circular gauges for simple counters.
- */
 const RingProgress = React.memo(({ count, limit }) => {
   const isL = count >= limit;
   const progress = Math.min(1, count / limit);
@@ -146,10 +131,6 @@ const RingProgress = React.memo(({ count, limit }) => {
   );
 });
 
-/**
- * <GenericBarProgress />
- * RESTORED: High-fidelity linear bars.
- */
 const GenericBarProgress = React.memo(({ count, limit }) => {
   const isL = count >= limit;
   const progress = Math.min(1, count / limit);
@@ -160,37 +141,27 @@ const GenericBarProgress = React.memo(({ count, limit }) => {
   );
 });
 
-/**
- * <TrackerCard />
- * RESTORED: The ultra-modern visual card logic.
- */
 const TrackerCard = React.memo(({ config, count, onInc, onDec, index }) => {
   const isL = count >= config.limit;
-  const isKing = config.type === 'JOINT_KING';
-  const isQueen = config.type === 'JOINT_QUEEN';
-
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05, type: 'spring', damping: 15 }} className={cn("bg-white/[0.02] rounded-[56px] border-2 p-10 flex flex-col items-center justify-between min-h-[520px] transition-all duration-700 group relative overflow-hidden shadow-2xl font-inter", isL ? "border-danger/30 shadow-[0_0_60px_rgba(248,113,113,0.1)]" : "border-white/[0.03] hover:border-accent/20")}>
       <span className="text-[10px] font-black text-white/20 tracking-[0.6em] uppercase relative z-10">Target: {config.limit}</span>
-
       <div className="flex-1 w-full flex flex-col items-center justify-center space-y-12 relative z-10 py-10">
         <div className="w-full flex justify-center h-24 items-center">
           {config.type === 'CIGARETTE' && <SmokingProgress count={count} limit={config.limit} variant="CIGARETTE" />}
           {config.type === 'SIMPLE' && <RingProgress count={count} limit={config.limit} />}
-          {isKing && <SmokingProgress count={count} limit={config.limit} variant="KING" />}
-          {isQueen && <SmokingProgress count={count} limit={config.limit} variant="QUEEN" />}
+          {config.type === 'JOINT_KING' && <SmokingProgress count={count} limit={config.limit} variant="KING" />}
+          {config.type === 'JOINT_QUEEN' && <SmokingProgress count={count} limit={config.limit} variant="QUEEN" />}
           {(!['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].includes(config.type)) && <GenericBarProgress count={count} limit={config.limit} />}
         </div>
         <div className="flex flex-col items-center">
           <div className="flex items-center gap-3">
-            {(isKing || isQueen) && <Crown size={24} className={cn("transition-all duration-700", isL ? "text-danger drop-shadow-[0_0_15px_red]" : (isKing ? "text-amber-400 opacity-40" : "text-purple-400 opacity-40"))} />}
             <motion.span key={count} initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={cn("text-7xl font-[1000] tracking-tighter tabular-nums transition-all duration-700 leading-none", isL ? "text-danger drop-shadow-[0_0_30px_rgba(248,113,113,0.4)]" : "text-white")}>{count}</motion.span>
           </div>
           <span className={cn("text-[12px] font-black tracking-[0.8em] uppercase transition-all duration-700 mt-5", isL ? "text-danger" : "text-accent opacity-30 group-hover:opacity-60")}>{config.name}</span>
         </div>
       </div>
-
-      <div className="w-full flex justify-between items-center pt-8 mt-auto relative z-10 px-2">
+      <div className="w-full flex justify-between items-center pt-8 mt-auto relative z-10 px-2 font-inter">
         <button onClick={onDec} className="w-18 h-18 rounded-[24px] bg-white/[0.04] border border-white/[0.05] flex items-center justify-center text-white/30 hover:text-white active:scale-90 transition-all shadow-xl"><Minus size={32} strokeWidth={3} /></button>
         <button onClick={onInc} className={cn("w-18 h-18 rounded-[28px] flex items-center justify-center text-black active:scale-90 transition-all shadow-[0_20px_50px_var(--accent-rgb)]", isL ? "bg-danger shadow-[0_20px_50px_rgba(248,113,113,0.6)]" : "bg-accent")} style={{'--accent-rgb': 'rgba(0,210,255,0.4)'}}><Plus size={32} strokeWidth={4} /></button>
       </div>
@@ -198,7 +169,7 @@ const TrackerCard = React.memo(({ config, count, onInc, onDec, index }) => {
   );
 });
 
-// --- REMAINING UI COMPONENTS ---
+// --- REFINED SUB-COMPONENTS ---
 
 const TopBanner = React.memo(({ user, onProfileClick }) => (
   <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
@@ -210,9 +181,9 @@ const TopBanner = React.memo(({ user, onProfileClick }) => (
         </div>
         <span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Registry Portal</span>
       </div>
-      <button onClick={onProfileClick} className="group relative w-11 h-11 rounded-[18px] bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-white/40 hover:text-accent hover:border-accent/30 hover:bg-accent/10 active:scale-90 transition-all shadow-2xl overflow-hidden">
-        {user?.photoURL ? <img src={`${user.photoURL}${user.photoURL.includes('?') ? '&' : '?'}t=${Date.now()}`} alt="u" className="w-full h-full object-cover" /> : <User size={20} />}
-        <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/5 transition-colors" />
+      <button onClick={onProfileClick} className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden">
+        <User size={20} strokeWidth={3} />
+        <div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
       </button>
     </div>
   </header>
@@ -287,7 +258,7 @@ const HistoryScreen = React.memo(({ logs, m, onEdit, userId, today }) => {
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 font-inter">
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[48px] shadow-2xl"><div className="flex justify-between items-start mb-12 text-left font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black text-white/30 tracking-[0.8em] uppercase">Visual Stream</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter">Registry Logs</span></div><div className="p-4 bg-accent/10 rounded-[20px] text-accent"><BarChart3 size={32} strokeWidth={2.5} /></div></div><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}><CartesianGrid strokeDasharray="8 8" stroke="#ffffff03" vertical={false} /><XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} dy={15} /><Tooltip contentStyle={{ background: '#121316', border: 'none', borderRadius: '24px', fontSize: '12px' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 5, stroke: '#0a0a0c' }} animationDuration={2000} /></LineChart></ResponsiveContainer></div></Card>
        <div className="grid grid-cols-1 md:grid-cols-3 gap-8"><InsightCard icon={TrendingUp} label="Streak" val={m.streak} sub="Days Active" color="text-amber-400" /><InsightCard icon={Wallet} label="Retained" val={`$${(m.savings || 0).toFixed(2)}`} sub="Capital Saved" color="text-emerald-400" /><InsightCard icon={Activity} label="Impact" val={`${Math.floor((m.lost || 0)/60)}H`} sub="Time Restored" color="text-rose-400" /></div>
-       <div className="space-y-8 pt-12 text-left font-inter"><h4 className="text-[10px] font-black text-white/20 tracking-[1em] uppercase px-4">Timeline Feed</h4>{logs.map((log, i) => ( <StaggeredItem key={log.logDate} index={i}><div className="bg-white/[0.02] p-10 rounded-[48px] border border-white/[0.03] flex items-center justify-between group hover:border-accent/20 transition-all shadow-2xl font-inter"><div className="flex flex-col gap-3 text-left font-inter"><span className="text-2xl font-[1000] tracking-tighter uppercase leading-none">{log.logDate === today ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] flex items-center gap-3">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units registered</span></div><div className="flex items-center gap-4"><button onClick={() => onEdit(log)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-accent transition-all shadow-xl font-inter"><Edit2 size={24} /></button><button onClick={() => onDelete(log.logDate)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-danger transition-all shadow-xl font-inter"><Trash2 size={24} /></button></div></div></StaggeredItem> ))}</div>
+       <div className="space-y-8 pt-12 text-left font-inter"><h4 className="text-[10px] font-black text-white/20 tracking-[1em] uppercase px-4 text-left font-inter">Timeline Feed</h4>{logs.map((log, i) => ( <StaggeredItem key={log.logDate} index={i}><div className="bg-white/[0.02] p-10 rounded-[48px] border border-white/[0.03] flex items-center justify-between group hover:border-accent/20 transition-all shadow-2xl font-inter"><div className="flex flex-col gap-3 text-left font-inter"><span className="text-2xl font-[1000] tracking-tighter uppercase leading-none">{log.logDate === today ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] flex items-center gap-3">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units registered</span></div><div className="flex items-center gap-4"><button onClick={() => onEdit(log)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-accent transition-all shadow-xl font-inter"><Edit2 size={24} /></button><button onClick={() => onDelete(log.logDate)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-danger transition-all shadow-xl font-inter"><Trash2 size={24} /></button></div></div></StaggeredItem> ))}</div>
     </motion.div>
   );
 });
@@ -326,7 +297,9 @@ const EditOverlay = ({ log, configs, onClose, user }) => {
 const ProfileModal = ({ user, onClose }) => (
   <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-black/80 backdrop-blur-xl font-inter">
     <motion.div initial={{ opacity: 0, scale: 0.9, y: 50 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 50 }} className="bg-[#121318] border border-white/10 rounded-[64px] w-full max-w-[480px] p-16 relative z-10 shadow-2xl text-center space-y-10">
-      <div className="relative mx-auto w-32 h-32 rounded-[44px] bg-accent/10 border-2 border-accent/40 overflow-hidden flex items-center justify-center shadow-2xl"><div className="absolute inset-0 bg-accent/20 blur-[30px] rounded-full animate-pulse" />{user?.photoURL ? <img src={user.photoURL} alt="u" className="w-full h-full object-cover" /> : <User size={56} className="text-accent" />}</div>
+      <div className="relative mx-auto w-32 h-32 rounded-[44px] bg-accent/10 border-2 border-accent/40 overflow-hidden flex items-center justify-center shadow-2xl">
+        <User size={56} className="text-accent" />
+      </div>
       <div><h4 className="text-4xl font-[1000] uppercase tracking-tighter leading-none font-inter">{user?.displayName || 'Registry User'}</h4><p className="text-white/20 text-sm font-black tracking-[0.4em] uppercase mt-4">{user?.email}</p></div>
       <button onClick={onClose} className="w-full h-20 bg-white text-black font-[1000] uppercase tracking-[0.5em] rounded-[28px] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 font-inter">Dismiss <ChevronRight size={24} /></button>
     </motion.div>
@@ -362,13 +335,15 @@ const AppContent = () => {
         <AnimatePresence mode="wait">
           {activeTab === 'track' && (
             <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-10">
-              <MetricBanner m={metrics} />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                  {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
                    <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} />
                  ))}
                  <button onClick={() => setShowAdd(true)} className="bg-white/[0.01] rounded-[48px] border-2 border-dashed border-white/[0.05] flex flex-col items-center justify-center space-y-5 hover:bg-accent/5 hover:border-accent/20 transition-all min-h-[520px] group shadow-2xl font-inter"><Plus size={32} /><span className="text-[10px] font-black uppercase tracking-[0.5em]">Add Protocol</span></button>
               </div>
+
+              {/* REPOSITIONED: Metric Banner is now below the counters */}
+              <MetricBanner m={metrics} />
             </motion.div>
           )}
           {activeTab === 'history' && <HistoryScreen logs={logs} m={metrics} onEdit={setEditTarget} userId={user.uid} today={today} />}
@@ -384,44 +359,17 @@ const AppContent = () => {
 // --- SETTINGS (VIEW) ---
 
 const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd, onDel }) => {
-  const [n, setN] = useState(user?.displayName || ''); const [isUploading, setIsUploading] = useState(false); const [previewUrl, setPreviewUrl] = useState(null); const fileRef = useRef(null);
-
-  const handleUpload = async (e) => {
-    const file = e.target.files[0]; if (!file) return;
-    setIsUploading(true);
-    const localPreview = URL.createObjectURL(file);
-    setPreviewUrl(localPreview);
-
-    try {
-      const storageRef = ref(storage, `profile_pictures/${user.uid}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      await updateProfile(auth.currentUser, { photoURL: url });
-      await setDoc(doc(db, 'users', user.uid), { photoURL: url }, { merge: true });
-      alert("Profile picture synchronized.");
-    } catch (err) {
-      alert("Upload failed: " + err.message);
-    } finally {
-      setIsUploading(false);
-      setPreviewUrl(null);
-      URL.revokeObjectURL(localPreview);
-    }
-  };
-
-  const profileSrc = previewUrl || (user?.photoURL ? `${user.photoURL}${user.photoURL.includes('?') ? '&' : '?'}t=${Date.now()}` : null);
-
+  const [n, setN] = useState(user?.displayName || '');
   return (
     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 max-w-3xl mx-auto font-inter text-left">
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex flex-col items-center gap-10">
-          <div className="relative group cursor-pointer active:scale-95 transition-all" onClick={() => !isUploading && fileRef.current?.click()}>
-             <div className={cn("w-40 h-40 rounded-[48px] bg-accent/5 border-2 border-accent/20 flex items-center justify-center overflow-hidden shadow-2xl transition-all duration-700", isUploading && "opacity-50")}>
-                {profileSrc ? <img src={profileSrc} className="w-full h-full object-cover" alt="p" /> : <User size={64} className="text-accent" />}
-                {isUploading && <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm"><Loader2 className="animate-spin text-accent" size={40} /></div>}
-             </div>
-             <div className={cn("absolute -bottom-3 -right-3 w-14 h-14 bg-white text-black rounded-[22px] flex items-center justify-center shadow-2xl transition-all", isUploading ? "scale-0 opacity-0" : "scale-100 opacity-100")}><Camera size={24} /></div>
-             <input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={handleUpload} />
+          <div className="w-40 h-40 rounded-[48px] bg-accent/5 border-2 border-accent/20 flex items-center justify-center overflow-hidden shadow-2xl">
+            <User size={64} className="text-accent" strokeWidth={3} />
           </div>
-          <div className="w-full space-y-10"><Input label="Identity Label" value={n} onChange={setN} isDark /><button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-black uppercase tracking-[0.5em] rounded-[28px]">Commit Profile</button></div>
+          <div className="w-full space-y-10">
+            <Input label="Identity Label" value={n} onChange={setN} isDark />
+            <button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-black uppercase tracking-[0.5em] rounded-[28px]">Commit Profile</button>
+          </div>
        </div></Card>
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex items-center justify-between px-2 font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30">Active Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter">Protocols</span></div><button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl"><Plus size={32} /></button></div><div className="space-y-6">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div></Card>
        <button onClick={() => signOut(auth)} className="w-full h-22 border-2 border-danger/30 text-danger font-black uppercase tracking-[0.6em] rounded-[32px]">Terminate Sessions</button>
@@ -450,7 +398,7 @@ const ProtocolFormOverlay = ({ isOpen, onClose, onApply, title, initialData = nu
   );
 };
 
-// --- APP WRAPPER ---
+// --- APP WRAPPER EXPORT ---
 
 const App = () => (
   <GlobalErrorBoundary>
