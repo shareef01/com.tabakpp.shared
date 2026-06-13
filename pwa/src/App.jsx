@@ -366,7 +366,6 @@ const AppContent = () => {
                  {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
                    <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} />
                  ))}
-                 <button onClick={() => setShowAdd(true)} className="bg-white/[0.01] rounded-[48px] border-2 border-dashed border-white/[0.05] flex flex-col items-center justify-center space-y-5 hover:bg-accent/5 hover:border-accent/20 transition-all min-h-[520px] group shadow-2xl font-inter"><Plus size={32} /><span className="text-[10px] font-black uppercase tracking-[0.5em]">Add Protocol</span></button>
               </div>
               <MetricBanner m={metrics} />
             </motion.div>
