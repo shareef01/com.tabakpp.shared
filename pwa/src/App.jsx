@@ -33,7 +33,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "26.0.0-FINAL-CALIBRATION";
+const APP_VERSION = "26.5.0-AUTH-MASTER-POLISH";
 
 const hexToRgb = (hex) => {
   try {
@@ -172,7 +172,7 @@ const TopBanner = React.memo(({ user, onNavigate, widgetSize, onUpdateSettings }
   return (
     <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
       <div className="max-w-7xl mx-auto flex justify-between items-center px-6 font-inter">
-        <div className="flex flex-col text-left font-inter"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60 font-inter">Dashboard</span></div>
+        <div className="flex flex-col text-left font-inter"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Dashboard</span></div>
         <div className="flex items-center gap-6">
           <HeaderSizeControl value={widgetSize} onChange={onUpdateSettings} />
           <div className="relative" ref={dropdownRef}>
@@ -264,21 +264,32 @@ const HistoryScreen = React.memo(({ logs, m, onEdit, userId, today }) => {
 // --- AUTH EXPERIENCE ---
 
 const BurningCigarette = () => (
-  <div className="relative w-full h-full flex flex-col items-center justify-center pointer-events-none select-none overflow-hidden">
-     <div className="relative w-[300px] md:w-[500px] h-8 md:h-11 rounded-full border-2 border-white/10 bg-white/[0.03] flex items-center shadow-2xl overflow-hidden">
-        {/* Tobacco Body */}
-        <div className="absolute h-full bg-gradient-to-r from-zinc-200 to-white" style={{ width: '72%', right: '28%' }} />
-        {/* Filter */}
-        <div className="absolute right-0 h-full w-[28%] border-l-2 bg-[#f59e0b] border-black/20" />
-        {/* Realistic Ember */}
-        <div className="absolute h-full w-2 bg-danger shadow-[0_0_30px_red] z-20" style={{ right: 'calc(28% + 72% - 1px)' }} />
+  <div className="relative flex flex-col items-center justify-center pointer-events-none select-none">
+     {/* High-Fidelity 3D Body */}
+     <div className="relative w-[300px] md:w-[500px] h-10 md:h-14 rounded-full border-2 border-white/5 bg-black/20 flex items-center shadow-2xl overflow-hidden backdrop-blur-sm">
+        {/* Paper Texture Body */}
+        <div className="absolute h-full bg-gradient-to-r from-zinc-800 via-white to-zinc-100" style={{ width: '72%', right: '28%' }} />
+        {/* Cork Filter */}
+        <div className="absolute right-0 h-full w-[28%] border-l-2 bg-gradient-to-b from-[#f59e0b] via-[#d97706] to-[#b45309] border-black/20" />
+        {/* Realistic Burning Ember Transition */}
+        <motion.div
+           animate={{ x: [-1, 1, -1] }}
+           transition={{ duration: 0.2, repeat: Infinity }}
+           className="absolute h-full w-2.5 bg-gradient-to-r from-orange-600 via-red-600 to-orange-500 shadow-[0_0_40px_red] z-20"
+           style={{ right: 'calc(28% + 72% - 1.5px)' }}
+        />
      </div>
-     {/* Large Glow & Smoke */}
-     <div className="relative w-0 h-0">
-        <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }} transition={{ duration: 2, repeat: Infinity }} className="absolute h-40 w-40 -top-20 -left-20 bg-orange-600/20 rounded-full blur-[60px]" />
-        <div className="absolute -top-[400px] -left-10">
-          {[...Array(10)].map((_, i) => ( <motion.div key={i} initial={{ y: 200, opacity: 0, scale: 0.5 }} animate={{ y: -200, opacity: [0, 0.3, 0], scale: [0.5, 4], x: [0, 50, -50, 20] }} transition={{ duration: 6, repeat: Infinity, delay: i * 0.8 }} className="absolute w-32 h-32 bg-white/[0.03] rounded-full blur-[80px]" /> ))}
-        </div>
+     {/* Atmospheric Glow */}
+     <motion.div
+        animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.2, 1] }}
+        transition={{ duration: 3, repeat: Infinity }}
+        className="absolute w-[600px] h-[300px] bg-orange-600/10 rounded-full blur-[120px] pointer-events-none"
+     />
+     {/* Smoke Trail */}
+     <div className="absolute -top-[450px] left-[-50px]">
+        {[...Array(10)].map((_, i) => (
+           <motion.div key={i} initial={{ y: 300, opacity: 0, scale: 0.5 }} animate={{ y: -200, opacity: [0, 0.2, 0], scale: [0.5, 4, 6], x: [0, 60, -60, 30] }} transition={{ duration: 7 + i, repeat: Infinity, delay: i * 0.9 }} className="absolute w-40 h-40 bg-white/[0.02] rounded-full blur-[90px]" />
+        ))}
      </div>
   </div>
 );
@@ -305,52 +316,56 @@ const AuthScreen = ({ accent }) => {
 
   return (
     <div className="min-h-screen bg-[#020202] flex flex-col lg:flex-row items-stretch text-white font-inter overflow-hidden selection:bg-accent/30">
-      <div className="hidden lg:flex flex-1 flex-col items-center justify-center bg-gradient-to-b from-[#050505] to-black relative">
-         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none" />
-         <div className="flex-1 w-full flex items-center justify-center">
+      {/* HERO SECTION */}
+      <div className="hidden lg:flex flex-1 flex-col items-center justify-center bg-black relative">
+         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
+
+         <div className="flex-1 w-full flex flex-col items-center justify-center space-y-12">
             <BurningCigarette />
-         </div>
-         <div className="pb-40 px-20 w-full text-center">
-            <motion.h2 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-5xl font-[1000] tracking-tighter uppercase leading-none mb-6">Every second <span className="text-accent">counts.</span></motion.h2>
-            <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.5em] leading-relaxed">Take back control of your time, health, and capital.</p>
+            <div className="text-center z-10">
+               <motion.h2 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-5xl font-[1000] tracking-tighter uppercase leading-none mb-6">Every second <span className="text-accent">counts.</span></motion.h2>
+               <p className="text-white/20 text-xs font-black uppercase tracking-[0.6em]">Reclaim control of your life.</p>
+            </div>
          </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-24 relative z-10">
+      {/* AUTH PORTAL */}
+      <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-24 relative z-10 bg-[#020202]">
         <div className="w-full max-w-[480px] flex flex-col items-center">
-          <div className="flex flex-col items-center text-center font-inter mb-12">
-            <h1 className="text-7xl lg:text-9xl font-[1000] tracking-tighter uppercase font-inter leading-none">TABAK<span className="text-accent">++</span></h1>
-            <p className="text-[10px] lg:text-[11px] font-black text-white/30 tracking-[0.5em] uppercase mt-8">Quit Control System</p>
+
+          <div className="flex flex-col items-center text-center font-inter mb-16 space-y-4">
+            <h1 className="text-8xl lg:text-9xl font-[1000] tracking-tighter uppercase font-inter leading-none">TABAK<span className="text-accent">++</span></h1>
+            <span className="text-[10px] font-black text-white/20 tracking-[1em] uppercase">Quit Control System</span>
           </div>
 
-          <div className="bg-white/[0.01] border border-white/[0.08] p-10 lg:p-16 rounded-[64px] space-y-12 shadow-[0_40px_100px_rgba(0,0,0,0.8)] backdrop-blur-3xl relative overflow-hidden font-inter w-full text-center">
-             <div className="absolute inset-0 border border-white/[0.03] rounded-[64px] pointer-events-none" />
+          <div className="bg-white/[0.01] border border-white/[0.08] p-12 lg:p-16 rounded-[72px] space-y-12 shadow-[0_50px_120px_rgba(0,0,0,0.9)] backdrop-blur-3xl relative overflow-hidden font-inter w-full text-center">
+             <div className="absolute inset-0 border border-white/[0.03] rounded-[72px] pointer-events-none" />
 
-             {/* Master Segmented Toggle */}
-             <div className="relative bg-black/50 border border-white/[0.05] p-1 rounded-full flex items-center shadow-inner overflow-hidden mb-4 h-16 w-full">
-               <button onClick={() => setMode('LOGIN')} className={cn("relative flex-1 h-full text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-500 z-20 flex items-center justify-center", mode === 'LOGIN' ? "text-zinc-950" : "text-white/40")}>Sign In</button>
-               <button onClick={() => setMode('REGISTER')} className={cn("relative flex-1 h-full text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-500 z-20 flex items-center justify-center", mode === 'REGISTER' ? "text-zinc-950" : "text-white/40")}>Sign Up</button>
-               <motion.div className="absolute h-[calc(100%-8px)] bg-accent rounded-full shadow-[0_10px_30px_var(--accent-rgb)]" animate={{ x: mode === 'LOGIN' ? 4 : 'calc(50% - 4px)' }} initial={false} style={{ width: '50%' }} transition={{ type: 'spring', stiffness: 400, damping: 35 }} />
+             {/* PROFESSIONAL SEGMENTED TOGGLE */}
+             <div className="relative bg-white/[0.03] border border-white/[0.05] p-1.5 rounded-full flex items-center h-18 w-full shadow-inner overflow-hidden">
+               <button onClick={() => setMode('LOGIN')} className={cn("relative flex-1 h-full text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-500 z-20", mode === 'LOGIN' ? "text-zinc-950" : "text-white/30")}>Sign In</button>
+               <button onClick={() => setMode('REGISTER')} className={cn("relative flex-1 h-full text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-500 z-20", mode === 'REGISTER' ? "text-zinc-950" : "text-white/30")}>Sign Up</button>
+               <motion.div className="absolute h-[calc(100%-12px)] bg-accent rounded-full shadow-[0_10px_30px_rgba(212,255,50,0.4)]" animate={{ x: mode === 'LOGIN' ? 6 : 'calc(50% + 1px)', width: 'calc(50% - 7px)' }} initial={false} transition={{ type: 'spring', stiffness: 350, damping: 30 }} />
              </div>
 
              <div className="space-y-10 relative z-10 text-left">
-               {msg.c && <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className={cn("p-5 rounded-[20px] text-center font-black text-[9px] uppercase tracking-widest border", msg.t === 'FAULT' ? "bg-danger/10 text-danger border-danger/20" : "bg-accent/10 text-accent border border-accent/20")}>{msg.c}</motion.div>}
+               {msg.c && <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className={cn("p-6 rounded-[24px] text-center font-black text-[10px] uppercase tracking-widest border", msg.t === 'FAULT' ? "bg-danger/10 text-danger border-danger/20" : "bg-accent/10 text-accent border border-accent/20")}>{msg.c}</motion.div>}
                <div className="space-y-8">
                  {mode === 'REGISTER' && <Input label="Full Name" value={n} onChange={setN} isDark />}
                  <Input label="Email Address" type="email" value={e} onChange={setE} isDark />
                  {mode !== 'RESET' && <Input label="Password" type="password" value={p} onChange={setP} isDark />}
                </div>
-               <button className="w-full h-22 bg-accent text-zinc-950 font-black uppercase tracking-[0.4em] rounded-[32px] active:scale-95 transition-all shadow-[0_20px_50px_var(--accent-rgb)] flex items-center justify-center text-xs" style={{ '--accent-rgb': 'rgba(212,255,50,0.3)' }} onClick={handle}>
-                 {loading ? <Loader2 className="animate-spin" size={20} /> : (mode === 'LOGIN' ? 'Enter Dashboard' : (mode === 'REGISTER' ? 'Sign Up' : 'Reset'))}
+               <button className="w-full h-22 bg-accent text-zinc-950 font-[1000] uppercase tracking-[0.4em] rounded-[32px] active:scale-95 transition-all shadow-[0_30px_70px_rgba(212,255,50,0.3)] flex items-center justify-center text-sm" onClick={handle}>
+                 {loading ? <Loader2 className="animate-spin" size={24} /> : (mode === 'LOGIN' ? 'Sign In' : (mode === 'REGISTER' ? 'Create Account' : 'Reset'))}
                </button>
              </div>
 
-             <div className="flex flex-col gap-6 pt-4 text-center">
+             <div className="flex flex-col gap-6 text-center">
                {mode === 'LOGIN' && <button onClick={() => setMode('RESET')} className="text-white/20 uppercase text-[9px] font-black tracking-widest hover:text-accent transition-colors">Forgot Password?</button>}
-               {mode === 'RESET' && <button onClick={() => setMode('LOGIN')} className="text-white/20 uppercase text-[9px] font-black tracking-widest hover:text-white transition-colors">Return to Sign In</button>}
+               {mode === 'RESET' && <button onClick={() => setMode('LOGIN')} className="text-white/20 uppercase text-[9px] font-black tracking-widest hover:text-white transition-colors">Back to Sign In</button>}
              </div>
           </div>
-          <div className="mt-12 text-center opacity-10"><span className="text-[10px] font-black text-white uppercase tracking-[1em]">Secure System</span></div>
+          <div className="mt-16 text-center opacity-10 select-none"><span className="text-[10px] font-black text-white uppercase tracking-[1.5em]">Secure Master Portal</span></div>
         </div>
       </div>
     </div>
@@ -373,7 +388,7 @@ const AppContent = () => {
   const handleUpdateProtocol = async (data) => { try { await updateProtocol(editProtocol.id, data); setEditProtocol(null); } catch (e) { alert(e.message); } };
 
   if (authLoading) return <LoadingView />;
-  if (!user) return <AuthScreen accent="#D4FF32" />;
+  if (!user) return <AuthScreen accent={settings.accent} />;
   if (registryLoading) return <LoadingView />;
   if (registryError) return <ErrorView msg={registryError} />;
 
@@ -394,7 +409,7 @@ const AppContent = () => {
           {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={reorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} onDel={deleteProtocol} />}
         </AnimatePresence>
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6 font-inter"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Dashboard" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Settings" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6 font-inter"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Settings" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
       <AnimatePresence>{showAdd && <ProtocolFormOverlay isOpen={showAdd} onClose={() => setShowAdd(false)} onApply={handleAddProtocol} title="New Counter" />}{editProtocol && <ProtocolFormOverlay isOpen={!!editProtocol} onClose={() => setEditProtocol(null)} onApply={handleUpdateProtocol} title="Edit Counter" initialData={editProtocol} />}{editTarget && <EditOverlay log={editTarget} configs={configs} onClose={() => setEditTarget(null)} user={user} />}</AnimatePresence>
     </div>
   );
