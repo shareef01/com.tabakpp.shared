@@ -26,7 +26,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "20.8.0-UI-REFINED";
+const APP_VERSION = "20.9.0-DROPDOWN-REFINED";
 
 const hexToRgb = (hex) => {
   try {
@@ -171,23 +171,92 @@ const TrackerCard = React.memo(({ config, count, onInc, onDec, index }) => {
 
 // --- REFINED SUB-COMPONENTS ---
 
-const TopBanner = React.memo(({ user, onProfileClick }) => (
-  <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
-    <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
-      <div className="flex flex-col text-left">
-        <div className="flex items-center gap-2.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" />
-          <h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-inter font-black">TABAK<span className="text-accent">++</span></h1>
+/**
+ * <TopBanner />
+ * REFACTORED: Includes Top-Right Profile Dropdown.
+ * Uses Ref and Click-Outside logic for professional UX.
+ */
+const TopBanner = React.memo(({ user, onNavigate }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Click-Outside Listener
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const handleLogout = async () => {
+    setIsOpen(false);
+    if (window.confirm("Terminate this session?")) {
+      await signOut(auth);
+    }
+  };
+
+  return (
+    <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
+      <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
+        <div className="flex flex-col text-left">
+          <div className="flex items-center gap-2.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" />
+            <h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-inter font-black">TABAK<span className="text-accent">++</span></h1>
+          </div>
+          <span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Registry Portal</span>
         </div>
-        <span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Registry Portal</span>
+
+        {/* Profile Dropdown Container */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden"
+          >
+            <User size={20} strokeWidth={3} />
+            <div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+
+          <AnimatePresence>
+            {isOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="absolute right-0 mt-4 w-56 bg-[#121316] border border-white/[0.05] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl p-3 overflow-hidden font-inter z-[110]"
+              >
+                <div className="px-4 py-3 border-b border-white/[0.03] mb-2">
+                   <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] block">Active identity</span>
+                   <span className="text-sm font-bold text-white truncate block mt-1">{user?.displayName || 'Registry User'}</span>
+                </div>
+
+                <button
+                  onClick={() => { onNavigate('control'); setIsOpen(false); }}
+                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-white/60 hover:text-white hover:bg-white/[0.03] transition-all group text-left"
+                >
+                  <Settings size={18} className="group-hover:rotate-45 transition-transform duration-500" />
+                  <span className="text-xs font-black uppercase tracking-widest">Settings</span>
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-rose-500/60 hover:text-rose-500 hover:bg-rose-500/5 transition-all text-left"
+                >
+                  <LogOut size={18} />
+                  <span className="text-xs font-black uppercase tracking-widest">Log Out</span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-      <button onClick={onProfileClick} className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden">
-        <User size={20} strokeWidth={3} />
-        <div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-      </button>
-    </div>
-  </header>
-));
+    </header>
+  );
+});
 
 const MetricBanner = React.memo(({ m }) => (
   <section className="bg-white/[0.02] rounded-[48px] p-10 border border-white/[0.03] relative overflow-hidden group shadow-2xl font-inter">
@@ -268,7 +337,7 @@ const HistoryScreen = React.memo(({ logs, m, onEdit, userId, today }) => {
 const IPhoneModifyModal = ({ isOpen, onClose, title, actionLabel, onAction, children }) => (
   <AnimatePresence>
     {isOpen && (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/85 backdrop-blur-2xl font-inter">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-black/85 backdrop-blur-2xl font-inter">
         <motion.div initial={{ opacity: 0, scale: 0.9, y: 100 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 100 }} className="bg-[#121318] border border-white/10 rounded-[56px] w-full max-w-lg p-10 flex flex-col shadow-2xl relative overflow-hidden" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 2rem)' }}>
           <div className="flex justify-between items-center mb-10"><h3 className="text-3xl font-[1000] uppercase tracking-tighter truncate pr-6">{title}</h3><button onClick={onClose} className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center active:scale-90"><X size={24} /></button></div>
           <div className="flex-1 overflow-y-auto mb-10 space-y-10 scrollbar-thin scrollbar-thumb-white/5 pr-2">{children}</div>
@@ -294,19 +363,7 @@ const EditOverlay = ({ log, configs, onClose, user }) => {
   );
 };
 
-const ProfileModal = ({ user, onClose }) => (
-  <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-black/80 backdrop-blur-xl font-inter">
-    <motion.div initial={{ opacity: 0, scale: 0.9, y: 50 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 50 }} className="bg-[#121318] border border-white/10 rounded-[64px] w-full max-w-[480px] p-16 relative z-10 shadow-2xl text-center space-y-10">
-      <div className="relative mx-auto w-32 h-32 rounded-[44px] bg-accent/10 border-2 border-accent/40 overflow-hidden flex items-center justify-center shadow-2xl">
-        <User size={56} className="text-accent" />
-      </div>
-      <div><h4 className="text-4xl font-[1000] uppercase tracking-tighter leading-none font-inter">{user?.displayName || 'Registry User'}</h4><p className="text-white/20 text-sm font-black tracking-[0.4em] uppercase mt-4">{user?.email}</p></div>
-      <button onClick={onClose} className="w-full h-20 bg-white text-black font-[1000] uppercase tracking-[0.5em] rounded-[28px] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 font-inter">Dismiss <ChevronRight size={24} /></button>
-    </motion.div>
-  </div>
-);
-
-// --- ARCHITECTURAL CORE (THE VIEWMODEL) ---
+// --- ARCHITECTURAL CORE ---
 
 const AppContent = () => {
   const { user, loading: authLoading } = useAuth();
@@ -319,7 +376,6 @@ const AppContent = () => {
   } = registry || { configs: [], logs: [], metrics: {}, loading: true, error: null };
 
   const [activeTab, setActiveTab] = useState('track');
-  const [showProfile, setShowProfile] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [editProtocol, setEditProtocol] = useState(null);
@@ -330,7 +386,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen w-full bg-[#020202] text-white font-inter selection:bg-accent/30 overflow-x-hidden flex flex-col" style={{ '--accent': '#00d2ff', '--accent-rgb': hexToRgb('#00d2ff') }}>
-      <TopBanner user={user} onProfileClick={() => setShowProfile(true)} />
+      <TopBanner user={user} onNavigate={setActiveTab} />
       <main className="flex-1 overflow-y-auto pt-10 pb-[calc(env(safe-area-inset-bottom)+12rem)] px-5 max-w-7xl mx-auto w-full transition-all duration-500 overflow-x-hidden font-inter">
         <AnimatePresence mode="wait">
           {activeTab === 'track' && (
@@ -341,8 +397,6 @@ const AppContent = () => {
                  ))}
                  <button onClick={() => setShowAdd(true)} className="bg-white/[0.01] rounded-[48px] border-2 border-dashed border-white/[0.05] flex flex-col items-center justify-center space-y-5 hover:bg-accent/5 hover:border-accent/20 transition-all min-h-[520px] group shadow-2xl font-inter"><Plus size={32} /><span className="text-[10px] font-black uppercase tracking-[0.5em]">Add Protocol</span></button>
               </div>
-
-              {/* REPOSITIONED: Metric Banner is now below the counters */}
               <MetricBanner m={metrics} />
             </motion.div>
           )}
@@ -351,14 +405,14 @@ const AppContent = () => {
         </AnimatePresence>
       </main>
       <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Control" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
-      <AnimatePresence>{showProfile && <ProfileModal user={user} onClose={() => setShowProfile(false)} />}{showAdd && <ProtocolFormOverlay isOpen={showAdd} onClose={() => setShowAdd(false)} onApply={addProtocol} title="New Protocol" />}{editProtocol && <ProtocolFormOverlay isOpen={!!editProtocol} onClose={() => setEditProtocol(null)} onApply={(data) => updateProtocol(editProtocol.id, data)} title="Modify Protocol" initialData={editProtocol} />}{editTarget && <EditOverlay log={editTarget} configs={configs} onClose={() => setEditTarget(null)} user={user} />}</AnimatePresence>
+      <AnimatePresence>{showAdd && <ProtocolFormOverlay isOpen={showAdd} onClose={() => setShowAdd(false)} onApply={addProtocol} title="New Protocol" />}{editProtocol && <ProtocolFormOverlay isOpen={!!editProtocol} onClose={() => setEditProtocol(null)} onApply={(data) => updateProtocol(editProtocol.id, data)} title="Modify Protocol" initialData={editProtocol} />}{editTarget && <EditOverlay log={editTarget} configs={configs} onClose={() => setEditTarget(null)} user={user} />}</AnimatePresence>
     </div>
   );
 };
 
 // --- SETTINGS (VIEW) ---
 
-const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd, onDel }) => {
+const SettingsScreen = ({ configs, user, onAdd, onReo, onEditP, onDel }) => {
   const [n, setN] = useState(user?.displayName || '');
   return (
     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 max-w-3xl mx-auto font-inter text-left">
@@ -368,11 +422,10 @@ const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd,
           </div>
           <div className="w-full space-y-10">
             <Input label="Identity Label" value={n} onChange={setN} isDark />
-            <button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-black uppercase tracking-[0.5em] rounded-[28px]">Commit Profile</button>
+            <button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all">Commit Profile</button>
           </div>
        </div></Card>
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex items-center justify-between px-2 font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30">Active Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter">Protocols</span></div><button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl"><Plus size={32} /></button></div><div className="space-y-6">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div></Card>
-       <button onClick={() => signOut(auth)} className="w-full h-22 border-2 border-danger/30 text-danger font-black uppercase tracking-[0.6em] rounded-[32px]">Terminate Sessions</button>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex items-center justify-between px-2 font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30">Active Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter">Protocols</span></div><button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl active:scale-90 transition-all"><Plus size={32} /></button></div><div className="space-y-6">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div></Card>
     </motion.div>
   );
 };
@@ -383,7 +436,7 @@ const AuthScreen = ({ accent }) => {
   return (
     <div className="min-h-screen bg-[#020202] flex items-center justify-center p-8 text-white font-inter relative overflow-hidden font-inter">
       <div className="w-full max-w-[450px] space-y-16 relative z-10"><div className="flex flex-col items-center text-center"><Zap size={48} className="text-accent mb-10" /><h1 className="text-7xl font-[1000] tracking-tighter uppercase font-inter">TABAK<span className="text-accent">++</span></h1></div><div className="bg-white/[0.02] border border-white/[0.05] p-12 rounded-[56px] space-y-10 shadow-2xl">
-          <div className="space-y-8">{err && <div className="p-6 bg-danger/10 text-danger text-center">{err}</div>}<Input label="Link" value={e} onChange={setE} isDark /><Input label="Passkey" type="password" value={p} onChange={setP} isDark /><button className="w-full h-20 bg-accent text-black font-black uppercase tracking-[0.5em] rounded-[28px]" onClick={handle}>{loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Registry' : 'Join Registry')}</button></div><button onClick={() => setIsL(!isL)} className="w-full text-center opacity-40">{isL ? "Request Access Entry" : "Return to Log In"}</button>
+          <div className="space-y-8">{err && <div className="p-6 bg-danger/10 text-danger text-center">{err}</div>}<Input label="Link" value={e} onChange={setE} isDark /><Input label="Passkey" type="password" value={p} onChange={setP} isDark /><button className="w-full h-20 bg-accent text-black font-black uppercase tracking-[0.5em] rounded-[28px]" onClick={handle}>{loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Registry' : 'Join Registry')}</button></div><button onClick={() => setIsL(!isL)} className="w-full text-center opacity-40 uppercase text-[10px] tracking-widest font-black">{isL ? "Request Access Entry" : "Return to Log In"}</button>
       </div></div>
     </div>
   );
