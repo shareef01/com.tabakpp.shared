@@ -33,7 +33,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "27.2.0-LAYOUT-MASTER";
+const APP_VERSION = "27.5.0-COMPACT-INSIGHTS";
 
 const hexToRgb = (hex) => {
   try {
@@ -172,7 +172,7 @@ const TopBanner = React.memo(({ user, onNavigate, widgetSize, onUpdateSettings }
   return (
     <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
       <div className="max-w-7xl mx-auto flex justify-between items-center px-6 font-inter">
-        <div className="flex flex-col text-left font-inter"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter whitespace-nowrap flex items-center">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Dashboard</span></div>
+        <div className="flex flex-col text-left font-inter"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter whitespace-nowrap flex items-center">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60 font-inter">Dashboard</span></div>
         <div className="flex items-center gap-6">
           <HeaderSizeControl value={widgetSize} onChange={onUpdateSettings} />
           <div className="relative" ref={dropdownRef}>
@@ -233,12 +233,16 @@ const ProtocolListItem = React.memo(({ config, idx, total, onReo, onEdit, onDel 
   </div>
 ));
 
+/**
+ * <InsightCard />
+ * REFACTORED: More compact geometry for high-density historical data.
+ */
 const InsightCard = React.memo(({ icon: Icon, label, val, sub, color }) => (
-  <Card className="p-12 bg-white/[0.02] border border-white/[0.03] flex flex-col items-center justify-center text-center shadow-2xl rounded-[56px] group hover:border-accent/20 transition-all duration-700 min-h-[320px] font-inter">
-     <div className={cn("p-6 rounded-[28px] bg-white/[0.03] mb-8 shadow-inner border border-white/5 group-hover:scale-110 transition-transform duration-700", color)}><Icon size={44} /></div>
-     <span className="text-6xl md:text-7xl font-[1000] tracking-tighter tabular-nums mb-3 font-inter group-hover:text-white transition-colors leading-none">{val}</span>
-     <span className="text-sm font-black text-white/20 uppercase tracking-[0.5em] font-inter group-hover:text-white/40">{sub}</span>
-     <div className="mt-10 pt-10 border-t border-white/[0.05] w-full text-[11px] font-[1000] uppercase tracking-[0.8em] text-accent opacity-20 font-inter group-hover:opacity-40">{label}</div>
+  <Card className="p-8 lg:p-10 bg-white/[0.02] border border-white/[0.03] flex flex-col items-center justify-center text-center shadow-2xl rounded-[48px] group hover:border-accent/20 transition-all duration-700 min-h-[260px] font-inter">
+     <div className={cn("p-5 rounded-[22px] bg-white/[0.03] mb-6 shadow-inner border border-white/5 group-hover:scale-110 transition-transform duration-700", color)}><Icon size={36} /></div>
+     <span className="text-5xl lg:text-6xl font-[1000] tracking-tighter tabular-nums mb-2 font-inter group-hover:text-white transition-colors leading-none">{val}</span>
+     <span className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] font-inter group-hover:text-white/50">{sub}</span>
+     <div className="mt-8 pt-8 border-t border-white/[0.05] w-full text-[10px] font-[1000] uppercase tracking-[0.8em] text-accent opacity-20 font-inter group-hover:opacity-40">{label}</div>
   </Card>
 ));
 
@@ -255,7 +259,11 @@ const HistoryScreen = React.memo(({ logs, m, onEdit, userId, today }) => {
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 font-inter">
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[48px] shadow-2xl"><div className="flex justify-between items-start mb-12 text-left font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black text-white/30 tracking-[0.8em] uppercase font-inter">History</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Daily Logs</span></div><div className="p-4 bg-accent/10 rounded-[20px] text-accent"><BarChart3 size={32} strokeWidth={2.5} /></div></div><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}><CartesianGrid strokeDasharray="8 8" stroke="#ffffff03" vertical={false} /><XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} dy={15} /><Tooltip contentStyle={{ background: '#121316', border: 'none', borderRadius: '24px', fontSize: '12px' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 5, stroke: '#0a0a0c' }} animationDuration={2000} /></LineChart></ResponsiveContainer></div></Card>
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-8"><InsightCard icon={TrendingUp} label="Streak" val={m.streak} sub="Days" color="text-amber-400" /><InsightCard icon={Wallet} label="Saved" val={`$${(m.savings || 0).toFixed(2)}`} sub="Capital" color="text-emerald-400" /><InsightCard icon={Activity} label="Health" val={`${Math.floor((m.lost || 0)/60)}H`} sub="Recovered" color="text-rose-400" /></div>
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+         <InsightCard icon={TrendingUp} label="Streak" val={m.streak} sub="Days" color="text-amber-400" />
+         <InsightCard icon={Wallet} label="Saved" val={`$${(m.savings || 0).toFixed(2)}`} sub="Capital" color="text-emerald-400" />
+         <InsightCard icon={Activity} label="Health" val={`${Math.floor((m.lost || 0)/60)}H`} sub="Recovered" color="text-rose-400" />
+       </div>
        <div className="space-y-8 pt-12 text-left font-inter"><h4 className="text-[10px] font-black text-white/20 tracking-[1em] uppercase px-4 text-left font-inter">Recent Feed</h4>{logs.map((log, i) => ( <StaggeredItem key={log.logDate} index={i}><div className="bg-white/[0.02] p-10 rounded-[48px] border border-white/[0.03] flex items-center justify-between group hover:border-accent/20 transition-all shadow-2xl font-inter"><div className="flex flex-col gap-3 text-left font-inter"><span className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-inter">{log.logDate === today ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] flex items-center gap-3 font-inter">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0) } units</span></div><div className="flex items-center gap-4"><button onClick={() => onEdit(log)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-accent transition-all shadow-xl font-inter"><Edit2 size={24} /></button><button onClick={() => onDelete(log.logDate)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-danger transition-all shadow-xl font-inter"><Trash2 size={24} /></button></div></div></StaggeredItem> ))}</div>
     </motion.div>
   );
@@ -300,13 +308,11 @@ const AuthScreen = ({ accent }) => {
   return (
     <div className="min-h-screen bg-[#020202] flex flex-col lg:flex-row items-stretch text-white font-inter overflow-hidden selection:bg-accent/30 relative">
 
-      {/* BRANDING: Fixed Top-Left Position */}
       <div className="absolute top-10 left-10 lg:top-16 lg:left-16 z-[100] flex flex-col items-start font-inter pointer-events-none">
          <h1 className="text-4xl lg:text-5xl font-[1000] tracking-tighter uppercase leading-none whitespace-nowrap">TABAK<span className="text-accent">++</span></h1>
          <span className="text-[9px] font-black text-white/20 tracking-[1em] uppercase mt-4 block">Quit Control System</span>
       </div>
 
-      {/* LEFT: HERO CONTENT */}
       <div className="hidden lg:flex flex-1 flex-col items-center justify-center bg-black relative border-r border-white/[0.03]">
          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
          <div className="flex-1 w-full flex flex-col items-center justify-center gap-0">
@@ -318,14 +324,12 @@ const AuthScreen = ({ accent }) => {
          </div>
       </div>
 
-      {/* RIGHT: AUTH PORTAL */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-24 relative z-10 bg-[#020202]">
-        <div className="w-full max-w-[500px] flex flex-col items-center justify-center">
+        <div className="w-full h-full flex flex-col items-center justify-center space-y-16">
 
-          <div className="bg-white/[0.01] border border-white/[0.08] p-12 lg:p-18 rounded-[80px] space-y-12 shadow-[0_50px_150px_rgba(0,0,0,1)] backdrop-blur-3xl relative overflow-hidden font-inter w-full text-center max-h-[90vh] overflow-y-auto scrollbar-hide">
+          <div className="bg-white/[0.01] border border-white/[0.08] p-12 lg:p-18 rounded-[80px] space-y-12 shadow-[0_50px_150px_rgba(0,0,0,1)] backdrop-blur-3xl relative overflow-hidden font-inter w-full max-w-[500px] text-center max-h-[90vh] overflow-y-auto scrollbar-hide">
              <div className="absolute inset-0 border border-white/[0.03] rounded-[80px] pointer-events-none" />
 
-             {/* REFINED TOGGLE - Absolute Slider & Correct Text Contrast */}
              <div className="relative bg-black/60 border border-white/[0.05] p-1.5 rounded-full flex items-center h-18 w-full shadow-inner overflow-hidden">
                 <button onClick={() => setMode('LOGIN')} className={cn("relative flex-1 h-full text-[12px] font-[1000] uppercase tracking-[0.2em] transition-all duration-500 z-20", mode === 'LOGIN' ? "text-zinc-950" : "text-white/30")}>Sign In</button>
                 <button onClick={() => setMode('REGISTER')} className={cn("relative flex-1 h-full text-[12px] font-[1000] uppercase tracking-[0.2em] transition-all duration-500 z-20", mode === 'REGISTER' ? "text-zinc-950" : "text-white/30")}>Sign Up</button>
