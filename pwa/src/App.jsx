@@ -26,7 +26,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "21.5.0-SMOOTH-SCALING";
+const APP_VERSION = "21.7.0-FINAL-POLISH";
 
 const hexToRgb = (hex) => {
   try {
@@ -51,7 +51,7 @@ class GlobalErrorBoundary extends Component {
       return (
         <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
           <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
-          <h2 className="text-3xl font-[1000] uppercase tracking-tighter leading-none mb-4">Registry Fault</h2>
+          <h2 className="text-3xl font-[1000] uppercase tracking-tighter leading-none mb-4 font-inter">Registry Fault</h2>
           <p className="text-white/40 text-sm mb-10 max-w-md font-bold leading-relaxed">{this.state.error?.toString() || "Logic sync error."}</p>
           <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="px-10 h-18 rounded-full bg-white text-black font-black uppercase tracking-widest active:scale-95 transition-all shadow-2xl">Reset Environment</button>
         </div>
@@ -142,6 +142,8 @@ const TrackerCard = React.memo(({ config, count, onInc, onDec, index, globalSize
   );
 });
 
+// --- SUB-COMPONENTS ---
+
 const TopBanner = React.memo(({ user, onNavigate }) => {
   const [isOpen, setIsOpen] = useState(false); const dropdownRef = useRef(null);
   useEffect(() => { const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false); }; if (isOpen) document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, [isOpen]);
@@ -163,17 +165,17 @@ const MetricBanner = React.memo(({ m }) => (
   <section className="bg-white/[0.02] rounded-[48px] p-10 border border-white/[0.03] relative overflow-hidden group shadow-2xl font-inter">
     <div className="absolute top-0 right-0 w-80 h-80 bg-accent/5 rounded-full blur-[100px] -mr-40 -mt-40 group-hover:bg-accent/10 transition-all" />
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 relative z-10">
-      <div className="space-y-3 text-left">
-        <h3 className="text-[11px] font-[1000] text-white/20 tracking-[0.6em] uppercase">Remaining Units</h3>
+      <div className="space-y-3 text-left font-inter">
+        <h3 className="text-[11px] font-[1000] text-white/20 tracking-[0.6em] uppercase font-inter">Remaining Units</h3>
         <div className="flex items-baseline gap-4">
-          <span className="text-7xl font-[1000] tracking-tighter tabular-nums leading-none">{Math.max(0, (m.limit || 0) - (m.count || 0))}</span>
-          <span className="text-sm font-black text-accent uppercase tracking-[0.4em] animate-pulse">Left</span>
+          <span className="text-7xl font-[1000] tracking-tighter tabular-nums leading-none font-inter">{Math.max(0, (m.limit || 0) - (m.count || 0))}</span>
+          <span className="text-sm font-black text-accent uppercase tracking-[0.4em] animate-pulse font-inter">Left</span>
         </div>
       </div>
-      <div className="flex flex-col md:items-end gap-3">
+      <div className="flex flex-col md:items-end gap-3 font-inter">
         <div className="flex items-center gap-4">
-          <div className="px-5 py-2 rounded-[16px] bg-accent/10 border border-accent/20 text-accent text-[11px] font-[1000] tracking-[0.3em] uppercase shadow-2xl whitespace-nowrap">{m.rank || '...'}</div>
-          <span className="text-3xl font-[1000] text-white/20 tracking-tighter tabular-nums">{m.xp || 0} <span className="text-sm font-bold opacity-50 uppercase tracking-widest">XP</span></span>
+          <div className="px-5 py-2 rounded-[16px] bg-accent/10 border border-accent/20 text-accent text-[11px] font-[1000] tracking-[0.3em] uppercase shadow-2xl whitespace-nowrap font-inter">{m.rank || '...'}</div>
+          <span className="text-3xl font-[1000] text-white/20 tracking-tighter tabular-nums font-inter">{m.xp || 0} <span className="text-sm font-bold opacity-50 uppercase tracking-widest font-inter">XP</span></span>
         </div>
       </div>
     </div>
@@ -226,66 +228,12 @@ const HistoryScreen = React.memo(({ logs, m, onEdit, userId, today }) => {
   const onDelete = async (logDate) => { if (window.confirm("Delete record?")) try { await deleteDoc(doc(db, 'users', userId, 'logs', logDate)); } catch (e) { alert(e.message); } };
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 font-inter">
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[48px] shadow-2xl"><div className="flex justify-between items-start mb-12 text-left font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black text-white/30 tracking-[0.8em] uppercase">Visual Stream</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Registry Logs</span></div><div className="p-4 bg-accent/10 rounded-[20px] text-accent"><BarChart3 size={32} strokeWidth={2.5} /></div></div><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}><CartesianGrid strokeDasharray="8 8" stroke="#ffffff03" vertical={false} /><XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} dy={15} /><Tooltip contentStyle={{ background: '#121316', border: 'none', borderRadius: '24px', fontSize: '12px' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 5, stroke: '#0a0a0c' }} animationDuration={2000} /></LineChart></ResponsiveContainer></div></Card>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[48px] shadow-2xl"><div className="flex justify-between items-start mb-12 text-left font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black text-white/30 tracking-[0.8em] uppercase font-inter">Visual Stream</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Registry Logs</span></div><div className="p-4 bg-accent/10 rounded-[20px] text-accent"><BarChart3 size={32} strokeWidth={2.5} /></div></div><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}><CartesianGrid strokeDasharray="8 8" stroke="#ffffff03" vertical={false} /><XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} dy={15} /><Tooltip contentStyle={{ background: '#121316', border: 'none', borderRadius: '24px', fontSize: '12px' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 5, stroke: '#0a0a0c' }} animationDuration={2000} /></LineChart></ResponsiveContainer></div></Card>
        <div className="grid grid-cols-1 md:grid-cols-3 gap-8"><InsightCard icon={TrendingUp} label="Streak" val={m.streak} sub="Days Active" color="text-amber-400" /><InsightCard icon={Wallet} label="Retained" val={`$${(m.savings || 0).toFixed(2)}`} sub="Capital Saved" color="text-emerald-400" /><InsightCard icon={Activity} label="Impact" val={`${Math.floor((m.lost || 0)/60)}H`} sub="Time Restored" color="text-rose-400" /></div>
-       <div className="space-y-8 pt-12 text-left font-inter"><h4 className="text-[10px] font-black text-white/20 tracking-[1em] uppercase px-4 text-left font-inter">Timeline Feed</h4>{logs.map((log, i) => ( <StaggeredItem key={log.logDate} index={i}><div className="bg-white/[0.02] p-10 rounded-[48px] border border-white/[0.03] flex items-center justify-between group hover:border-accent/20 transition-all shadow-2xl font-inter"><div className="flex flex-col gap-3 text-left font-inter"><span className="text-2xl font-[1000] tracking-tighter uppercase leading-none">{log.logDate === today ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] flex items-center gap-3">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units registered</span></div><div className="flex items-center gap-4"><button onClick={() => onEdit(log)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-accent transition-all shadow-xl font-inter"><Edit2 size={24} /></button><button onClick={() => onDelete(log.logDate)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-danger transition-all shadow-xl font-inter"><Trash2 size={24} /></button></div></div></StaggeredItem> ))}</div>
+       <div className="space-y-8 pt-12 text-left font-inter"><h4 className="text-[10px] font-black text-white/20 tracking-[1em] uppercase px-4 text-left font-inter">Timeline Feed</h4>{logs.map((log, i) => ( <StaggeredItem key={log.logDate} index={i}><div className="bg-white/[0.02] p-10 rounded-[48px] border border-white/[0.03] flex items-center justify-between group hover:border-accent/20 transition-all shadow-2xl font-inter"><div className="flex flex-col gap-3 text-left font-inter"><span className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-inter">{log.logDate === today ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] flex items-center gap-3 font-inter">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units registered</span></div><div className="flex items-center gap-4"><button onClick={() => onEdit(log)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-accent transition-all shadow-xl font-inter"><Edit2 size={24} /></button><button onClick={() => onDelete(log.logDate)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-danger transition-all shadow-xl font-inter"><Trash2 size={24} /></button></div></div></StaggeredItem> ))}</div>
     </motion.div>
   );
 });
-
-// --- MODALS & OVERLAYS ---
-
-const IPhoneModifyModal = ({ isOpen, onClose, title, actionLabel, onAction, children }) => (
-  <AnimatePresence>
-    {isOpen && (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-black/85 backdrop-blur-2xl font-inter">
-        <motion.div initial={{ opacity: 0, scale: 0.9, y: 100 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 100 }} className="bg-[#121318] border border-white/10 rounded-[56px] w-full max-w-lg p-10 flex flex-col shadow-2xl relative overflow-hidden" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 2rem)' }}>
-          <div className="flex justify-between items-center mb-10"><h3 className="text-3xl font-[1000] uppercase tracking-tighter truncate pr-6">{title}</h3><button onClick={onClose} className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center active:scale-90"><X size={24} /></button></div>
-          <div className="flex-1 overflow-y-auto mb-10 space-y-10 scrollbar-thin scrollbar-thumb-white/5 pr-2">{children}</div>
-          <button onClick={onAction} className="w-full h-18 md:h-20 bg-accent text-black font-[1000] uppercase tracking-[0.4em] rounded-[24px] shadow-2xl active:scale-95 transition-all flex items-center justify-center px-6 font-black font-inter"><span className="whitespace-nowrap text-xs md:text-sm">{actionLabel}</span></button>
-        </motion.div>
-      </div>
-    )}
-  </AnimatePresence>
-);
-
-const EditOverlay = ({ log, configs, onClose, user }) => {
-  const [c, setC] = useState({ ...(log.counts || {}) });
-  const handle = async () => { try { await setDoc(doc(db, 'users', user.uid, 'logs', log.logDate), { counts: c, logDate: log.logDate }, { merge: true }); onClose(); } catch (e) { alert(e.message); } };
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-black/80 backdrop-blur-xl font-inter">
-       <div className="bg-[#121318] border border-white/10 rounded-[64px] w-full max-w-[560px] p-16 space-y-12 shadow-2xl">
-          <div className="flex justify-between items-center"><h3 className="text-3xl font-[1000] uppercase tracking-tighter">Override Daily Log</h3><button onClick={onClose} className="p-4 bg-white/5 rounded-full active:scale-90"><X size={32} /></button></div>
-          <div className="bg-white/[0.03] p-8 rounded-[32px] text-center border border-white/5 shadow-inner"><span className="text-sm font-black uppercase tracking-[0.6em] text-accent animate-pulse">{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' }).toUpperCase()}</span></div>
-          <div className="space-y-10 max-h-[450px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-accent/30 font-inter">{configs.map(x => ( <div key={x.id} className="relative group text-left font-inter"><span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest">{x.name} Units</span><input type="number" value={c[x.id] || 0} onChange={e=>setC({...c, [x.id]: parseInt(e.target.value) || 0})} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-2xl font-[1000] focus:border-accent/40 outline-none transition-all font-inter shadow-inner" /></div> ))}</div>
-          <button onClick={handle} className="w-full h-22 bg-accent text-black font-[1000] uppercase tracking-[0.6em] rounded-[32px] shadow-2xl active:scale-95 transition-all font-black font-inter">Commit Override</button>
-       </div>
-    </div>
-  );
-};
-
-const ProtocolFormOverlay = ({ isOpen, onClose, onApply, title, initialData = null }) => {
-  const [n, setN] = useState(initialData?.name || ''); const [l, setL] = useState(initialData?.limit || '20'); const [t, setT] = useState(initialData?.type || 'CIGARETTE');
-  return (
-    <IPhoneModifyModal isOpen={isOpen} onClose={onClose} title={title} actionLabel={initialData ? "Apply Modification" : "Authorize logic"} onAction={() => onApply({ name: n, limit: parseInt(l) || 20, type: t })}>
-      <div className="space-y-10 text-left font-inter"><Input label="Descriptor" value={n} onChange={setN} isDark /><Input label="Threshold" type="number" value={l} onChange={setL} isDark />
-        <div className="space-y-5"><span className="text-[10px] font-black uppercase tracking-[0.8em] text-white/20">Visual Schematic</span><div className="grid grid-cols-2 gap-5">{['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => ( <button key={x} onClick={() => setT(x)} className={cn("h-18 rounded-[32px] border-2 font-black text-[10px] md:text-[12px] uppercase transition-all", t === x ? "border-accent bg-accent/10 text-accent" : "border-white/5 opacity-40")}>{x.replace('_',' ')}</button> ))}</div></div>
-      </div>
-    </IPhoneModifyModal>
-  );
-};
-
-const AuthScreen = ({ accent }) => {
-  const [isL, setIsL] = useState(true); const [e, setE] = useState(''); const [p, setP] = useState(''); const [n, setN] = useState(''); const [loading, setLoading] = useState(false); const [err, setErr] = useState('');
-  const handle = async () => { setLoading(true); setErr(''); try { if (isL) { await signInWithEmailAndPassword(auth, e, p); } else { const c = await createUserWithEmailAndPassword(auth, e, p); await updateProfile(c.user, { displayName: n }); await setDoc(doc(db, 'users', c.user.uid), { name: n, accent: '#00d2ff', isDark: true, widgetSize: 'LARGE' }); } } catch (e) { setErr(e.message); } finally { setLoading(false); } };
-  return (
-    <div className="min-h-screen bg-[#020202] flex items-center justify-center p-8 text-white font-inter relative overflow-hidden font-inter">
-      <div className="w-full max-w-[450px] space-y-16 relative z-10"><div className="flex flex-col items-center text-center"><Zap size={48} className="text-accent mb-10" /><h1 className="text-7xl font-[1000] tracking-tighter uppercase font-inter font-black">TABAK<span className="text-accent">++</span></h1></div><div className="bg-white/[0.02] border border-white/[0.05] p-12 rounded-[56px] space-y-10 shadow-2xl">
-          <div className="space-y-8 font-inter">{err && <div className="p-6 bg-danger/10 text-danger text-center font-bold text-xs">{err}</div>}<Input label="Link" value={e} onChange={setE} isDark /><Input label="Passkey" type="password" value={p} onChange={setP} isDark /><button className="w-full h-20 bg-accent text-black font-black uppercase tracking-[0.5em] rounded-[28px]" onClick={handle}>{loading ? <Loader2 className="animate-spin" /> : (isL ? 'Sync Registry' : 'Join Registry')}</button></div><button onClick={() => setIsL(!isL)} className="w-full text-center opacity-40 uppercase text-[10px] tracking-widest font-black font-inter">{isL ? "Request Access Entry" : "Return to Log In"}</button>
-      </div></div>
-    </div>
-  );
-};
 
 // --- ARCHITECTURAL CORE ---
 
@@ -340,11 +288,7 @@ const AppContent = () => {
         </AnimatePresence>
       </main>
       <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Control" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
-      <AnimatePresence>
-        {showAdd && <ProtocolFormOverlay isOpen={showAdd} onClose={() => setShowAdd(false)} onApply={handleAddProtocol} title="New Protocol" />}
-        {editProtocol && <ProtocolFormOverlay isOpen={!!editProtocol} onClose={() => setEditProtocol(null)} onApply={handleUpdateProtocol} title="Modify Protocol" initialData={editProtocol} />}
-        {editTarget && <EditOverlay log={editTarget} configs={configs} onClose={() => setEditTarget(null)} user={user} />}
-      </AnimatePresence>
+      <AnimatePresence>{showAdd && <ProtocolFormOverlay isOpen={showAdd} onClose={() => setShowAdd(false)} onApply={handleAddProtocol} title="New Protocol" />}{editProtocol && <ProtocolFormOverlay isOpen={!!editProtocol} onClose={() => setEditProtocol(null)} onApply={handleUpdateProtocol} title="Modify Protocol" initialData={editProtocol} />}{editTarget && <EditOverlay log={editTarget} configs={configs} onClose={() => setEditTarget(null)} user={user} />}</AnimatePresence>
     </div>
   );
 };
@@ -356,28 +300,27 @@ const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd,
   return (
     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 max-w-3xl mx-auto font-inter text-left">
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex flex-col items-center gap-10 font-inter">
-          <div className="w-40 h-40 rounded-[48px] bg-accent/5 border-2 border-accent/20 flex items-center justify-center overflow-hidden shadow-2xl"><User size={64} className="text-accent" strokeWidth={3} /></div>
-          <div className="w-full space-y-10 font-inter"><Input label="Identity Label" value={n} onChange={setN} isDark /><button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all">Commit Profile</button></div>
+          <div className="w-40 h-40 rounded-[48px] bg-accent/5 border-2 border-accent/20 flex items-center justify-center overflow-hidden shadow-2xl font-inter"><User size={64} className="text-accent" strokeWidth={3} /></div>
+          <div className="w-full space-y-10 font-inter"><Input label="Identity Label" value={n} onChange={setN} isDark /><button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all font-inter">Commit Profile</button></div>
        </div></Card>
 
-       {/* REFACTORED: Global Widget Scaling Control */}
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
           <div className="space-y-10 font-inter">
-             <div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2">Display Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase">Global Widget Scale</span></div>
-             <div className="grid grid-cols-3 gap-4">
+             <div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2 font-inter">Display Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Global Widget Scale</span></div>
+             <div className="grid grid-cols-3 gap-4 font-inter">
                 {['SMALL', 'MEDIUM', 'LARGE'].map(x => (
-                   <button key={x} onClick={() => onUpd({ widgetSize: x })} className={cn("h-16 rounded-[24px] border-2 font-black text-[10px] uppercase transition-all flex items-center justify-center", settings.widgetSize === x ? "border-accent bg-accent/10 text-accent shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")}>
+                   <button key={x} onClick={() => onUpd({ widgetSize: x })} className={cn("h-16 rounded-[24px] border-2 font-black text-[10px] uppercase transition-all flex items-center justify-center font-inter", settings.widgetSize === x ? "border-accent bg-accent/10 text-accent shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")}>
                       {x}
                    </button>
                 ))}
              </div>
-             <p className="text-[10px] font-black text-white/20 uppercase tracking-widest px-2 leading-relaxed">This setting immediately recalibrates the density of all counter widgets on your dashboard.</p>
+             <p className="text-[10px] font-black text-white/20 uppercase tracking-widest px-2 leading-relaxed font-inter">This setting immediately recalibrates the density of all counter widgets on your dashboard.</p>
           </div>
        </Card>
 
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
-          <div className="space-y-10 font-inter"><div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2">Interface Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Accent Spectrum</span></div><div className="grid grid-cols-3 gap-6 font-inter">{ACCENTS.map(x => ( <button key={x.v} onClick={() => setLa(x.v)} className={cn("h-16 rounded-[24px] border-2 transition-all duration-500 relative flex items-center justify-center", la === x.v ? "border-white scale-105 shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>{la === x.v && <Check size={24} className="text-white drop-shadow-md" strokeWidth={4} />}</button> ))}</div><button onClick={() => onUpd({ accent: la })} className="w-full h-20 bg-white/[0.1] border border-white/5 text-white font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-xl hover:bg-white/[0.15]">Apply Scheme</button></div></Card>
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex items-center justify-between px-2 font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30">Active Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Protocols</span></div><button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl active:scale-90 transition-all"><Plus size={32} /></button></div><div className="space-y-6 font-inter">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={reorder} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div></Card>
+          <div className="space-y-10 font-inter"><div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2 font-inter">Interface Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Accent Spectrum</span></div><div className="grid grid-cols-3 gap-6 font-inter">{ACCENTS.map(x => ( <button key={x.v} onClick={() => setLa(x.v)} className={cn("h-16 rounded-[24px] border-2 transition-all duration-500 relative flex items-center justify-center font-inter", la === x.v ? "border-white scale-105 shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>{la === x.v && <Check size={24} className="text-white drop-shadow-md" strokeWidth={4} />}</button> ))}</div><button onClick={() => onUpd({ accent: la })} className="w-full h-20 bg-white/[0.1] border border-white/5 text-white font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-xl hover:bg-white/[0.15] font-inter">Apply Scheme</button></div></Card>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex items-center justify-between px-2 font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 font-inter">Active Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Protocols</span></div><button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl active:scale-90 transition-all font-inter"><Plus size={32} /></button></div><div className="space-y-6 font-inter">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div></Card>
     </motion.div>
   );
 };
