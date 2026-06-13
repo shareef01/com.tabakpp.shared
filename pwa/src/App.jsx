@@ -32,7 +32,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "22.5.0-PURPOSE-DRIVEN";
+const APP_VERSION = "22.6.0-WIDGET-CALIBRATED";
 
 const hexToRgb = (hex) => {
   try {
@@ -87,9 +87,14 @@ const ErrorView = ({ msg }) => (
 
 const SmokingProgress = React.memo(({ count, limit, variant, size = 'LARGE' }) => {
   const isL = count >= limit; const tobaccoPct = Math.max(0, 1 - (count / limit)); const isJoint = variant === 'KING' || variant === 'QUEEN';
-  const isSmall = size === 'SMALL';
+  const isSmall = size === 'SMALL'; const isMedium = size === 'MEDIUM';
   return (
-    <div className={cn("relative rounded-full overflow-hidden border-2 transition-all duration-1000 flex items-center shadow-2xl", isSmall ? "h-8" : "h-11", variant === 'KING' ? "w-64" : (variant === 'QUEEN' ? "w-48" : (isSmall ? "w-40" : "w-56")), isL ? "bg-danger border-danger shadow-[0_0_50px_rgba(255,0,0,0.6)]" : "bg-white/[0.03] border-white/10")}>
+    <div className={cn(
+      "relative rounded-full overflow-hidden border-2 transition-all duration-1000 flex items-center shadow-2xl",
+      isSmall ? "h-8 w-40" : (isMedium ? "h-9 w-48" : "h-11 w-56"),
+      variant === 'KING' && "w-64", variant === 'QUEEN' && "w-52",
+      isL ? "bg-danger border-danger shadow-[0_0_50px_rgba(255,0,0,0.6)]" : "bg-white/[0.03] border-white/10"
+    )}>
       {!isL && ( <div className={cn("absolute h-full transition-all duration-1000 ease-out", isJoint ? "bg-gradient-to-r from-white/80 to-white" : "bg-white shadow-[0_0_20px_white]")} style={{ width: `${tobaccoPct * 72}%`, right: '28%' }} /> )}
       {!isL && count > 0 && ( <div className="absolute h-full w-3 bg-danger shadow-[0_0_25px_red] z-20 transition-all duration-1000 ease-out" style={{ right: `calc(28% + ${tobaccoPct * 72}% - 1.5px)` }} /> )}
       <div className={cn("absolute right-0 h-full w-[28%] border-l-2 transition-all duration-1000", isL ? "bg-danger border-white/20" : (isJoint ? "bg-[#2a2a2e] border-white/5" : "bg-[#f59e0b] border-black/20"))} />
@@ -97,50 +102,70 @@ const SmokingProgress = React.memo(({ count, limit, variant, size = 'LARGE' }) =
   );
 });
 
+/**
+ * <RingProgress />
+ * REFACTORED: Calibrated sizes to prevent clipping in MEDIUM widgets.
+ */
 const RingProgress = React.memo(({ count, limit, size = 'LARGE' }) => {
   const isL = count >= limit; const progress = Math.min(1, count / limit);
   const isSmall = size === 'SMALL';
+  const isMedium = size === 'MEDIUM';
+
   return (
-    <div className={cn("relative flex items-center justify-center shadow-2xl rounded-full", isSmall ? "w-24 h-24" : "w-32 h-32")}>
-      <svg className="absolute inset-0 w-full h-full -rotate-90 overflow-visible p-2" viewBox="0 0 100 100">
+    <div className={cn(
+      "relative flex items-center justify-center shadow-2xl rounded-full transition-all duration-500",
+      isSmall ? "w-20 h-20" : (isMedium ? "w-24 h-24" : "w-32 h-32")
+    )}>
+      <svg className="absolute inset-0 w-full h-full -rotate-90 overflow-visible p-1.5" viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-white/[0.03]" />
         <motion.circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="10" fill="transparent" strokeDasharray="264" initial={{ strokeDashoffset: 264 }} animate={{ strokeDashoffset: 264 - (progress * 264) }} className={cn("transition-colors duration-1000", isL ? "text-danger" : "text-accent")} strokeLinecap="round" />
       </svg>
-      <HeartPulse size={isSmall ? 18 : 24} className={cn("transition-all duration-1000", isL ? "text-danger scale-125" : "text-accent animate-pulse")} />
+      <HeartPulse size={isSmall ? 16 : (isMedium ? 20 : 24)} className={cn("transition-all duration-1000", isL ? "text-danger scale-110" : "text-accent animate-pulse")} />
     </div>
   );
 });
 
 const GenericBarProgress = React.memo(({ count, limit, size = 'LARGE' }) => {
   const isL = count >= limit; const progress = Math.min(1, count / limit);
-  const isSmall = size === 'SMALL';
+  const isSmall = size === 'SMALL'; const isMedium = size === 'MEDIUM';
   return (
-    <div className={cn("h-11 rounded-full overflow-hidden border-2 p-1.5 transition-all duration-1000 shadow-2xl", isSmall ? "w-40" : "w-56", isL ? "bg-danger/20 border-danger" : "bg-white/[0.03] border-white/10")}>
+    <div className={cn(
+      "rounded-full overflow-hidden border-2 p-1.5 transition-all duration-1000 shadow-2xl",
+      isSmall ? "h-9 w-40" : (isMedium ? "h-10 w-48" : "h-11 w-56"),
+      isL ? "bg-danger/20 border-danger" : "bg-white/[0.03] border-white/10"
+    )}>
       <div className={cn("h-full rounded-full transition-all duration-1000", isL ? "bg-danger shadow-[0_0_30px_red]" : "bg-accent shadow-[0_0_20px_var(--accent)]")} style={{ width: `${progress * 100}%` }} />
     </div>
   );
 });
 
+/**
+ * <TrackerCard />
+ * REFACTORED: Calibrated geometry for MEDIUM size to prevent text/gauge overlap.
+ */
 const TrackerCard = React.memo(({ config, count, onInc, onDec, index, globalSize = 'LARGE' }) => {
   const isL = count >= config.limit;
   const isSmall = globalSize === 'SMALL'; const isMedium = globalSize === 'MEDIUM'; const isLarge = globalSize === 'LARGE';
   return (
-    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05, type: 'spring', damping: 15 }} className={cn("bg-white/[0.02] rounded-[56px] border-2 flex flex-col items-center justify-between transition-all duration-700 group relative overflow-hidden shadow-2xl font-inter", isLarge ? "min-h-[520px] p-10" : (isMedium ? "min-h-[380px] p-8" : "min-h-[260px] p-6"), isL ? "border-danger/30 shadow-[0_0_60px_rgba(248,113,113,0.1)]" : "border-white/[0.03] hover:border-accent/20")}>
-      {!isSmall && <span className={cn("font-black text-white/20 tracking-[0.4em] uppercase relative z-10 truncate w-full text-center", isLarge ? "text-[10px]" : "text-[8px]")}>Limit: {config.limit}</span>}
-      <div className={cn("flex-1 w-full flex flex-col items-center justify-center relative z-10", isSmall ? "space-y-4" : "space-y-8")}>
-        <div className={cn("w-full flex justify-center items-center shrink-0", isSmall ? "h-14" : "h-24")}>
+    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.05, type: 'spring', damping: 15 }} className={cn("bg-white/[0.02] rounded-[56px] border-2 flex flex-col items-center justify-between transition-all duration-700 group relative overflow-hidden shadow-2xl font-inter", isLarge ? "min-h-[520px] p-10" : (isMedium ? "min-h-[420px] p-9" : "min-h-[260px] p-6"), isL ? "border-danger/30 shadow-[0_0_60px_rgba(248,113,113,0.1)]" : "border-white/[0.03] hover:border-accent/20")}>
+      {!isSmall && <span className={cn("font-black text-white/20 tracking-[0.4em] uppercase relative z-10 truncate w-full text-center shrink-0", isLarge ? "text-[10px]" : "text-[8px]")}>Limit: {config.limit}</span>}
+      <div className={cn("flex-1 w-full flex flex-col items-center justify-center relative z-10 min-h-0", isSmall ? "space-y-4" : "space-y-8")}>
+        {/* Visual Gauge Container - Dynamic height to prevent clipping */}
+        <div className={cn("w-full flex justify-center items-center shrink-0", isSmall ? "h-20" : (isMedium ? "h-28" : "h-32"))}>
           {config.type === 'CIGARETTE' && <SmokingProgress count={count} limit={config.limit} variant="CIGARETTE" size={globalSize} />}
           {config.type === 'SIMPLE' && <RingProgress count={count} limit={config.limit} size={globalSize} />}
           {config.type === 'JOINT_KING' && <SmokingProgress count={count} limit={config.limit} variant="KING" size={globalSize} />}
           {config.type === 'JOINT_QUEEN' && <SmokingProgress count={count} limit={config.limit} variant="QUEEN" size={globalSize} />}
           {(!['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].includes(config.type)) && <GenericBarProgress count={count} limit={config.limit} size={globalSize} />}
         </div>
+        {/* Text Area - Relative scaling and padding */}
         <div className="flex flex-col items-center text-center min-w-0 w-full px-2">
-          <motion.span key={count} initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={cn("font-[1000] tracking-tighter tabular-nums transition-all duration-700 leading-none", isLarge ? "text-7xl" : (isMedium ? "text-5xl" : "text-4xl"), isL ? "text-danger drop-shadow-[0_0_30px_rgba(248,113,113,0.4)]" : "text-white")}>{count}</motion.span>
-          <span className={cn("font-black tracking-[0.4em] uppercase transition-all duration-700 truncate w-full mt-2", isSmall ? "text-[9px]" : "text-[12px]", isL ? "text-danger" : "text-accent opacity-40 group-hover:opacity-100")}>{config.name}</span>
+          <motion.span key={count} initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={cn("font-[1000] tracking-tighter tabular-nums transition-all duration-700 leading-none shrink-0", isLarge ? "text-7xl" : (isMedium ? "text-6xl" : "text-4xl"), isL ? "text-danger drop-shadow-[0_0_30px_rgba(248,113,113,0.4)]" : "text-white")}>{count}</motion.span>
+          <span className={cn("font-black tracking-[0.4em] uppercase transition-all duration-700 truncate w-full shrink-0", isSmall ? "text-[9px] mt-2" : "text-[12px] mt-4", isL ? "text-danger" : "text-accent opacity-40 group-hover:opacity-100")}>{config.name}</span>
         </div>
       </div>
-      <div className={cn("w-full flex justify-between items-center relative z-10 px-2", isSmall ? "mt-2 pb-1" : "mt-8 pb-2")}>
+      {/* Controls Area */}
+      <div className={cn("w-full flex justify-between items-center relative z-10 px-2 shrink-0", isSmall ? "mt-2 pb-1" : "mt-8 pb-2")}>
         <button onClick={onDec} className={cn("rounded-full bg-white/[0.08] border border-white/10 flex items-center justify-center text-white/30 hover:text-white active:scale-90 transition-all shadow-xl backdrop-blur-md", isSmall ? "w-10 h-10" : "w-16 h-16")}><Minus size={isSmall ? 20 : 28} strokeWidth={3} /></button>
         <button onClick={onInc} className={cn("rounded-full flex items-center justify-center text-black active:scale-90 transition-all backdrop-blur-md", isSmall ? "w-10 h-10" : "w-16 h-16", isL ? "bg-danger shadow-[0_0_50px_rgba(248,113,113,0.6)]" : "bg-accent shadow-[0_20px_50px_var(--accent-rgb)]")} style={{'--accent-rgb': 'rgba(0,210,255,0.4)'}}><Plus size={isSmall ? 20 : 28} strokeWidth={4} /></button>
       </div>
@@ -205,7 +230,7 @@ const ProtocolListItem = React.memo(({ config, idx, total, onReo, onEdit, onDel 
       </div>
       <div className="flex flex-col gap-0.5 min-w-0 flex-1 overflow-hidden">
         <span className="text-xl md:text-2xl font-[900] tracking-tight uppercase group-hover:text-white transition-colors truncate leading-tight font-inter">{config.name}</span>
-        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] font-inter opacity-40 truncate">Daily Limit: {config.limit}</span>
+        <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] font-inter opacity-40 truncate">Limit: {config.limit}</span>
       </div>
     </div>
     <div className="flex flex-row items-center gap-4 shrink-0 ml-2">
@@ -233,7 +258,7 @@ const NavBtn = React.memo(({ id, icon: Icon, label, active, onClick }) => (
 ));
 
 const HistoryScreen = React.memo(({ logs, m, onEdit, userId, today }) => {
-  const onDelete = async (logDate) => { if (window.confirm("Purge this record?")) try { await deleteDoc(doc(db, 'users', userId, 'logs', logDate)); } catch (e) { alert(e.message); } };
+  const onDelete = async (logDate) => { if (window.confirm("Purge record?")) try { await deleteDoc(doc(db, 'users', userId, 'logs', logDate)); } catch (e) { alert(e.message); } };
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 font-inter">
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[48px] shadow-2xl"><div className="flex justify-between items-start mb-12 text-left font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black text-white/30 tracking-[0.8em] uppercase">History</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Daily Logs</span></div><div className="p-4 bg-accent/10 rounded-[20px] text-accent"><BarChart3 size={32} strokeWidth={2.5} /></div></div><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}><CartesianGrid strokeDasharray="8 8" stroke="#ffffff03" vertical={false} /><XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} dy={15} /><Tooltip contentStyle={{ background: '#121316', border: 'none', borderRadius: '24px', fontSize: '12px' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 5, stroke: '#0a0a0c' }} animationDuration={2000} /></LineChart></ResponsiveContainer></div></Card>
@@ -353,18 +378,15 @@ const AuthScreen = ({ accent }) => {
 
   return (
     <div className="min-h-screen bg-[#020202] flex items-center justify-center p-8 text-white font-inter relative overflow-hidden font-inter">
-      {/* BURNING CIGARETTE HERO ANIMATION */}
+      {/* HERO ANIMATION */}
       <div className="absolute inset-0 z-0 flex items-center justify-center opacity-20 pointer-events-none overflow-hidden">
         <div className="relative w-[800px] h-4">
-           {/* The realistic cigarette body */}
            <div className="absolute inset-0 bg-gradient-to-r from-white/40 via-white/60 to-white/10 rounded-full blur-sm" />
-           {/* The burning ember tip */}
            <motion.div
              animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6], filter: ["blur(4px)", "blur(12px)", "blur(4px)"] }}
              transition={{ duration: 2, repeat: Infinity }}
              className="absolute right-0 h-12 w-12 -top-4 bg-orange-600 rounded-full shadow-[0_0_50px_#ea580c]"
            />
-           {/* The smoke effect */}
            <div className="absolute right-0 -top-40">
              {[...Array(6)].map((_, i) => (
                <motion.div
@@ -392,7 +414,7 @@ const AuthScreen = ({ accent }) => {
             {mode === 'REGISTER' && <Input label="Full Name" value={n} onChange={setN} isDark />}
             <Input label="Email Address" type="email" value={e} onChange={setE} isDark />
             {mode !== 'RESET' && <Input label="Password" type="password" value={p} onChange={setP} isDark />}
-            <button className="w-full h-20 bg-accent text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-[0_20px_50px_rgba(0,210,255,0.3)]" onClick={handle}>
+            <button className="w-full h-20 bg-accent text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5)]" onClick={handle}>
               {loading ? <Loader2 className="animate-spin" /> : (mode === 'LOGIN' ? 'Sign In' : (mode === 'REGISTER' ? 'Create Account' : 'Reset Password'))}
             </button>
           </div>
