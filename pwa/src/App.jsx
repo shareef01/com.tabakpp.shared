@@ -33,7 +33,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "24.0.0-AUTH-PRODUCTION";
+const APP_VERSION = "24.1.0-HUMAN-STABLE";
 
 const hexToRgb = (hex) => {
   try {
@@ -58,9 +58,9 @@ class GlobalErrorBoundary extends Component {
       return (
         <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
           <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
-          <h2 className="text-3xl font-[1000] uppercase tracking-tighter leading-none mb-4 font-inter">Registry Fault</h2>
-          <p className="text-white/40 text-sm mb-10 max-w-md font-bold leading-relaxed">{this.state.error?.toString() || "Logic sync error."}</p>
-          <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="px-10 h-18 rounded-full bg-white text-black font-black uppercase tracking-widest active:scale-95 transition-all shadow-2xl">Reset Environment</button>
+          <h2 className="text-3xl font-[1000] uppercase tracking-tighter leading-none mb-4 font-inter">Application Error</h2>
+          <p className="text-white/40 text-sm mb-10 max-w-md font-bold leading-relaxed">{this.state.error?.toString() || "An unexpected error occurred."}</p>
+          <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="px-10 h-18 rounded-full bg-white text-black font-black uppercase tracking-widest active:scale-95 transition-all shadow-2xl">Reset System</button>
         </div>
       );
     }
@@ -73,16 +73,16 @@ class GlobalErrorBoundary extends Component {
 const LoadingView = () => (
   <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center space-y-12 text-accent font-inter font-black">
     <Loader2 className="animate-spin" size={100} strokeWidth={3} />
-    <span className="text-sm font-black tracking-[1.5em] uppercase text-accent animate-pulse ml-[1.2em]">Synchronizing Registry</span>
+    <span className="text-sm font-black tracking-[1.5em] uppercase text-accent animate-pulse ml-[1.2em]">Loading</span>
   </div>
 );
 
 const ErrorView = ({ msg }) => (
   <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
     <AlertCircle className="text-danger mb-12" size={120} strokeWidth={2} />
-    <h2 className="text-5xl font-[1000] uppercase tracking-tighter leading-none mb-8 font-inter">Sync Failure</h2>
+    <h2 className="text-5xl font-[1000] uppercase tracking-tighter leading-none mb-8 font-inter">Sync Error</h2>
     <p className="text-white/20 text-sm max-w-sm font-bold opacity-60 leading-relaxed uppercase tracking-widest mb-16 font-inter">{msg}</p>
-    <button onClick={() => window.location.reload()} className="rounded-[32px] font-[1000] uppercase tracking-[0.6em] px-20 h-24 bg-white text-black shadow-2xl active:scale-95 transition-all font-inter font-black">Re-Link System</button>
+    <button onClick={() => window.location.reload()} className="rounded-[32px] font-[1000] uppercase tracking-[0.6em] px-20 h-24 bg-white text-black shadow-2xl active:scale-95 transition-all font-inter font-black">Try Again</button>
   </div>
 );
 
@@ -149,14 +149,14 @@ const TrackerCard = React.memo(({ config, count, onInc, onDec, index, globalSize
   );
 });
 
-// --- REFINED SUB-COMPONENTS ---
+// --- SUB-COMPONENTS ---
 
 const HeaderSizeControl = React.memo(({ value, onChange }) => {
   const options = [ { id: 'SMALL', icon: Grid2X2 }, { id: 'MEDIUM', icon: Columns2 }, { id: 'LARGE', icon: Square } ];
   return (
     <div className="relative bg-white/[0.03] border border-white/[0.05] p-0.5 rounded-[18px] flex items-center shadow-inner overflow-hidden">
       {options.map((opt) => (
-        <button key={opt.id} onClick={() => onChange({ widgetSize: opt.id })} className={cn("relative p-2.5 transition-all duration-500 z-10 rounded-[14px] flex items-center justify-center w-9 h-9", value === opt.id ? "text-black" : "text-white/20 hover:text-white/60")}>
+        <button key={opt.id} onClick={() => onChange({ widgetSize: opt.id })} className={cn("relative p-2.5 transition-all duration-500 z-10 rounded-[14px] flex items-center justify-center w-9 h-9", value === opt.id ? "text-zinc-950" : "text-white/20 hover:text-white/60")}>
           <opt.icon size={16} strokeWidth={3} />
         </button>
       ))}
@@ -168,7 +168,7 @@ const HeaderSizeControl = React.memo(({ value, onChange }) => {
 const TopBanner = React.memo(({ user, onNavigate, widgetSize, onUpdateSettings }) => {
   const [isOpen, setIsOpen] = useState(false); const dropdownRef = useRef(null);
   useEffect(() => { const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false); }; if (isOpen) document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside); }, [isOpen]);
-  const handleLogout = async () => { setIsOpen(false); if (window.confirm("Log out of session?")) await signOut(auth); };
+  const handleLogout = async () => { setIsOpen(false); if (window.confirm("Log out?")) await signOut(auth); };
   return (
     <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
       <div className="max-w-7xl mx-auto flex justify-between items-center px-6 font-inter">
@@ -179,7 +179,7 @@ const TopBanner = React.memo(({ user, onNavigate, widgetSize, onUpdateSettings }
             <button onClick={() => setIsOpen(!isOpen)} className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden">
               <User size={20} strokeWidth={3} /><div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
-            <AnimatePresence>{isOpen && ( <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-4 w-56 bg-[#121316] border border-white/[0.05] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl p-3 overflow-hidden font-inter z-[110]"><div className="px-4 py-3 border-b border-white/[0.03] mb-2"><span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] block">Logged In As</span><span className="text-sm font-bold text-white truncate block mt-1">{user?.displayName || 'User'}</span></div><button onClick={() => { onNavigate('control'); setIsOpen(false); }} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-white/60 hover:text-white hover:bg-white/[0.03] transition-all group text-left font-black uppercase tracking-widest text-[10px]"><Settings size={18} /> Settings</button><button onClick={handleLogout} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-rose-500/60 hover:text-rose-500 hover:bg-rose-500/5 transition-all text-left font-black uppercase tracking-widest text-[10px]"><LogOut size={18} /> Log Out</button></motion.div> )}</AnimatePresence>
+            <AnimatePresence>{isOpen && ( <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-4 w-56 bg-[#121316] border border-white/[0.05] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl p-3 overflow-hidden font-inter z-[110]"><div className="px-4 py-3 border-b border-white/[0.03] mb-2"><span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] block">Account</span><span className="text-sm font-bold text-white truncate block mt-1">{user?.displayName || 'User'}</span></div><button onClick={() => { onNavigate('control'); setIsOpen(false); }} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-white/60 hover:text-white hover:bg-white/[0.03] transition-all group text-left font-black uppercase tracking-widest text-[10px]"><Settings size={18} /> Settings</button><button onClick={handleLogout} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-rose-500/60 hover:text-rose-500 hover:bg-rose-500/5 transition-all text-left font-black uppercase tracking-widest text-[10px]"><LogOut size={18} /> Log Out</button></motion.div> )}</AnimatePresence>
           </div>
         </div>
       </div>
@@ -200,8 +200,8 @@ const MetricBanner = React.memo(({ m }) => (
       </div>
       <div className="flex flex-col md:items-end gap-3 font-inter">
         <div className="flex items-center gap-4">
-          <div className="px-5 py-2 rounded-[16px] bg-accent/10 border border-accent/20 text-accent text-[11px] font-[1000] tracking-[0.3em] uppercase shadow-2xl whitespace-nowrap font-inter">{m.rank || '...'}</div>
-          <span className="text-3xl font-[1000] text-white/20 tracking-tighter tabular-nums font-inter">{m.xp || 0} <span className="text-sm font-bold opacity-50 uppercase tracking-widest font-inter">XP</span></span>
+          <div className="px-5 py-2 rounded-[16px] bg-accent/10 border border-accent/20 text-accent text-[11px] font-[1000] tracking-[0.3em] uppercase shadow-2xl whitespace-nowrap">{m.rank || '...'}</div>
+          <span className="text-3xl font-[1000] text-white/20 tracking-tighter tabular-nums font-inter">{m.xp || 0} <span className="text-sm font-bold opacity-50 uppercase tracking-widest">XP</span></span>
         </div>
       </div>
     </div>
@@ -254,54 +254,14 @@ const HistoryScreen = React.memo(({ logs, m, onEdit, userId, today }) => {
   const onDelete = async (logDate) => { if (window.confirm("Purge record?")) try { await deleteDoc(doc(db, 'users', userId, 'logs', logDate)); } catch (e) { alert(e.message); } };
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 font-inter">
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[48px] shadow-2xl"><div className="flex justify-between items-start mb-12 text-left font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black text-white/30 tracking-[0.8em] uppercase font-inter">History</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Daily Logs</span></div><div className="p-4 bg-accent/10 rounded-[20px] text-accent"><BarChart3 size={32} strokeWidth={2.5} /></div></div><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}><CartesianGrid strokeDasharray="8 8" stroke="#ffffff03" vertical={false} /><XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} dy={15} /><Tooltip contentStyle={{ background: '#121316', border: 'none', borderRadius: '24px', fontSize: '12px' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 5, stroke: '#0a0a0c' }} animationDuration={2000} /></LineChart></ResponsiveContainer></div></Card>
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-8"><InsightCard icon={TrendingUp} label="Streak" val={m.streak} sub="Days" color="text-amber-400" /><InsightCard icon={Wallet} label="Saved" val={`$${(m.savings || 0).toFixed(2)}`} sub="Cash Retained" color="text-emerald-400" /><InsightCard icon={Activity} label="Health" val={`${Math.floor((m.lost || 0)/60)}H`} sub="Time Recovered" color="text-rose-400" /></div>
-       <div className="space-y-8 pt-12 text-left font-inter"><h4 className="text-[10px] font-black text-white/20 tracking-[1em] uppercase px-4 text-left font-inter">Recent Feed</h4>{logs.map((log, i) => ( <StaggeredItem key={log.logDate} index={i}><div className="bg-white/[0.02] p-10 rounded-[48px] border border-white/[0.03] flex items-center justify-between group hover:border-accent/20 transition-all shadow-2xl font-inter"><div className="flex flex-col gap-3 text-left font-inter"><span className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-inter">{log.logDate === today ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] flex items-center gap-3 font-inter">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units total</span></div><div className="flex items-center gap-4"><button onClick={() => onEdit(log)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-accent transition-all shadow-xl font-inter"><Edit2 size={24} /></button><button onClick={() => onDelete(log.logDate)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-danger transition-all shadow-xl font-inter"><Trash2 size={24} /></button></div></div></StaggeredItem> ))}</div>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[48px] shadow-2xl"><div className="flex justify-between items-start mb-12 text-left font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black text-white/30 tracking-[0.8em] uppercase">History</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Daily Logs</span></div><div className="p-4 bg-accent/10 rounded-[20px] text-accent"><BarChart3 size={32} strokeWidth={2.5} /></div></div><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}><CartesianGrid strokeDasharray="8 8" stroke="#ffffff03" vertical={false} /><XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} dy={15} /><Tooltip contentStyle={{ background: '#121316', border: 'none', borderRadius: '24px', fontSize: '12px' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 5, stroke: '#0a0a0c' }} animationDuration={2000} /></LineChart></ResponsiveContainer></div></Card>
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-8"><InsightCard icon={TrendingUp} label="Streak" val={m.streak} sub="Days" color="text-amber-400" /><InsightCard icon={Wallet} label="Saved" val={`$${(m.savings || 0).toFixed(2)}`} sub="Capital" color="text-emerald-400" /><InsightCard icon={Activity} label="Health" val={`${Math.floor((m.lost || 0)/60)}H`} sub="Recovered" color="text-rose-400" /></div>
+       <div className="space-y-8 pt-12 text-left font-inter"><h4 className="text-[10px] font-black text-white/20 tracking-[1em] uppercase px-4 text-left font-inter">Recent Feed</h4>{logs.map((log, i) => ( <StaggeredItem key={log.logDate} index={i}><div className="bg-white/[0.02] p-10 rounded-[48px] border border-white/[0.03] flex items-center justify-between group hover:border-accent/20 transition-all shadow-2xl font-inter"><div className="flex flex-col gap-3 text-left font-inter"><span className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-inter">{log.logDate === today ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] flex items-center gap-3 font-inter">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units</span></div><div className="flex items-center gap-4"><button onClick={() => onEdit(log)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-accent transition-all shadow-xl font-inter"><Edit2 size={24} /></button><button onClick={() => onDelete(log.logDate)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-danger transition-all shadow-xl font-inter"><Trash2 size={24} /></button></div></div></StaggeredItem> ))}</div>
     </motion.div>
   );
 });
 
-// --- MODALS & OVERLAYS ---
-
-const IPhoneModifyModal = ({ isOpen, onClose, title, actionLabel, onAction, children }) => (
-  <AnimatePresence>
-    {isOpen && (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-black/85 backdrop-blur-2xl font-inter">
-        <motion.div initial={{ opacity: 0, scale: 0.9, y: 100 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 100 }} className="bg-[#121318] border border-white/10 rounded-[56px] w-full max-w-lg p-10 flex flex-col shadow-2xl relative overflow-hidden" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 2rem)' }}>
-          <div className="flex justify-between items-center mb-10"><h3 className="text-3xl font-[1000] uppercase tracking-tighter truncate pr-6">{title}</h3><button onClick={onClose} className="w-11 h-11 rounded-full bg-white/5 flex items-center justify-center active:scale-90"><X size={24} /></button></div>
-          <div className="flex-1 overflow-y-auto mb-10 space-y-10 scrollbar-thin scrollbar-thumb-white/5 pr-2">{children}</div>
-          <button onClick={onAction} className="w-full h-18 md:h-20 bg-accent text-black font-[1000] uppercase tracking-[0.4em] rounded-[24px] shadow-2xl active:scale-95 transition-all flex items-center justify-center px-6 font-black font-inter"><span className="whitespace-nowrap text-xs md:text-sm">{actionLabel}</span></button>
-        </motion.div>
-      </div>
-    )}
-  </AnimatePresence>
-);
-
-const EditOverlay = ({ log, configs, onClose, user }) => {
-  const [c, setC] = useState({ ...(log.counts || {}) });
-  const handle = async () => { try { await setDoc(doc(db, 'users', user.uid, 'logs', log.logDate), { counts: c, logDate: log.logDate }, { merge: true }); onClose(); } catch (e) { alert(e.message); } };
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-8 bg-black/80 backdrop-blur-xl font-inter">
-       <div className="bg-[#121318] border border-white/10 rounded-[64px] w-full max-w-[560px] p-16 space-y-12 shadow-2xl">
-          <div className="flex justify-between items-center"><h3 className="text-3xl font-[1000] uppercase tracking-tighter">Override Log</h3><button onClick={onClose} className="p-4 bg-white/5 rounded-full active:scale-90"><X size={32} /></button></div>
-          <div className="bg-white/[0.03] p-8 rounded-[32px] text-center border border-white/5 shadow-inner"><span className="text-sm font-black uppercase tracking-[0.6em] text-accent animate-pulse">{new Date(log.logDate).toLocaleDateString(undefined, { dateStyle: 'full' }).toUpperCase()}</span></div>
-          <div className="space-y-10 max-h-[450px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-accent/30 font-inter">{configs.map(x => ( <div key={x.id} className="relative group text-left font-inter"><span className="absolute left-6 top-1 text-[10px] font-black text-accent uppercase tracking-widest">{x.name} Units</span><input type="number" value={c[x.id] || 0} onChange={e=>setC({...c, [x.id]: parseInt(e.target.value) || 0})} className="w-full h-20 bg-white/[0.03] border border-white/5 rounded-[28px] px-8 pt-6 text-2xl font-[1000] focus:border-accent/40 outline-none transition-all font-inter shadow-inner" /></div> ))}</div>
-          <button onClick={handle} className="w-full h-22 bg-accent text-black font-[1000] uppercase tracking-[0.6em] rounded-[32px] shadow-2xl active:scale-95 transition-all font-black font-inter">Commit Override</button>
-       </div>
-    </div>
-  );
-};
-
-const ProtocolFormOverlay = ({ isOpen, onClose, onApply, title, initialData = null }) => {
-  const [n, setN] = useState(initialData?.name || ''); const [l, setL] = useState(initialData?.limit || '20'); const [t, setT] = useState(initialData?.type || 'CIGARETTE');
-  return (
-    <IPhoneModifyModal isOpen={isOpen} onClose={onClose} title={title} actionLabel={initialData ? "Save Changes" : "Create Counter"} onAction={() => onApply({ name: n, limit: parseInt(l) || 20, type: t })}>
-      <div className="space-y-10 text-left font-inter"><Input label="Counter Name" value={n} onChange={setN} isDark /><Input label="Daily Limit" type="number" value={l} onChange={setL} isDark />
-        <div className="space-y-5"><span className="text-[10px] font-black uppercase tracking-[0.8em] text-white/20">Visual Style</span><div className="grid grid-cols-2 gap-5">{['CIGARETTE', 'SIMPLE', 'JOINT_KING', 'JOINT_QUEEN'].map(x => ( <button key={x} onClick={() => setT(x)} className={cn("h-18 rounded-[32px] border-2 font-black text-[10px] md:text-[12px] uppercase transition-all", t === x ? "border-accent bg-accent/10 text-accent" : "border-white/5 opacity-40")}>{x.replace('_',' ')}</button> ))}</div></div>
-      </div>
-    </IPhoneModifyModal>
-  );
-};
+// --- AUTH EXPERIENCE ---
 
 const AuthScreen = ({ accent }) => {
   const [mode, setMode] = useState('LOGIN');
@@ -318,70 +278,46 @@ const AuthScreen = ({ accent }) => {
         await setDoc(doc(db, 'users', c.user.uid), { name: n, accent: '#00d2ff', isDark: true, widgetSize: 'LARGE' });
       } else {
         await sendPasswordResetEmail(auth, e);
-        setMsg({ t: 'SUCCESS', c: 'Check your email for reset link.' });
+        setMsg({ t: 'SUCCESS', c: 'Reset email sent.' });
       }
     } catch (err) { setMsg({ t: 'FAULT', c: err.message }); } finally { setLoading(false); }
   };
 
   return (
     <div className="min-h-screen bg-[#020202] flex items-center justify-center p-8 text-white font-inter relative overflow-hidden font-inter">
-      {/* BURNING HERO ANIMATION */}
       <div className="absolute inset-0 z-0 flex items-center justify-center opacity-30 pointer-events-none overflow-hidden select-none">
         <div className="relative w-[1000px] h-[2px]">
            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 blur-md" />
-           <motion.div
-             animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0.8, 0.4] }}
-             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-             className="absolute right-1/4 h-24 w-24 -top-12 bg-orange-600/40 rounded-full blur-[60px]"
-           />
-           <div className="absolute right-1/4 -top-80">
-             {[...Array(8)].map((_, i) => (
-               <motion.div key={i} initial={{ y: 0, opacity: 0, scale: 0.5 }} animate={{ y: -400, opacity: [0, 0.3, 0], scale: [0.5, 4], x: [0, 50, -50, 20] }} transition={{ duration: 6, repeat: Infinity, delay: i * 1.2 }} className="absolute w-32 h-32 bg-white/[0.02] rounded-full blur-[80px]" />
-             ))}
-           </div>
+           <motion.div animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} className="absolute right-1/4 h-24 w-24 -top-12 bg-orange-600/40 rounded-full blur-[60px]" />
+           <div className="absolute right-1/4 -top-80">{[...Array(8)].map((_, i) => ( <motion.div key={i} initial={{ y: 0, opacity: 0, scale: 0.5 }} animate={{ y: -400, opacity: [0, 0.3, 0], scale: [0.5, 4], x: [0, 50, -50, 20] }} transition={{ duration: 6, repeat: Infinity, delay: i * 1.2 }} className="absolute w-32 h-32 bg-white/[0.02] rounded-full blur-[80px]" /> ))}</div>
         </div>
       </div>
 
       <div className="w-full max-w-[480px] space-y-16 relative z-10 font-inter">
         <div className="flex flex-col items-center text-center font-inter">
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="p-8 bg-accent/5 rounded-[44px] border border-accent/20 mb-12 shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
-             <div className="relative">
-                <Flame size={56} className="text-accent" />
-                <motion.div animate={{ opacity: [0, 1, 0], scale: [1, 1.5, 1] }} transition={{ duration: 2, repeat: Infinity }} className="absolute inset-0 bg-accent rounded-full blur-2xl opacity-20" />
-             </div>
+             <div className="relative"><Flame size={56} className="text-accent" /><motion.div animate={{ opacity: [0, 1, 0], scale: [1, 1.5, 1] }} transition={{ duration: 2, repeat: Infinity }} className="absolute inset-0 bg-accent rounded-full blur-2xl opacity-20" /></div>
           </motion.div>
           <h1 className="text-7xl font-[1000] tracking-tighter uppercase font-inter leading-none">TABAK<span className="text-accent">++</span></h1>
           <p className="text-[11px] font-black text-white/30 tracking-[0.6em] uppercase mt-6 ml-4">The Quit Control System</p>
         </div>
 
         <div className="bg-white/[0.02] border border-white/[0.08] p-16 rounded-[72px] space-y-12 shadow-[0_40px_100px_rgba(0,0,0,0.7)] backdrop-blur-3xl relative overflow-hidden font-inter">
-          {/* Internal Double Border Effect */}
           <div className="absolute inset-0 border border-white/[0.03] rounded-[72px] pointer-events-none" />
-
           <div className="relative z-10 space-y-10">
-            {/* Login/Register Toggle */}
             <div className="relative bg-black/40 border border-white/[0.05] p-1 rounded-full flex items-center shadow-inner overflow-hidden mb-4">
-              <button onClick={() => { setMode('LOGIN'); setMsg({t:'',c:''}); }} className={cn("relative flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 z-10", mode === 'LOGIN' ? "text-black" : "text-white/30")}>Sign In</button>
-              <button onClick={() => { setMode('REGISTER'); setMsg({t:'',c:''}); }} className={cn("relative flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 z-10", mode === 'REGISTER' ? "text-black" : "text-white/30")}>Sign Up</button>
+              <button onClick={() => { setMode('LOGIN'); setMsg({t:'',c:''}); }} className={cn("relative flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 z-10", mode === 'LOGIN' ? "text-zinc-950" : "text-white/30")}>Sign In</button>
+              <button onClick={() => { setMode('REGISTER'); setMsg({t:'',c:''}); }} className={cn("relative flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 z-10", mode === 'REGISTER' ? "text-zinc-950" : "text-white/30")}>Sign Up</button>
               <motion.div className="absolute h-[calc(100%-8px)] bg-accent rounded-full shadow-[0_0_20px_var(--accent-rgb)]" animate={{ x: mode === 'LOGIN' ? 4 : 'calc(50% + 1.5px)', width: 'calc(50% - 6px)' }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
             </div>
 
-            {msg.c && <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className={cn("p-6 rounded-[24px] text-center font-black text-[10px] uppercase tracking-widest border", msg.t === 'FAULT' ? "bg-danger/10 text-danger border-danger/20" : "bg-accent/10 text-accent border-accent/20")}>{msg.c}</motion.div>}
-
-            <div className="space-y-8">
-              {mode === 'REGISTER' && <Input label="Full Name" value={n} onChange={setN} isDark />}
-              <Input label="Email Address" type="email" value={e} onChange={setE} isDark />
-              {mode !== 'RESET' && <Input label="Secret Password" type="password" value={p} onChange={setP} isDark />}
-            </div>
-
-            <button className="w-full h-22 bg-accent text-black font-black uppercase tracking-[0.5em] rounded-[32px] active:scale-95 transition-all shadow-[0_25px_60px_rgba(0,210,255,0.4)] flex items-center justify-center text-sm font-inter" onClick={handle}>
-              {loading ? <Loader2 className="animate-spin" size={24} /> : (mode === 'LOGIN' ? 'Access Registry' : (mode === 'REGISTER' ? 'Establish Account' : 'Request Reset Link'))}
-            </button>
+            {msg.c && <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className={cn("p-6 rounded-[24px] text-center font-black text-[10px] uppercase tracking-widest border", msg.t === 'FAULT' ? "bg-danger/10 text-danger border-danger/20" : "bg-accent/10 text-accent border border-accent/20")}>{msg.c}</motion.div>}
+            <div className="space-y-8">{mode === 'REGISTER' && <Input label="Full Name" value={n} onChange={setN} isDark />}<Input label="Email" type="email" value={e} onChange={setE} isDark />{mode !== 'RESET' && <Input label="Password" type="password" value={p} onChange={setP} isDark />}</div>
+            <button className="w-full h-22 bg-accent text-zinc-950 font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-[0_25px_60px_var(--accent-rgb)] flex items-center justify-center text-sm font-inter" style={{ '--accent-rgb': `rgba(${hexToRgb(accent)}, 0.4)` }} onClick={handle}>{loading ? <Loader2 className="animate-spin" size={24} /> : (mode === 'LOGIN' ? 'Sign In' : (mode === 'REGISTER' ? 'Sign Up' : 'Reset'))}</button>
           </div>
-
           <div className="flex flex-col gap-6 pt-4 font-inter">
             {mode === 'LOGIN' && <button onClick={() => setMode('RESET')} className="w-full text-center opacity-30 uppercase text-[9px] tracking-widest font-black font-inter hover:opacity-100 hover:text-accent transition-all">Forgot your password?</button>}
-            {mode === 'RESET' && <button onClick={() => setMode('LOGIN')} className="w-full text-center opacity-30 uppercase text-[9px] tracking-widest font-black font-inter hover:opacity-100 transition-all">Back to Access Link</button>}
+            {mode === 'RESET' && <button onClick={() => setMode('LOGIN')} className="w-full text-center opacity-30 uppercase text-[9px] tracking-widest font-black font-inter hover:opacity-100 transition-all">Back to Sign In</button>}
           </div>
         </div>
       </div>
@@ -389,7 +325,7 @@ const AuthScreen = ({ accent }) => {
   );
 };
 
-// --- APP CONTENT ---
+// --- ARCHITECTURAL CORE ---
 
 const AppContent = () => {
   const { user, loading: authLoading } = useAuth();
@@ -405,7 +341,7 @@ const AppContent = () => {
   const handleUpdateProtocol = async (data) => { try { await updateProtocol(editProtocol.id, data); setEditProtocol(null); } catch (e) { alert(e.message); } };
 
   if (authLoading) return <LoadingView />;
-  if (!user) return <AuthScreen accent="#00d2ff" />;
+  if (!user) return <AuthScreen accent={settings.accent} />;
   if (registryLoading) return <LoadingView />;
   if (registryError) return <ErrorView msg={registryError} />;
 
@@ -417,9 +353,7 @@ const AppContent = () => {
           {activeTab === 'track' && (
             <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-10 font-inter">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-                 {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
-                   <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} />
-                 ))}
+                 {configs.sort((a,b)=>a.order-b.order).map((c, i) => ( <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} /> ))}
               </div>
               <MetricBanner m={metrics} />
             </motion.div>
@@ -428,7 +362,7 @@ const AppContent = () => {
           {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={reorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} onDel={deleteProtocol} />}
         </AnimatePresence>
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6 font-inter"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Dashboard" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Settings" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6 font-inter"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Settings" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
       <AnimatePresence>{showAdd && <ProtocolFormOverlay isOpen={showAdd} onClose={() => setShowAdd(false)} onApply={handleAddProtocol} title="New Counter" />}{editProtocol && <ProtocolFormOverlay isOpen={!!editProtocol} onClose={() => setEditProtocol(null)} onApply={handleUpdateProtocol} title="Edit Counter" initialData={editProtocol} />}{editTarget && <EditOverlay log={editTarget} configs={configs} onClose={() => setEditTarget(null)} user={user} />}</AnimatePresence>
     </div>
   );
@@ -438,22 +372,9 @@ const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd,
   const [n, setN] = useState(user?.displayName || ''); const [la, setLa] = useState(settings.accent);
   return (
     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 max-w-3xl mx-auto font-inter text-left font-inter">
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex flex-col items-center gap-10 font-inter">
-          <div className="w-40 h-40 rounded-[48px] bg-accent/5 border-2 border-accent/20 flex items-center justify-center overflow-hidden shadow-2xl font-inter"><User size={64} className="text-accent" strokeWidth={3} /></div>
-          <div className="w-full space-y-10 font-inter"><Input label="Display Name" value={n} onChange={setN} isDark /><button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all font-inter">Update Profile</button></div>
-       </div></Card>
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
-          <div className="space-y-10 font-inter"><div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2 font-inter">Appearance</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Accent Spectrum</span></div><div className="grid grid-cols-3 gap-6 font-inter">{ACCENTS.map(x => ( <button key={x.v} onClick={() => setLa(x.v)} className={cn("h-16 rounded-[24px] border-2 transition-all duration-500 relative flex items-center justify-center font-inter", la === x.v ? "border-white scale-105 shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>{la === x.v && <Check size={24} className="text-white drop-shadow-md" strokeWidth={4} />}</button> ))}</div><button onClick={() => onUpd({ accent: la })} className="w-full h-20 bg-white/[0.1] border border-white/5 text-white font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-xl hover:bg-white/[0.15] font-inter">Save Selection</button></div></Card>
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
-          <div className="flex items-center justify-between gap-8 mb-10 px-2 font-inter">
-             <div className="space-y-2 text-left font-inter min-w-0 flex-1">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 font-inter">Active List</h3>
-                <span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black block truncate">Your Counters</span>
-             </div>
-             <button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl active:scale-90 transition-all font-inter shrink-0"><Plus size={32} /></button>
-          </div>
-          <div className="space-y-6 font-inter">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div>
-       </Card>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex flex-col items-center gap-10 font-inter"><div className="w-40 h-40 rounded-[48px] bg-accent/5 border-2 border-accent/20 flex items-center justify-center overflow-hidden shadow-2xl font-inter"><User size={64} className="text-accent" strokeWidth={3} /></div><div className="w-full space-y-10 font-inter"><Input label="Profile Name" value={n} onChange={setN} isDark /><button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-zinc-950 font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all font-inter">Update Profile</button></div></div></Card>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="space-y-10 font-inter"><div className="px-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2 font-inter">Personalization</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Accent Color</span></div><div className="grid grid-cols-3 gap-6 font-inter">{ACCENTS.map(x => ( <button key={x.v} onClick={() => setLa(x.v)} className={cn("h-16 rounded-[24px] border-2 transition-all duration-500 relative flex items-center justify-center font-inter", la === x.v ? "border-white scale-105 shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>{la === x.v && <Check size={24} className="text-white drop-shadow-md" strokeWidth={4} />}</button> ))}</div><button onClick={() => onUpd({ accent: la })} className="w-full h-20 bg-white/[0.1] border border-white/5 text-white font-[1000] uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-xl hover:bg-white/[0.15] font-inter">Save Color</button></div></Card>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex items-center justify-between gap-8 mb-10 px-2 font-inter"><div className="space-y-2 text-left font-inter min-w-0 flex-1"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 font-inter">Management</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black block truncate">Active Counters</span></div><button onClick={onAdd} className="p-5 bg-accent text-zinc-950 rounded-[24px] shadow-2xl active:scale-90 transition-all font-inter shrink-0"><Plus size={32} /></button></div><div className="space-y-6 font-inter">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div></Card>
     </motion.div>
   );
 };
