@@ -6,7 +6,7 @@ import {
   LogOut, Camera, Calendar, RefreshCcw, Loader2, AlertCircle,
   TrendingUp, Wallet, Clock, Grid, Moon, Sparkles, Check, Edit2, Trash2, Crown,
   ArrowUp, ArrowDown, ChevronRight, Apple, Github, Key, Mail, Fingerprint,
-  Layout, Maximize, Minimize
+  Layout, Maximize, Minimize, Grid2X2, Columns2, Square
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -33,7 +33,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "23.1.0-HEADER-CONTROLS";
+const APP_VERSION = "23.2.0-ICON-REFINED";
 
 const hexToRgb = (hex) => {
   try {
@@ -58,7 +58,7 @@ class GlobalErrorBoundary extends Component {
       return (
         <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center p-12 text-center text-white font-inter">
           <div className="p-8 bg-danger/10 rounded-[32px] text-danger border border-danger/20 shadow-2xl mb-8"><AlertCircle size={48} /></div>
-          <h2 className="text-3xl font-[1000] uppercase tracking-tighter leading-none mb-4">Application Error</h2>
+          <h2 className="text-3xl font-[1000] uppercase tracking-tighter leading-none mb-4 font-inter">Application Error</h2>
           <p className="text-white/40 text-sm mb-10 max-w-md font-bold leading-relaxed">{this.state.error?.toString() || "A critical error occurred."}</p>
           <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="px-10 h-18 rounded-full bg-white text-black font-black uppercase tracking-widest active:scale-95 transition-all shadow-2xl">Reset System</button>
         </div>
@@ -158,13 +158,16 @@ const TrackerCard = React.memo(({ config, count, onInc, onDec, index, globalSize
 
 /**
  * <HeaderSizeControl />
- * PROFESSIONAL: Simplified icon-only layout switcher for the Top Banner.
+ * REDESIGNED: Functionally accurate iconography.
+ * - Grid2X2 (Small): Represents high density.
+ * - Columns2 (Medium): Represents balanced columns.
+ * - Square (Large): Represents single focus.
  */
 const HeaderSizeControl = React.memo(({ value, onChange }) => {
   const options = [
-    { id: 'SMALL', icon: LayoutGrid },
-    { id: 'MEDIUM', icon: Layout },
-    { id: 'LARGE', icon: Maximize }
+    { id: 'SMALL', icon: Grid2X2 },
+    { id: 'MEDIUM', icon: Columns2 },
+    { id: 'LARGE', icon: Square }
   ];
   return (
     <div className="relative bg-white/[0.03] border border-white/[0.05] p-0.5 rounded-[18px] flex items-center shadow-inner overflow-hidden">
@@ -173,7 +176,7 @@ const HeaderSizeControl = React.memo(({ value, onChange }) => {
           key={opt.id}
           onClick={() => onChange({ widgetSize: opt.id })}
           className={cn(
-            "relative p-2.5 transition-all duration-500 z-10 rounded-[14px]",
+            "relative p-2.5 transition-all duration-500 z-10 rounded-[14px] flex items-center justify-center w-9 h-9",
             value === opt.id ? "text-black" : "text-white/20 hover:text-white/60"
           )}
         >
@@ -200,12 +203,9 @@ const TopBanner = React.memo(({ user, onNavigate, widgetSize, onUpdateSettings }
   return (
     <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
       <div className="max-w-7xl mx-auto flex justify-between items-center px-6 font-inter">
-        <div className="flex flex-col text-left"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Dashboard</span></div>
-
-        {/* REFACTORED: Unified Header Actions Container */}
+        <div className="flex flex-col text-left font-inter"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Dashboard</span></div>
         <div className="flex items-center gap-6">
           <HeaderSizeControl value={widgetSize} onChange={onUpdateSettings} />
-
           <div className="relative" ref={dropdownRef}>
             <button onClick={() => setIsOpen(!isOpen)} className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden">
               <User size={20} strokeWidth={3} /><div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -221,7 +221,7 @@ const TopBanner = React.memo(({ user, onNavigate, widgetSize, onUpdateSettings }
 const MetricBanner = React.memo(({ m }) => (
   <section className="bg-white/[0.02] rounded-[48px] p-10 border border-white/[0.03] relative overflow-hidden group shadow-2xl font-inter">
     <div className="absolute top-0 right-0 w-80 h-80 bg-accent/5 rounded-full blur-[100px] -mr-40 -mt-40 group-hover:bg-accent/10 transition-all" />
-    <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 relative z-10">
+    <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 relative z-10 font-inter">
       <div className="space-y-3 text-left">
         <h3 className="text-[11px] font-[1000] text-white/20 tracking-[0.6em] uppercase">Daily Allowance</h3>
         <div className="flex items-baseline gap-4">
@@ -229,9 +229,9 @@ const MetricBanner = React.memo(({ m }) => (
           <span className="text-sm font-black text-accent uppercase tracking-[0.4em] animate-pulse">Left</span>
         </div>
       </div>
-      <div className="flex flex-col md:items-end gap-3">
+      <div className="flex flex-col md:items-end gap-3 font-inter">
         <div className="flex items-center gap-4">
-          <div className="px-5 py-2 rounded-[16px] bg-accent/10 border border-accent/20 text-accent text-[11px] font-[1000] tracking-[0.3em] uppercase shadow-2xl whitespace-nowrap">{m.rank || '...'}</div>
+          <div className="px-5 py-2 rounded-[16px] bg-accent/10 border border-accent/20 text-accent text-[11px] font-[1000] tracking-[0.3em] uppercase shadow-2xl whitespace-nowrap font-inter">{m.rank || '...'}</div>
           <span className="text-3xl font-[1000] text-white/20 tracking-tighter tabular-nums">{m.xp || 0} <span className="text-sm font-bold opacity-50 uppercase tracking-widest">XP</span></span>
         </div>
       </div>
@@ -285,7 +285,7 @@ const HistoryScreen = React.memo(({ logs, m, onEdit, userId, today }) => {
   const onDelete = async (logDate) => { if (window.confirm("Purge record?")) try { await deleteDoc(doc(db, 'users', userId, 'logs', logDate)); } catch (e) { alert(e.message); } };
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 font-inter">
-       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[48px] shadow-2xl"><div className="flex justify-between items-start mb-12 text-left font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black text-white/30 tracking-[0.8em] uppercase">History</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Daily Logs</span></div><div className="p-4 bg-accent/10 rounded-[20px] text-accent"><BarChart3 size={32} strokeWidth={2.5} /></div></div><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}><CartesianGrid strokeDasharray="8 8" stroke="#ffffff03" vertical={false} /><XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} dy={15} /><Tooltip contentStyle={{ background: '#121316', border: 'none', borderRadius: '24px', fontSize: '12px' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 5, stroke: '#0a0a0c' }} animationDuration={2000} /></LineChart></ResponsiveContainer></div></Card>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[48px] shadow-2xl"><div className="flex justify-between items-start mb-12 text-left font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black text-white/30 tracking-[0.8em] uppercase font-inter">History</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Daily Logs</span></div><div className="p-4 bg-accent/10 rounded-[20px] text-accent"><BarChart3 size={32} strokeWidth={2.5} /></div></div><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}><CartesianGrid strokeDasharray="8 8" stroke="#ffffff03" vertical={false} /><XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} dy={15} /><Tooltip contentStyle={{ background: '#121316', border: 'none', borderRadius: '24px', fontSize: '12px' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 5, stroke: '#0a0a0c' }} animationDuration={2000} /></LineChart></ResponsiveContainer></div></Card>
        <div className="grid grid-cols-1 md:grid-cols-3 gap-8"><InsightCard icon={TrendingUp} label="Streak" val={m.streak} sub="Days" color="text-amber-400" /><InsightCard icon={Wallet} label="Saved" val={`$${(m.savings || 0).toFixed(2)}`} sub="Cash Retained" color="text-emerald-400" /><InsightCard icon={Activity} label="Health" val={`${Math.floor((m.lost || 0)/60)}H`} sub="Time Recovered" color="text-rose-400" /></div>
        <div className="space-y-8 pt-12 text-left font-inter"><h4 className="text-[10px] font-black text-white/20 tracking-[1em] uppercase px-4 text-left font-inter">Recent Feed</h4>{logs.map((log, i) => ( <StaggeredItem key={log.logDate} index={i}><div className="bg-white/[0.02] p-10 rounded-[48px] border border-white/[0.03] flex items-center justify-between group hover:border-accent/20 transition-all shadow-2xl font-inter"><div className="flex flex-col gap-3 text-left font-inter"><span className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-inter">{log.logDate === today ? 'Today' : new Date(log.logDate).toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'long'})}</span><span className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] flex items-center gap-3 font-inter">{Object.values(log.counts || {}).reduce((a,b)=>a+b, 0)} units total</span></div><div className="flex items-center gap-4"><button onClick={() => onEdit(log)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-accent transition-all shadow-xl font-inter"><Edit2 size={24} /></button><button onClick={() => onDelete(log.logDate)} className="p-5 rounded-[22px] bg-white/[0.03] border border-white/[0.05] hover:text-danger transition-all shadow-xl font-inter"><Trash2 size={24} /></button></div></div></StaggeredItem> ))}</div>
     </motion.div>
@@ -327,9 +327,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen w-full bg-[#020202] text-white font-inter selection:bg-accent/30 overflow-x-hidden flex flex-col font-inter" style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent) }}>
-      {/* REFACTORED: Header now receives size settings directly */}
       <TopBanner user={user} onNavigate={setActiveTab} widgetSize={settings.widgetSize} onUpdateSettings={onUpdateSettings} />
-
       <main className="flex-1 overflow-y-auto pt-10 pb-[calc(env(safe-area-inset-bottom)+12rem)] px-5 max-w-7xl mx-auto w-full transition-all duration-500 overflow-x-hidden font-inter">
         <AnimatePresence mode="wait">
           {activeTab === 'track' && (
@@ -376,8 +374,6 @@ const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd,
   );
 };
 
-// --- AUTH EXPERIENCE ---
-
 const AuthScreen = ({ accent }) => {
   const [mode, setMode] = useState('LOGIN');
   const [e, setE] = useState(''); const [p, setP] = useState(''); const [n, setN] = useState('');
@@ -407,21 +403,21 @@ const AuthScreen = ({ accent }) => {
            <div className="absolute right-0 -top-40">{[...Array(6)].map((_, i) => ( <motion.div key={i} initial={{ y: 0, opacity: 0, scale: 0.5 }} animate={{ y: -200, opacity: [0, 0.5, 0], scale: [0.5, 2, 3], x: [0, 20, -20, 10] }} transition={{ duration: 4, repeat: Infinity, delay: i * 0.8 }} className="absolute w-20 h-20 bg-white/5 rounded-full blur-3xl" /> ))}</div>
         </div>
       </div>
-      <div className="w-full max-w-[450px] space-y-16 relative z-10">
+      <div className="w-full max-w-[450px] space-y-16 relative z-10 font-inter">
         <div className="flex flex-col items-center text-center">
-          <div className="p-6 bg-accent/5 rounded-[40px] border border-accent/20 mb-10 shadow-2xl"><Zap size={48} className="text-accent animate-pulse" /></div>
-          <h1 className="text-7xl font-[1000] tracking-tighter uppercase font-inter font-black">TABAK<span className="text-accent">++</span></h1>
-          <span className="text-[10px] font-black text-white/40 tracking-[0.8em] uppercase mt-4">Quit Control System</span>
+          <div className="p-6 bg-accent/5 rounded-[40px] border border-accent/20 mb-10 shadow-2xl font-inter"><Zap size={48} className="text-accent animate-pulse" /></div>
+          <h1 className="text-7xl font-[1000] tracking-tighter uppercase font-black font-inter">TABAK<span className="text-accent">++</span></h1>
+          <span className="text-[10px] font-black text-white/40 tracking-[0.8em] uppercase mt-4 font-inter">Quit Control System</span>
         </div>
-        <div className="bg-white/[0.02] border border-white/[0.05] p-12 rounded-[64px] space-y-10 shadow-2xl backdrop-blur-3xl relative overflow-hidden">
-          <div className="space-y-8 relative z-10">
+        <div className="bg-white/[0.02] border border-white/[0.05] p-12 rounded-[64px] space-y-10 shadow-2xl backdrop-blur-3xl relative overflow-hidden font-inter">
+          <div className="space-y-8 relative z-10 font-inter">
             {msg.c && <div className={cn("p-6 rounded-[24px] text-center font-black text-[10px] uppercase tracking-widest", msg.t === 'FAULT' ? "bg-danger/10 text-danger border border-danger/20" : "bg-accent/10 text-accent border border-accent/20")}>{msg.c}</div>}
             {mode === 'REGISTER' && <Input label="Full Name" value={n} onChange={setN} isDark />}
             <Input label="Email Address" type="email" value={e} onChange={setE} isDark />
             {mode !== 'RESET' && <Input label="Password" type="password" value={p} onChange={setP} isDark />}
-            <button className="w-full h-20 bg-accent text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5)]" onClick={handle}>{loading ? <Loader2 className="animate-spin" /> : (mode === 'LOGIN' ? 'Sign In' : (mode === 'REGISTER' ? 'Create Account' : 'Reset Password'))}</button>
+            <button className="w-full h-20 bg-accent text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5)] font-inter" onClick={handle}>{loading ? <Loader2 className="animate-spin" /> : (mode === 'LOGIN' ? 'Sign In' : (mode === 'REGISTER' ? 'Create Account' : 'Reset Password'))}</button>
           </div>
-          <div className="flex flex-col gap-5 pt-4">
+          <div className="flex flex-col gap-5 pt-4 font-inter">
             {mode === 'LOGIN' && <button onClick={() => setMode('RESET')} className="w-full text-center opacity-40 uppercase text-[9px] tracking-widest font-black font-inter hover:opacity-100 transition-opacity">Forgot Password?</button>}
             <button onClick={() => setMode(mode === 'LOGIN' ? 'REGISTER' : 'LOGIN')} className="w-full text-center opacity-40 uppercase text-[9px] tracking-widest font-black font-inter hover:opacity-100 transition-opacity">{mode === 'LOGIN' ? "Need an account? Sign Up" : "Back to Sign In"}</button>
           </div>
