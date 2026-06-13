@@ -1,97 +1,55 @@
-# 🚬 TABAK++ | Master PWA Documentation
-**Version: 28.5.0-MASTER-PRODUCTION**
+# 🚬 TABAK++ | Master Production PWA
+**Version: 28.5.0-STABLE**
 
-TABAK++ is a high-fidelity, production-grade Progressive Web App (PWA) designed for quit-control tracking. It features a professional **Obsidian Dark** aesthetic, real-time synchronization, and a custom cinematic animation engine.
-
----
-
-## 🏛️ Architectural Overview (MVVM)
-The application is built on a clean **Model-View-ViewModel** architecture to ensure data integrity and zero-flicker UI updates.
-
-### 1. Model (`RegistryService`)
-Located in `services/registryService.js`. This is the single source of truth for all Firestore interactions.
-- **Atomic Updates**: Uses Firestore `increment` and `arrayUnion` for race-condition-free logging.
-- **Snapshot Listeners**: Utilizes `onSnapshot` for real-time, cross-tab synchronization.
-
-### 2. ViewModel (`useRegistry` Hook)
-Located in `hooks/useRegistry.js`. This layer processes raw data into UI-ready metrics.
-- **Calculation Engine**: Computes Streaks, XP, and Savings on the fly.
-- **State Management**: Exposes clean methods like `increment(id)` and `reorder()` to the View layer.
-
-### 3. View (React Components)
-Located in `App.jsx` and `components/`.
-- **Framer Motion**: Powering all transitions and the "Burning Cigarette" hero animation.
-- **Tailwind CSS**: Enforcing the "Obsidian" design system with neon-lime (#D4FF32) accents.
+TABAK++ is a high-fidelity Progressive Web App engineered for quit-control tracking. It features an **Obsidian Dark** aesthetic with neon accents and cinematic animations.
 
 ---
 
-## ✨ Key Features & UX Design
+## 🛠️ Technology Stack
+The application is built using a modern, high-performance stack for zero-flicker UI and real-time data persistence.
 
-### 🎬 Cinematic Auth Portal
-The gateway to the application, designed for maximum professional impact.
-- **Fixed Top-Left Branding**: The `TABAK++` logo is anchored to the header with strict `whitespace-nowrap` enforcement.
-- **BurningCigarette Hero**: A 3D-textured animation with a pulsing red ember and multi-layered smoke trails.
-- **Segmented Toggle**: A custom absolute-sliding switch for Sign In / Sign Up with zero-clipping math.
-
-### 📊 Global Widget Scaling
-The dashboard supports three distinct layout densities, controllable via the header icons:
-- **Small (Grid2X2)**: Compact rows for high-volume trackers.
-- **Medium (Columns2)**: Balanced verticality (420px min-height).
-- **Large (Square)**: Full-size, high-fidelity gauges (520px min-height).
-
-### 📈 High-Density Insights
-The History screen uses ultra-compact **InsightCards** to display capital saved, health recovered, and current streaks. 
-- **Legibility Hardened**: Secondary labels use a calibrated 70-80% opacity standard to ensure readability in all lighting conditions.
+- **Frontend Core**: [React.js](https://reactjs.org/) (Functional Components + Hooks)
+- **State Management**: [Model-View-ViewModel (MVVM)](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel) pattern for synchronized UI states.
+- **Backend/Database**: [Firebase Firestore](https://firebase.google.com/products/firestore) (Real-time `onSnapshot` listeners).
+- **Authentication**: [Firebase Auth](https://firebase.google.com/products/auth) (Secure email/password session management).
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) (Obsidian design system with neon-lime #D4FF32 accents).
+- **Animations**: [Framer Motion](https://www.framer.com/motion/) (Cinematic "Burning Cigarette" hero and spring-physics transitions).
+- **Icons**: [Lucide React](https://lucide.dev/) (High-density stroke icons).
+- **Charts**: [Recharts](https://recharts.org/) (High-fidelity historical data visualization).
 
 ---
 
-## 💻 Code Deep-Dive
+## 🌐 Online Production Testing
+The application is live and can be tested on any modern browser or installed as a native app.
 
-### Real-Time Sync Logic
-```javascript
-// Located in hooks/useRegistry.js
-useEffect(() => {
-  if (!user) return;
-  // Listen to configuration changes
-  const unsubConfig = onSnapshot(doc(db, 'users', user.uid), (s) => {
-    // Immediate UI update across all logged-in devices
-  });
-  return () => unsubConfig();
-}, [user]);
-```
+**Live URL**: [https://tabakpp.web.app](https://tabakpp.web.app)
 
-### High-Fidelity Gauge Logic
-The `SmokingProgress` component uses a complex layered CSS/Framer stack:
-- **Layer 1**: Obsidian backdrop with `border-white/10`.
-- **Layer 2**: Tobacco Body (Gradient from zinc-800 to white).
-- **Layer 3**: The Burning Tip (Pulsing orange-red ember).
-- **Layer 4**: Atmospheric orange glow (`blur-[120px]`).
+### 📲 PWA Installation (Native Experience)
+For the best experience, install TABAK++ as a standalone application on your device:
 
----
-
-## 📲 PWA Installation
-
-### iOS Safari
-1. Open `https://tabakpp.web.app`
-2. Tap the **Share** button.
+#### **iOS Safari**
+1. Open the URL in Safari.
+2. Tap the **Share** icon (square with arrow).
 3. Scroll down and select **"Add to Home Screen"**.
-4. The app will launch with a clean standalone window (no browser bars).
+4. Launch from your home screen for a fullscreen, standalone experience.
 
-### Android Chrome
-1. Open the URL.
-2. Tap the three dots (menu).
+#### **Android Chrome**
+1. Open the URL in Chrome.
+2. Tap the **three dots** (menu).
 3. Select **"Install App"**.
 
 ---
 
-## 🚀 Deployment & Maintenance
+## 🔐 Security & Deployment
+- **Environment Management**: Secrets (Firebase API keys) are externalized via `.env` using Vite's `import.meta.env` system to ensure security on GitHub.
+- **Hosting**: Deployed via [Firebase Hosting](https://firebase.google.com/products/hosting).
 
-To deploy the latest master build to production:
+**To deploy updates**:
 ```bash
-# 1. Build the production bundle
+# Build the production bundle
 npm run build
 
-# 2. Deploy to Firebase Hosting
+# Push to Firebase
 firebase deploy --only hosting:tabakpp
 ```
 
