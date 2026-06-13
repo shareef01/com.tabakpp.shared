@@ -33,7 +33,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "27.5.0-COMPACT-INSIGHTS";
+const APP_VERSION = "28.0.0-SYSTEM-COMPACT";
 
 const hexToRgb = (hex) => {
   try {
@@ -172,7 +172,7 @@ const TopBanner = React.memo(({ user, onNavigate, widgetSize, onUpdateSettings }
   return (
     <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
       <div className="max-w-7xl mx-auto flex justify-between items-center px-6 font-inter">
-        <div className="flex flex-col text-left font-inter"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter whitespace-nowrap flex items-center">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60 font-inter">Dashboard</span></div>
+        <div className="flex flex-col text-left font-inter"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter whitespace-nowrap flex items-center">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Dashboard</span></div>
         <div className="flex items-center gap-6">
           <HeaderSizeControl value={widgetSize} onChange={onUpdateSettings} />
           <div className="relative" ref={dropdownRef}>
@@ -235,14 +235,15 @@ const ProtocolListItem = React.memo(({ config, idx, total, onReo, onEdit, onDel 
 
 /**
  * <InsightCard />
- * REFACTORED: More compact geometry for high-density historical data.
+ * REFACTORED: Ultra-compact geometry for a professional "System" aesthetic.
+ * Numbers are scaled down and padding is tightened to prevent a "huge" look.
  */
 const InsightCard = React.memo(({ icon: Icon, label, val, sub, color }) => (
-  <Card className="p-8 lg:p-10 bg-white/[0.02] border border-white/[0.03] flex flex-col items-center justify-center text-center shadow-2xl rounded-[48px] group hover:border-accent/20 transition-all duration-700 min-h-[260px] font-inter">
-     <div className={cn("p-5 rounded-[22px] bg-white/[0.03] mb-6 shadow-inner border border-white/5 group-hover:scale-110 transition-transform duration-700", color)}><Icon size={36} /></div>
-     <span className="text-5xl lg:text-6xl font-[1000] tracking-tighter tabular-nums mb-2 font-inter group-hover:text-white transition-colors leading-none">{val}</span>
-     <span className="text-[11px] font-black text-white/30 uppercase tracking-[0.4em] font-inter group-hover:text-white/50">{sub}</span>
-     <div className="mt-8 pt-8 border-t border-white/[0.05] w-full text-[10px] font-[1000] uppercase tracking-[0.8em] text-accent opacity-20 font-inter group-hover:opacity-40">{label}</div>
+  <Card className="p-6 lg:p-8 bg-white/[0.02] border border-white/[0.03] flex flex-col items-center justify-center text-center shadow-2xl rounded-[40px] group hover:border-accent/20 transition-all duration-700 min-h-[200px] lg:min-h-[220px] font-inter">
+     <div className={cn("p-3 rounded-[16px] bg-white/[0.03] mb-4 shadow-inner border border-white/5 group-hover:scale-110 transition-transform duration-700", color)}><Icon size={24} /></div>
+     <span className="text-4xl lg:text-5xl font-[1000] tracking-tighter tabular-nums mb-1 font-inter group-hover:text-white transition-colors leading-none">{val}</span>
+     <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em] font-inter group-hover:text-white/40">{sub}</span>
+     <div className="mt-6 pt-6 border-t border-white/[0.05] w-full text-[8px] font-[1000] uppercase tracking-[0.8em] text-accent opacity-20 font-inter group-hover:opacity-40">{label}</div>
   </Card>
 ));
 
@@ -259,7 +260,7 @@ const HistoryScreen = React.memo(({ logs, m, onEdit, userId, today }) => {
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 font-inter">
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[48px] shadow-2xl"><div className="flex justify-between items-start mb-12 text-left font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black text-white/30 tracking-[0.8em] uppercase font-inter">History</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter font-black">Daily Logs</span></div><div className="p-4 bg-accent/10 rounded-[20px] text-accent"><BarChart3 size={32} strokeWidth={2.5} /></div></div><div className="h-72 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={logs.slice(0, 7).reverse().map(l => ({ name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(), val: Object.values(l.counts || {}).reduce((a,b)=>a+b, 0) }))}><CartesianGrid strokeDasharray="8 8" stroke="#ffffff03" vertical={false} /><XAxis dataKey="name" stroke="#6b7280" fontSize={10} axisLine={false} tickLine={false} tick={{fontWeight:900}} dy={15} /><Tooltip contentStyle={{ background: '#121316', border: 'none', borderRadius: '24px', fontSize: '12px' }} /><Line type="monotone" dataKey="val" stroke="var(--accent)" strokeWidth={8} dot={{ r: 8, fill: 'var(--accent)', strokeWidth: 5, stroke: '#0a0a0c' }} animationDuration={2000} /></LineChart></ResponsiveContainer></div></Card>
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
          <InsightCard icon={TrendingUp} label="Streak" val={m.streak} sub="Days" color="text-amber-400" />
          <InsightCard icon={Wallet} label="Saved" val={`$${(m.savings || 0).toFixed(2)}`} sub="Capital" color="text-emerald-400" />
          <InsightCard icon={Activity} label="Health" val={`${Math.floor((m.lost || 0)/60)}H`} sub="Recovered" color="text-rose-400" />
@@ -280,7 +281,7 @@ const BurningCigarette = () => (
      </div>
      <motion.div animate={{ opacity: [0.2, 0.5, 0.2] }} transition={{ duration: 3, repeat: Infinity }} className="absolute w-[500px] h-[250px] bg-orange-600/10 rounded-full blur-[100px]" />
      <div className="absolute -top-[400px] left-0">
-        {[...Array(8)].map((_, i) => ( <motion.div key={i} initial={{ y: 300, opacity: 0, scale: 0.5 }} animate={{ y: -200, opacity: [0, 0.2, 0], scale: [0.5, 4, 6], x: [0, 50, -50, 20] }} transition={{ duration: 6, repeat: Infinity, delay: i * 0.9 }} className="absolute w-32 h-32 bg-white/[0.02] rounded-full blur-[80px]" /> ))}
+        {[...Array(8)].map((_, i) => ( <motion.div key={i} initial={{ y: 300, opacity: 0, scale: 0.5 }} animate={{ y: -200, opacity: [0, 0.2, 0], scale: [0.5, 4, 6], x: [0, 50, -50, 20] }} transition={{ duration: 6, repeat: Infinity, delay: i * 0.9 }} className="absolute w-32 h-32 bg-white/[0.03] rounded-full blur-[80px]" /> ))}
      </div>
   </div>
 );
