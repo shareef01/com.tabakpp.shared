@@ -33,7 +33,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "27.0.0-FINAL-MASTER-STABLE";
+const APP_VERSION = "27.1.0-AUTH-FIXED";
 
 const hexToRgb = (hex) => {
   try {
@@ -172,7 +172,7 @@ const TopBanner = React.memo(({ user, onNavigate, widgetSize, onUpdateSettings }
   return (
     <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
       <div className="max-w-7xl mx-auto flex justify-between items-center px-6 font-inter">
-        <div className="flex flex-col text-left font-inter"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter whitespace-nowrap flex items-center">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Dashboard</span></div>
+        <div className="flex flex-col text-left font-inter"><div className="flex items-center gap-2.5"><div className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shadow-[0_0_12px_var(--accent)]" /><h1 className="text-2xl font-[1000] tracking-tighter uppercase leading-none font-black font-inter whitespace-nowrap flex items-center">TABAK<span className="text-accent">++</span></h1></div><span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60 font-inter">Dashboard</span></div>
         <div className="flex items-center gap-6">
           <HeaderSizeControl value={widgetSize} onChange={onUpdateSettings} />
           <div className="relative" ref={dropdownRef}>
@@ -265,13 +265,11 @@ const HistoryScreen = React.memo(({ logs, m, onEdit, userId, today }) => {
 
 const BurningCigarette = () => (
   <div className="relative flex flex-col items-center justify-center pointer-events-none select-none">
-     {/* Realistic Body Calibrated to In-App Visuals */}
      <div className="relative w-[300px] md:w-[480px] h-10 md:h-12 rounded-full border-2 border-white/5 bg-black/20 flex items-center shadow-2xl overflow-hidden backdrop-blur-sm">
         <div className="absolute h-full bg-gradient-to-r from-zinc-400 via-white to-zinc-100" style={{ width: '72%', right: '28%' }} />
         <div className="absolute right-0 h-full w-[28%] border-l-2 bg-gradient-to-b from-[#f59e0b] via-[#ea580c] to-[#d97706] border-black/20" />
         <motion.div animate={{ x: [-1, 1, -1] }} transition={{ duration: 0.2, repeat: Infinity }} className="absolute h-full w-2.5 bg-gradient-to-r from-orange-600 via-red-600 to-orange-500 shadow-[0_0_40px_red] z-20" style={{ right: 'calc(28% + 72% - 1.5px)' }} />
      </div>
-     {/* Atmospheric Dynamics */}
      <motion.div animate={{ opacity: [0.2, 0.5, 0.2] }} transition={{ duration: 3, repeat: Infinity }} className="absolute w-[500px] h-[250px] bg-orange-600/10 rounded-full blur-[100px]" />
      <div className="absolute -top-[400px] left-0">
         {[...Array(8)].map((_, i) => ( <motion.div key={i} initial={{ y: 300, opacity: 0, scale: 0.5 }} animate={{ y: -200, opacity: [0, 0.2, 0], scale: [0.5, 4, 6], x: [0, 50, -50, 20] }} transition={{ duration: 6, repeat: Infinity, delay: i * 0.9 }} className="absolute w-32 h-32 bg-white/[0.02] rounded-full blur-[80px]" /> ))}
@@ -301,7 +299,6 @@ const AuthScreen = ({ accent }) => {
 
   return (
     <div className="min-h-screen bg-[#020202] flex flex-col lg:flex-row items-stretch text-white font-inter overflow-hidden selection:bg-accent/30">
-      {/* LEFT: CALIBRATED HERO */}
       <div className="hidden lg:flex flex-1 flex-col items-center justify-center bg-black relative border-r border-white/[0.03]">
          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
          <div className="flex-1 w-full flex flex-col items-center justify-center gap-2">
@@ -313,25 +310,27 @@ const AuthScreen = ({ accent }) => {
          </div>
       </div>
 
-      {/* RIGHT: ALIGNED PORTAL */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 lg:p-24 relative z-10 bg-[#020202]">
-        <div className="w-full max-w-[500px] flex flex-col items-center space-y-16">
+        <div className="w-full h-full flex flex-col items-center justify-center space-y-16">
 
-          <div className="flex flex-col items-center text-center font-inter w-full">
-            <div className="flex flex-row items-center justify-center gap-0 font-inter">
-               <h1 className="text-8xl lg:text-9xl font-[1000] tracking-tighter uppercase leading-none whitespace-nowrap">TABAK<span className="text-accent">++</span></h1>
-            </div>
-            <span className="text-[10px] font-black text-white/20 tracking-[1.5em] uppercase mt-10 text-center w-full">Quit Control System</span>
+          <div className="flex flex-col items-center text-center font-inter w-full space-y-8">
+            <h1 className="text-8xl lg:text-9xl font-[1000] tracking-tighter uppercase leading-none whitespace-nowrap">TABAK<span className="text-accent">++</span></h1>
+            <span className="text-[10px] font-black text-white/20 tracking-[1.5em] uppercase text-center w-full block">Quit Control System</span>
           </div>
 
-          <div className="bg-white/[0.01] border border-white/[0.08] p-12 lg:p-18 rounded-[80px] space-y-12 shadow-[0_50px_150px_rgba(0,0,0,1)] backdrop-blur-3xl relative overflow-hidden font-inter w-full text-center">
+          <div className="bg-white/[0.01] border border-white/[0.08] p-12 lg:p-18 rounded-[80px] space-y-12 shadow-[0_50px_150px_rgba(0,0,0,1)] backdrop-blur-3xl relative overflow-hidden font-inter w-full max-w-[500px] text-center max-h-[85vh] overflow-y-auto scrollbar-hide">
              <div className="absolute inset-0 border border-white/[0.03] rounded-[80px] pointer-events-none" />
 
-             {/* REFINED FULL-WIDTH TOGGLE */}
-             <div className="relative bg-black/60 border border-white/[0.05] p-1.5 rounded-full flex items-center h-18 w-full shadow-inner overflow-hidden">
-               <button onClick={() => setMode('LOGIN')} className={cn("relative flex-1 h-full text-[12px] font-[1000] uppercase tracking-[0.2em] transition-all duration-500 z-20", mode === 'LOGIN' ? "text-zinc-950" : "text-white/30")}>Sign In</button>
-               <button onClick={() => setMode('REGISTER')} className={cn("relative flex-1 h-full text-[12px] font-[1000] uppercase tracking-[0.2em] transition-all duration-500 z-20", mode === 'REGISTER' ? "text-zinc-950" : "text-white/30")}>Sign Up</button>
-               <motion.div className="absolute h-[calc(100%-12px)] bg-accent rounded-full shadow-[0_15px_40px_rgba(212,255,50,0.5)]" animate={{ x: mode === 'LOGIN' ? 6 : 'calc(50% + 2px)', width: 'calc(50% - 8px)' }} initial={false} transition={{ type: 'spring', stiffness: 450, damping: 40 }} />
+             {/* REFINED TOGGLE - Absolute Slider & Correct Text Contrast */}
+             <div className="relative bg-black/60 border border-white/[0.05] p-1 rounded-full flex items-center h-18 w-full shadow-inner overflow-hidden">
+                <button onClick={() => setMode('LOGIN')} className={cn("relative flex-1 h-full text-[12px] font-[1000] uppercase tracking-[0.2em] transition-all duration-500 z-20", mode === 'LOGIN' ? "text-zinc-950" : "text-white/30")}>Sign In</button>
+                <button onClick={() => setMode('REGISTER')} className={cn("relative flex-1 h-full text-[12px] font-[1000] uppercase tracking-[0.2em] transition-all duration-500 z-20", mode === 'REGISTER' ? "text-zinc-950" : "text-white/30")}>Sign Up</button>
+                <motion.div
+                   className="absolute left-1 h-[calc(100%-8px)] bg-accent rounded-full shadow-[0_15px_40px_rgba(212,255,50,0.5)]"
+                   animate={{ x: mode === 'LOGIN' ? 0 : '100%', left: mode === 'LOGIN' ? '4px' : '-4px' }}
+                   style={{ width: 'calc(50% - 4px)' }}
+                   transition={{ type: 'spring', stiffness: 450, damping: 40 }}
+                />
              </div>
 
              <div className="space-y-12 relative z-10 text-center">
@@ -394,7 +393,7 @@ const AppContent = () => {
           {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={reorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} onDel={deleteProtocol} />}
         </AnimatePresence>
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6 font-inter"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Dashboard" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Settings" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
+      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6 font-inter"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Settings" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
       <AnimatePresence>{showAdd && <ProtocolFormOverlay isOpen={showAdd} onClose={() => setShowAdd(false)} onApply={handleAddProtocol} title="New Counter" />}{editProtocol && <ProtocolFormOverlay isOpen={!!editProtocol} onClose={() => setEditProtocol(null)} onApply={handleUpdateProtocol} title="Edit Counter" initialData={editProtocol} />}{editTarget && <EditOverlay log={editTarget} configs={configs} onClose={() => setEditTarget(null)} user={user} />}</AnimatePresence>
     </div>
   );
