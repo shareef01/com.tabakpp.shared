@@ -14,7 +14,7 @@ import {
 // --- FIREBASE & SERVICES ---
 import { auth, db, storage } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
-import { doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 
 // --- CONTEXT & HOOKS ---
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -26,7 +26,7 @@ import { cn } from './utils/utils';
 import { Card, Button, Input, StaggeredItem } from './components/Common';
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "20.9.0-DROPDOWN-REFINED";
+const APP_VERSION = "20.9.5-ACCENT-FIX";
 
 const hexToRgb = (hex) => {
   try {
@@ -171,35 +171,19 @@ const TrackerCard = React.memo(({ config, count, onInc, onDec, index }) => {
 
 // --- REFINED SUB-COMPONENTS ---
 
-/**
- * <TopBanner />
- * REFACTORED: Includes Top-Right Profile Dropdown.
- * Uses Ref and Click-Outside logic for professional UX.
- */
 const TopBanner = React.memo(({ user, onNavigate }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-
-  // Click-Outside Listener
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false);
     };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
-
   const handleLogout = async () => {
-    setIsOpen(false);
-    if (window.confirm("Terminate this session?")) {
-      await signOut(auth);
-    }
+    setIsOpen(false); if (window.confirm("Terminate this session?")) await signOut(auth);
   };
-
   return (
     <header className="sticky top-0 z-[100] w-full backdrop-blur-md bg-black/70 border-b border-white/[0.03]" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)', paddingBottom: '1.25rem' }}>
       <div className="max-w-7xl mx-auto flex justify-between items-center px-6">
@@ -210,45 +194,16 @@ const TopBanner = React.memo(({ user, onNavigate }) => {
           </div>
           <span className="text-[10px] font-black text-white/30 tracking-[0.4em] uppercase ml-4.5 mt-1.5 opacity-60">Registry Portal</span>
         </div>
-
-        {/* Profile Dropdown Container */}
         <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden"
-          >
-            <User size={20} strokeWidth={3} />
-            <div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <button onClick={() => setIsOpen(!isOpen)} className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden">
+            <User size={20} strokeWidth={3} /><div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           </button>
-
           <AnimatePresence>
             {isOpen && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="absolute right-0 mt-4 w-56 bg-[#121316] border border-white/[0.05] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl p-3 overflow-hidden font-inter z-[110]"
-              >
-                <div className="px-4 py-3 border-b border-white/[0.03] mb-2">
-                   <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] block">Active identity</span>
-                   <span className="text-sm font-bold text-white truncate block mt-1">{user?.displayName || 'Registry User'}</span>
-                </div>
-
-                <button
-                  onClick={() => { onNavigate('control'); setIsOpen(false); }}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-white/60 hover:text-white hover:bg-white/[0.03] transition-all group text-left"
-                >
-                  <Settings size={18} className="group-hover:rotate-45 transition-transform duration-500" />
-                  <span className="text-xs font-black uppercase tracking-widest">Settings</span>
-                </button>
-
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-rose-500/60 hover:text-rose-500 hover:bg-rose-500/5 transition-all text-left"
-                >
-                  <LogOut size={18} />
-                  <span className="text-xs font-black uppercase tracking-widest">Log Out</span>
-                </button>
+              <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-4 w-56 bg-[#121316] border border-white/[0.05] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl p-3 overflow-hidden font-inter z-[110]">
+                <div className="px-4 py-3 border-b border-white/[0.03] mb-2"><span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] block">Active identity</span><span className="text-sm font-bold text-white truncate block mt-1">{user?.displayName || 'Registry User'}</span></div>
+                <button onClick={() => { onNavigate('control'); setIsOpen(false); }} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-white/60 hover:text-white hover:bg-white/[0.03] transition-all group text-left"><Settings size={18} className="group-hover:rotate-45 transition-transform duration-500" /><span className="text-xs font-black uppercase tracking-widest">Settings</span></button>
+                <button onClick={handleLogout} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[16px] text-rose-500/60 hover:text-rose-500 hover:bg-rose-500/5 transition-all text-left"><LogOut size={18} /><span className="text-xs font-black uppercase tracking-widest">Log Out</span></button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -367,6 +322,7 @@ const EditOverlay = ({ log, configs, onClose, user }) => {
 
 const AppContent = () => {
   const { user, loading: authLoading } = useAuth();
+  const [settings, setSettings] = useState({ accent: '#00d2ff' });
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
   const registry = useRegistry(user, today);
@@ -380,12 +336,27 @@ const AppContent = () => {
   const [editTarget, setEditTarget] = useState(null);
   const [editProtocol, setEditProtocol] = useState(null);
 
+  useEffect(() => {
+    if (!user) return;
+    return onSnapshot(doc(db, 'users', user.uid), (s) => {
+      if (s.exists()) {
+        const d = s.data();
+        setSettings(p => ({ ...p, accent: d.accent || '#00d2ff' }));
+      }
+    });
+  }, [user]);
+
+  const onUpdateSettings = useCallback(async (upd) => {
+    if (!user) return;
+    try { await updateDoc(doc(db, 'users', user.uid), upd); } catch (e) { console.error(e); }
+  }, [user]);
+
   if (registryError) return <ErrorView msg={registryError} />;
   if (authLoading || registryLoading) return <LoadingView />;
-  if (!user) return <AuthScreen accent="#00d2ff" />;
+  if (!user) return <AuthScreen accent={settings.accent} />;
 
   return (
-    <div className="min-h-screen w-full bg-[#020202] text-white font-inter selection:bg-accent/30 overflow-x-hidden flex flex-col" style={{ '--accent': '#00d2ff', '--accent-rgb': hexToRgb('#00d2ff') }}>
+    <div className="min-h-screen w-full bg-[#020202] text-white font-inter selection:bg-accent/30 overflow-x-hidden flex flex-col" style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent) }}>
       <TopBanner user={user} onNavigate={setActiveTab} />
       <main className="flex-1 overflow-y-auto pt-10 pb-[calc(env(safe-area-inset-bottom)+12rem)] px-5 max-w-7xl mx-auto w-full transition-all duration-500 overflow-x-hidden font-inter">
         <AnimatePresence mode="wait">
@@ -401,7 +372,7 @@ const AppContent = () => {
             </motion.div>
           )}
           {activeTab === 'history' && <HistoryScreen logs={logs} m={metrics} onEdit={setEditTarget} userId={user.uid} today={today} />}
-          {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={{accent:'#00d2ff'}} onAdd={() => setShowAdd(true)} onReo={reorder} onEditP={setEditProtocol} onUpd={()=>{}} onDel={deleteProtocol} />}
+          {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={reorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} onDel={deleteProtocol} />}
         </AnimatePresence>
       </main>
       <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6"><div className="max-w-xl mx-auto flex items-center justify-around h-20"><NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} /><NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} /><NavBtn id="control" icon={Settings} label="Control" active={activeTab === 'control'} onClick={() => setActiveTab('control')} /></div></nav>
@@ -412,19 +383,29 @@ const AppContent = () => {
 
 // --- SETTINGS (VIEW) ---
 
-const SettingsScreen = ({ configs, user, onAdd, onReo, onEditP, onDel }) => {
+const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd, onDel }) => {
   const [n, setN] = useState(user?.displayName || '');
+  const [la, setLa] = useState(settings.accent);
+  const handleThemeApply = () => { onUpd({ accent: la }); };
   return (
     <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 max-w-3xl mx-auto font-inter text-left">
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex flex-col items-center gap-10">
-          <div className="w-40 h-40 rounded-[48px] bg-accent/5 border-2 border-accent/20 flex items-center justify-center overflow-hidden shadow-2xl">
-            <User size={64} className="text-accent" strokeWidth={3} />
-          </div>
-          <div className="w-full space-y-10">
-            <Input label="Identity Label" value={n} onChange={setN} isDark />
-            <button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all">Commit Profile</button>
-          </div>
+          <div className="w-40 h-40 rounded-[48px] bg-accent/5 border-2 border-accent/20 flex items-center justify-center overflow-hidden shadow-2xl"><User size={64} className="text-accent" strokeWidth={3} /></div>
+          <div className="w-full space-y-10"><Input label="Identity Label" value={n} onChange={setN} isDark /><button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-20 bg-white text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all">Commit Profile</button></div>
        </div></Card>
+       <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter">
+          <div className="space-y-10">
+             <div className="px-2"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30 mb-2">Interface Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase">Accent Spectrum</span></div>
+             <div className="grid grid-cols-3 gap-6">
+                {ACCENTS.map(x => (
+                   <button key={x.v} onClick={() => setLa(x.v)} className={cn("h-16 rounded-[24px] border-2 transition-all duration-500 relative flex items-center justify-center", la === x.v ? "border-white scale-105 shadow-2xl" : "border-white/[0.05] opacity-40 hover:opacity-100")} style={{ backgroundColor: x.v }}>
+                      {la === x.v && <Check size={24} className="text-white drop-shadow-md" strokeWidth={4} />}
+                   </button>
+                ))}
+             </div>
+             <button onClick={handleThemeApply} className="w-full h-20 bg-accent text-black font-black uppercase tracking-[0.5em] rounded-[28px] active:scale-95 transition-all shadow-2xl">Apply Scheme</button>
+          </div>
+       </Card>
        <Card className="p-12 bg-white/[0.02] border border-white/[0.03] rounded-[56px] shadow-2xl font-inter"><div className="flex items-center justify-between px-2 font-inter"><div className="space-y-2 text-left font-inter"><h3 className="text-[10px] font-black uppercase tracking-[0.8em] text-white/30">Active Schematics</h3><span className="text-3xl font-[1000] tracking-tighter uppercase font-inter">Protocols</span></div><button onClick={onAdd} className="p-5 bg-accent text-black rounded-[24px] shadow-2xl active:scale-90 transition-all"><Plus size={32} /></button></div><div className="space-y-6">{configs.sort((a,b)=>a.order-b.order).map((c, idx) => ( <ProtocolListItem key={c.id} config={c} idx={idx} total={configs.length} onReo={onReo} onEdit={onEditP} onDel={() => onDel(c.id)} /> ))}</div></Card>
     </motion.div>
   );
