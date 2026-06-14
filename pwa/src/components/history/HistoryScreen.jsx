@@ -54,7 +54,7 @@ export const HistoryScreen = React.memo(({ logs, m, onEdit, userId, today }) => 
            </div>
          </div>
 
-         <div className="h-64 lg:h-80 w-full">
+         <div className="h-64 lg:h-80 w-full max-h-80">
            <ResponsiveContainer width="100%" height="100%">
              <LineChart data={logs.slice(0, 10).reverse().map(l => ({
                name: new Date(l.logDate).toLocaleDateString(undefined, {weekday:'short'}).toUpperCase(),

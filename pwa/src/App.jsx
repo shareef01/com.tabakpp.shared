@@ -152,24 +152,26 @@ const AppContent = () => {
       <TopBanner user={user} onNavigate={setActiveTab} widgetSize={settings.widgetSize} onUpdateSettings={onUpdateSettings} onRequestLogout={() => setShowLogout(true)} />
 
       <main className="flex-1 overflow-y-auto pt-8 pb-[calc(env(safe-area-inset-bottom)+10rem)] w-full transition-all duration-500 overflow-x-hidden font-inter">
-        <Suspense fallback={<LoadingView />}>
-          <AnimatePresence mode="wait">
-            {activeTab === 'track' && (
-              <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="max-w-7xl mx-auto px-4 lg:px-8 space-y-10 font-inter">
-                <div className={cn("grid transition-all duration-500", gridClasses[settings.widgetSize] || gridClasses.LARGE)}>
-                   {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
-                    <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} />
-                   ))}
-                </div>
-                <div className="w-full">
-                  <MetricBanner m={metrics} />
-                </div>
-              </motion.div>
-            )}
-            {activeTab === 'history' && <HistoryScreen logs={logs} m={metrics} onEdit={setEditTarget} userId={user.uid} today={today} />}
-            {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={reorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} onDel={deleteProtocol} />}
-          </AnimatePresence>
-        </Suspense>
+        <div className="max-w-6xl mx-auto w-full px-4 lg:px-8">
+          <Suspense fallback={<LoadingView />}>
+            <AnimatePresence mode="wait">
+              {activeTab === 'track' && (
+                <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-8 font-inter">
+                  <div className={cn("grid transition-all duration-500", gridClasses[settings.widgetSize] || gridClasses.LARGE)}>
+                     {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
+                      <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} />
+                     ))}
+                  </div>
+                  <div className="w-full">
+                    <MetricBanner m={metrics} />
+                  </div>
+                </motion.div>
+              )}
+              {activeTab === 'history' && <HistoryScreen logs={logs} m={metrics} onEdit={setEditTarget} userId={user.uid} today={today} />}
+              {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={reorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} onDel={deleteProtocol} />}
+            </AnimatePresence>
+          </Suspense>
+        </div>
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6 font-inter">

@@ -21,24 +21,24 @@ export const TrackerCard = React.memo(({ config, count, onInc, onDec, index, glo
       transition={{ delay: index * 0.05, type: 'spring', damping: 20 }}
       className={cn(
         "bg-neutral-900/40 backdrop-blur-xl border border-white/5 rounded-3xl flex flex-col items-center justify-between transition-all duration-500 group relative overflow-hidden shadow-lg shadow-black/20 font-inter",
-        isLarge ? "p-8 min-h-[420px]" : (isMedium ? "p-6 min-h-[340px]" : "p-4 min-h-[240px]"),
+        isLarge ? "p-6 min-h-[380px]" : (isMedium ? "p-5 min-h-[320px]" : "p-4 min-h-[220px]"),
         isL ? "border-danger/30" : "hover:border-white/10"
       )}
     >
       {/* Limit Label - Higher contrast */}
       {!isSmall && (
         <span className={cn(
-          "font-[1000] text-neutral-500 uppercase tracking-[0.3em] mb-4",
-          isLarge ? "text-[11px]" : "text-[10px]"
+          "font-[1000] text-neutral-500 uppercase tracking-[0.3em] mb-3",
+          isLarge ? "text-[10px]" : "text-[9px]"
         )}>
           Limit: {config.limit}
         </span>
       )}
 
-      <div className="flex-1 w-full flex flex-col items-center justify-center space-y-6">
+      <div className="flex-1 w-full flex flex-col items-center justify-center space-y-4">
         <div className={cn(
           "w-full flex justify-center items-center",
-          isLarge ? "h-32" : (isMedium ? "h-24" : "h-16")
+          isLarge ? "h-28" : (isMedium ? "h-20" : "h-14")
         )}>
           {config.type === 'CIGARETTE' && <SmokingProgress count={count} limit={config.limit} variant="CIGARETTE" size={globalSize} />}
           {config.type === 'SIMPLE' && <RingProgress count={count} limit={config.limit} size={globalSize} />}
@@ -54,7 +54,7 @@ export const TrackerCard = React.memo(({ config, count, onInc, onDec, index, glo
             animate={{ scale: 1, opacity: 1 }}
             className={cn(
               "font-[1000] tracking-tighter tabular-nums leading-none",
-              isLarge ? "text-6xl" : (isMedium ? "text-5xl" : "text-3xl"),
+              isLarge ? "text-5xl" : (isMedium ? "text-4xl" : "text-3xl"),
               isL ? "text-danger" : "text-white"
             )}
           >
@@ -62,7 +62,7 @@ export const TrackerCard = React.memo(({ config, count, onInc, onDec, index, glo
           </motion.span>
           <span className={cn(
             "font-black tracking-[0.2em] uppercase transition-colors duration-500 truncate w-full",
-            isLarge ? "text-[12px] mt-4" : (isMedium ? "text-[11px] mt-3" : "text-[9px] mt-2"),
+            isLarge ? "text-[12px] mt-3" : (isMedium ? "text-[10px] mt-2" : "text-[9px] mt-1"),
             isL ? "text-danger" : "text-accent opacity-80"
           )}>
             {config.name}
@@ -73,7 +73,7 @@ export const TrackerCard = React.memo(({ config, count, onInc, onDec, index, glo
       {/* Action Controls - Standardized lines */}
       <div className={cn(
         "w-full flex justify-between items-center border-t border-white/5",
-        isLarge ? "mt-8 pt-8" : (isMedium ? "mt-6 pt-6" : "mt-4 pt-4")
+        isLarge ? "mt-6 pt-6" : (isMedium ? "mt-4 pt-4" : "mt-3 pt-3")
       )}>
         <button
           onClick={onDec}
