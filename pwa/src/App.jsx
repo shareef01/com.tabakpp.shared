@@ -140,6 +140,13 @@ const AppContent = () => {
   if (registryLoading) return <LoadingView />;
   if (registryError) return <ErrorView msg={registryError} />;
 
+  // DYNAMIC GRID CONFIGURATION BASED ON WIDGET SIZE
+  const gridClasses = {
+    SMALL: "grid-cols-2 lg:grid-cols-6 gap-4",
+    MEDIUM: "grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6",
+    LARGE: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8"
+  };
+
   return (
     <div className="min-h-screen w-full bg-[#020202] text-white font-inter selection:bg-accent/30 overflow-x-hidden flex flex-col font-inter" style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent) }}>
       <TopBanner user={user} onNavigate={setActiveTab} widgetSize={settings.widgetSize} onUpdateSettings={onUpdateSettings} onRequestLogout={() => setShowLogout(true)} />
@@ -149,7 +156,7 @@ const AppContent = () => {
           <AnimatePresence mode="wait">
             {activeTab === 'track' && (
               <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="max-w-7xl mx-auto px-4 lg:px-8 space-y-10 font-inter">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8">
+                <div className={cn("grid transition-all duration-500", gridClasses[settings.widgetSize] || gridClasses.LARGE)}>
                    {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
                     <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} />
                    ))}
