@@ -8,28 +8,28 @@ const HeaderSizeControl = React.memo(({ value, onChange }) => {
   const activeIdx = options.findIndex(o => o.id === value);
 
   return (
-    <div className="relative bg-black/60 border border-white/[0.05] p-1 rounded-full flex items-center h-10 w-[120px] shadow-inner overflow-hidden">
-      {options.map((opt, i) => (
+    <div className="relative bg-neutral-900/80 backdrop-blur-md border border-white/10 p-1 rounded-full flex items-center h-10 w-[120px] shadow-inner overflow-hidden">
+      {options.map((opt) => (
         <button
           key={opt.id}
           onClick={() => onChange({ widgetSize: opt.id })}
           className={cn(
-            "relative flex-1 h-full flex items-center justify-center transition-all duration-500 z-10",
-            value === opt.id ? "text-zinc-950" : "text-white/40 hover:text-white/70"
+            "relative flex-1 h-full flex items-center justify-center transition-all duration-300 ease-out z-10 rounded-full hover:bg-white/5 group",
+            value === opt.id ? "text-zinc-950" : "text-neutral-400 hover:text-white"
           )}
         >
-          <opt.icon size={15} strokeWidth={3} />
+          <opt.icon size={15} strokeWidth={3} className="transition-transform group-active:scale-90" />
         </button>
       ))}
       <motion.div
-        className="absolute h-[calc(100%-8px)] bg-accent rounded-full shadow-[0_5px_15px_rgba(212,255,50,0.3)]"
+        className="absolute h-[calc(100%-8px)] bg-accent rounded-full shadow-[0_2px_8px_rgba(212,255,50,0.3)]"
         initial={false}
         animate={{
           x: activeIdx * (112 / 3),
-          width: 'calc(33.33% - 2.5px)',
-          left: activeIdx === 0 ? '4px' : (activeIdx === 1 ? '4px' : '4px')
+          width: 'calc(33.33% - 2px)'
         }}
-        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+        transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+        style={{ left: '4px' }}
       />
     </div>
   );
