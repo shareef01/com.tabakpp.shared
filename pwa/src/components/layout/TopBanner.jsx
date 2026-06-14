@@ -5,25 +5,31 @@ import { cn } from '../../utils/utils';
 
 const HeaderSizeControl = React.memo(({ value, onChange }) => {
   const options = [ { id: 'SMALL', icon: Grid2X2 }, { id: 'MEDIUM', icon: Columns2 }, { id: 'LARGE', icon: Square } ];
+  const activeIdx = options.findIndex(o => o.id === value);
+
   return (
-    <div className="relative bg-white/[0.03] border border-white/[0.05] p-0.5 rounded-[18px] flex items-center shadow-inner overflow-hidden">
-      {options.map((opt) => (
+    <div className="relative bg-black/60 border border-white/[0.05] p-1 rounded-full flex items-center h-10 w-[120px] shadow-inner overflow-hidden">
+      {options.map((opt, i) => (
         <button
           key={opt.id}
           onClick={() => onChange({ widgetSize: opt.id })}
           className={cn(
-            "relative p-2.5 transition-all duration-500 z-10 rounded-[14px] flex items-center justify-center w-9 h-9",
-            value === opt.id ? "text-zinc-950" : "text-white/60 hover:text-white/90"
+            "relative flex-1 h-full flex items-center justify-center transition-all duration-500 z-10",
+            value === opt.id ? "text-zinc-950" : "text-white/40 hover:text-white/70"
           )}
         >
-          <opt.icon size={16} strokeWidth={3} />
+          <opt.icon size={15} strokeWidth={3} />
         </button>
       ))}
       <motion.div
-        className="absolute h-[calc(100%-4px)] bg-accent rounded-[14px] shadow-[0_0_15px_var(--accent-rgb)]"
+        className="absolute h-[calc(100%-8px)] bg-accent rounded-full shadow-[0_5px_15px_rgba(212,255,50,0.3)]"
         initial={false}
-        animate={{ width: 36, x: value === 'SMALL' ? 2 : (value === 'MEDIUM' ? 38 : 74) }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        animate={{
+          x: activeIdx * (112 / 3),
+          width: 'calc(33.33% - 2.5px)',
+          left: activeIdx === 0 ? '4px' : (activeIdx === 1 ? '4px' : '4px')
+        }}
+        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
       />
     </div>
   );
