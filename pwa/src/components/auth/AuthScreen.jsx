@@ -131,7 +131,7 @@ export const AuthScreen = React.memo(({ accent }) => {
             <QuitControlIcon />
             <div className="text-center pt-4">
                <motion.h2 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-5xl font-[1000] tracking-tighter uppercase leading-tight font-inter">EVERY SECOND <span className="text-rose-600">COUNTS.</span></motion.h2>
-               <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.6em] mt-4 font-inter">RECLAIM CONTROL OF YOUR LIFE.</p>
+               <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.6em] mt-4 font-inter">RECLAIM CONTROL OF YOUR LIFE.</p>
             </div>
          </div>
       </div>
@@ -144,8 +144,8 @@ export const AuthScreen = React.memo(({ accent }) => {
 
              {/* REFINED TOGGLE: Red Theme */}
              <div className="relative bg-black/60 border border-white/10 p-1.5 rounded-full flex items-center h-16 w-full mb-10 overflow-hidden font-inter">
-                <button onClick={() => setMode('LOGIN')} className={cn("relative flex-1 h-full text-[11px] font-[1000] uppercase tracking-[0.2em] transition-all duration-500 z-20 font-inter", mode === 'LOGIN' ? "text-zinc-950" : "text-neutral-500 hover:text-neutral-300")}>Sign In</button>
-                <button onClick={() => setMode('REGISTER')} className={cn("relative flex-1 h-full text-[11px] font-[1000] uppercase tracking-[0.2em] transition-all duration-500 z-20 font-inter", mode === 'REGISTER' ? "text-zinc-950" : "text-neutral-500 hover:text-neutral-300")}>Sign Up</button>
+                <button onClick={() => setMode('LOGIN')} className={cn("relative flex-1 h-full text-[11px] font-[1000] uppercase tracking-[0.2em] transition-all duration-500 z-20 font-inter", mode === 'LOGIN' ? "text-zinc-950" : "text-white/40 hover:text-white/70")}>Sign In</button>
+                <button onClick={() => setMode('REGISTER')} className={cn("relative flex-1 h-full text-[11px] font-[1000] uppercase tracking-[0.2em] transition-all duration-500 z-20 font-inter", mode === 'REGISTER' ? "text-zinc-950" : "text-white/40 hover:text-white/70")}>Sign Up</button>
                 <motion.div
                    className="absolute left-1.5 h-[calc(100%-12px)] bg-rose-600 rounded-full shadow-lg"
                    animate={{ x: mode === 'LOGIN' ? 0 : '100%', left: mode === 'LOGIN' ? '6px' : '-6px' }}
@@ -155,7 +155,7 @@ export const AuthScreen = React.memo(({ accent }) => {
              </div>
 
              <div className="flex flex-col gap-8 relative z-10 font-inter text-center">
-               {msg.c && <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className={cn("p-4 rounded-xl text-center font-black text-[10px] uppercase tracking-widest border", msg.t === 'FAULT' ? "bg-rose-600/10 text-rose-500 border-rose-600/20" : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20")}>{msg.c}</motion.div>}
+               {msg.c && <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className={cn("p-4 rounded-xl text-center font-black text-[10px] uppercase tracking-widest border", msg.t === 'FAULT' ? "bg-rose-600/10 text-rose-400 border-rose-600/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20")}>{msg.c}</motion.div>}
 
                <div className="flex flex-col gap-5 text-left font-inter">
                  {mode === 'REGISTER' && <Input label="Full Name" value={n} onChange={setN} isDark />}
@@ -179,8 +179,8 @@ export const AuthScreen = React.memo(({ accent }) => {
                </button>
 
                <div className="flex flex-col items-center gap-4 mt-2 font-inter">
-                 {mode === 'LOGIN' && <button onClick={() => setMode('RESET')} className="text-neutral-500 uppercase text-[10px] font-black tracking-widest hover:text-rose-500 transition-colors font-inter">Emergency Reset?</button>}
-                 {mode === 'RESET' && <button onClick={() => setMode('LOGIN')} className="text-neutral-500 uppercase text-[10px] font-black tracking-widest hover:text-white transition-colors font-inter">Return to Command</button>}
+                 {mode === 'LOGIN' && <button onClick={() => setMode('RESET')} className="text-white/40 uppercase text-[10px] font-black tracking-widest hover:text-rose-500 transition-colors font-inter">Emergency Reset?</button>}
+                 {mode === 'RESET' && <button onClick={() => setMode('LOGIN')} className="text-white/40 uppercase text-[10px] font-black tracking-widest hover:text-white transition-colors font-inter">Return to Command</button>}
                </div>
              </div>
           </div>

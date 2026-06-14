@@ -54,14 +54,14 @@ export const Button = React.memo(({ children, onClick, className, variant = 'pri
 
 export const Input = React.memo(({ value, onChange, label, type = "text", placeholder, isDark, className }) => (
   <div className={cn("flex flex-col w-full", className)}>
-    {label && <span className="text-[10px] font-bold text-neutral-500 tracking-[0.3em] uppercase ml-1 mb-2">{label}</span>}
+    {label && <span className="text-[10px] font-bold text-neutral-300 tracking-[0.3em] uppercase ml-1 mb-2">{label}</span>}
     <input
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className={cn(
-        "h-14 px-6 rounded-xl border focus:ring-1 focus:ring-accent focus:border-accent outline-none transition-all placeholder:text-neutral-600 font-bold shadow-inner will-change-[border-color,background-color]",
+        "h-14 px-6 rounded-xl border focus:ring-1 focus:ring-accent focus:border-accent outline-none transition-all placeholder:text-neutral-500 font-bold shadow-inner will-change-[border-color,background-color]",
         isDark ? "bg-neutral-900/50 border-neutral-700 text-white focus:bg-neutral-900/80" : "bg-black/[0.02] border-black/10 text-[#1D1D1F] focus:bg-black/[0.04]"
       )}
     />
