@@ -98,6 +98,16 @@ const AppContent = () => {
   const [editProtocol, setEditProtocol] = useState(null);
   const [showLogout, setShowLogout] = useState(false);
 
+  // RESET UI STATE ON AUTH CHANGE
+  useEffect(() => {
+    if (!user) {
+      setShowLogout(false);
+      setShowAdd(false);
+      setEditTarget(null);
+      setEditProtocol(null);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
     return onSnapshot(doc(db, 'users', user.uid), (s) => {
@@ -162,8 +172,13 @@ const AppContent = () => {
       </nav>
 
       <AnimatePresence>
-        {showLogout && <LogoutModal isOpen={showLogout} onClose={() => setShowLogout(false)} onConfirm={() => auth.signOut()} />}
-        {/* Overlays like ProtocolFormOverlay would be imported and lazy loaded if needed, but let\u0027s keep core ones stable */}
+        {showLogout && (
+          <LogoutModal
+            isOpen={showLogout}
+            onClose={() => setShowLogout(false)}
+            onConfirm={() => { setShowLogout(false); auth.signOut(); }}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
