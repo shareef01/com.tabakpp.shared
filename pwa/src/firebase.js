@@ -6,16 +6,15 @@ import { getStorage } from "firebase/storage";
 
 /**
  * TABAK++ Firebase Configuration
- * Secrets are externalized to .env (VITE_FIREBASE_*) to ensure security on GitHub.
- * The .env file is excluded from version control via .gitignore.
+ * Restored to hardcoded keys for immediate portfolio availability.
  */
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyANrIBu6W6X3n-QgOfDHNZnDpa4o-EWIp8",
+  authDomain: "tabakpp-ff036.firebaseapp.com",
+  projectId: "tabakpp-ff036",
+  storageBucket: "tabakpp-ff036.firebasestorage.app",
+  messagingSenderId: "651175477527",
+  appId: "1:651175477527:web:f68c3ef517667e3e9b3752"
 };
 
 // Initialize Firebase

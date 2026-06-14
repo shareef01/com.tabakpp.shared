@@ -4,6 +4,17 @@ import { LayoutGrid, BarChart3, Settings, AlertCircle, Loader2 } from 'lucide-re
 import { doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
+// --- UTILS ---
+const cn = (...classes) => classes.filter(Boolean).join(' ');
+
+const hexToRgb = (hex) => {
+  try {
+    const h = hex || '#00d2ff';
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+    return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 210, 255';
+  } catch { return '0, 210, 255'; }
+};
+
 // --- CONTEXT & HOOKS ---
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useRegistry } from './hooks/useRegistry';
@@ -19,24 +30,15 @@ const MetricBanner = lazy(() => import('./components/dashboard/MetricBanner').th
 const HistoryScreen = lazy(() => import('./components/history/HistoryScreen').then(m => ({ default: m.HistoryScreen })));
 const SettingsScreen = lazy(() => import('./components/settings/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
 
-// --- UTILS ---
-const hexToRgb = (hex) => {
-  try {
-    const h = hex || '#00d2ff';
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
-    return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 210, 255';
-  } catch { return '0, 210, 255'; }
-};
-
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "29.0.0-GRID-MASTER";
+const APP_VERSION = "29.4.2-BOOT-RECOVERY";
 
 // --- GLOBAL COMPONENTS ---
 
 const LoadingView = () => (
-  <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center space-y-12 text-accent font-inter font-black">
-    <Loader2 className="animate-spin" size={100} strokeWidth={3} />
-    <span className="text-sm font-black tracking-[1.5em] uppercase text-accent animate-pulse ml-[1.2em]">Synchronizing</span>
+  <div className="min-h-screen w-full bg-[#020202] flex flex-col items-center justify-center space-y-12 text-white font-inter font-black">
+    <Loader2 className="animate-spin text-rose-600" size={100} strokeWidth={3} />
+    <span className="text-sm font-black tracking-[1.5em] uppercase text-white/40 animate-pulse ml-[1.2em]">Synchronizing</span>
   </div>
 );
 
@@ -56,8 +58,6 @@ const NavBtn = React.memo(({ id, icon: Icon, label, active, onClick }) => (
     <span className={cn("text-[9px] font-black uppercase tracking-[0.3em] transition-all duration-500 font-inter", active ? "text-white opacity-100" : "text-white/60 opacity-0 group-hover:opacity-90 translate-y-2 group-hover:translate-y-0 font-inter")}>{label}</span>
   </button>
 ));
-
-const cn = (...classes) => classes.filter(Boolean).join(' ');
 
 // --- ERROR BOUNDARY ---
 class GlobalErrorBoundary extends React.Component {
