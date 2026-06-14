@@ -4,7 +4,8 @@ import { SmokingCalculator } from '../utils/smokingCalculator';
 
 /**
  * useRegistry (The ViewModel)
- * Handles React state, side effects, and calculator logic.
+ * Performance Optimized: Ensures all methods are stable references (useCallback)
+ * and all derived data is memoized (useMemo).
  */
 export const useRegistry = (user, today) => {
   const [configs, setConfigs] = useState([]);
@@ -97,6 +98,24 @@ export const useRegistry = (user, today) => {
     } catch (err) { setError(err.message); }
   }, [user, configs]);
 
+  // STABLE ACTION HANDLERS
+  const addProtocol = useCallback((data) => {
+    if (!user) return;
+    return RegistryService.addProtocol(user.uid, { ...data, order: configs.length });
+  }, [user, configs.length]);
+
+  const updateProtocol = useCallback((id, data) => {
+    if (!user) return;
+    return RegistryService.updateProtocol(user.uid, id, data);
+  }, [user]);
+
+  const deleteProtocol = useCallback((id) => {
+    if (!user) return;
+    return RegistryService.deleteProtocol(user.uid, id);
+  }, [user]);
+
+  const clearError = useCallback(() => setError(null), []);
+
   return {
     configs,
     logs,
@@ -106,9 +125,9 @@ export const useRegistry = (user, today) => {
     increment,
     decrement,
     reorder,
-    addProtocol: (data) => RegistryService.addProtocol(user.uid, { ...data, order: configs.length }),
-    updateProtocol: (id, data) => RegistryService.updateProtocol(user.uid, id, data),
-    deleteProtocol: (id) => RegistryService.deleteProtocol(user.uid, id),
-    clearError: () => setError(null)
+    addProtocol,
+    updateProtocol,
+    deleteProtocol,
+    clearError
   };
 };

@@ -2,18 +2,23 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../utils/utils';
 
-export const Card = ({ children, className, danger, noPadding }) => (
+/**
+ * Optimized Common Components
+ * Utilizes React.memo to prevent unnecessary re-renders during high-frequency data updates.
+ */
+
+export const Card = React.memo(({ children, className, danger, noPadding }) => (
   <div className={cn(
-    "rounded-[32px] border transition-all duration-500",
+    "rounded-[32px] border transition-all duration-500 will-change-[border-color,background-color]",
     !noPadding && "p-8 md:p-10",
     danger && "border-danger/30 bg-danger/[0.02]",
     className
   )}>
     {children}
   </div>
-);
+));
 
-export const Button = ({ children, onClick, className, variant = 'primary', disabled, size = 'md', style }) => {
+export const Button = React.memo(({ children, onClick, className, variant = 'primary', disabled, size = 'md', style }) => {
   const variants = {
     primary: "bg-accent text-[#0C0C00] shadow-[0_0_20px_var(--accent-glow)]",
     secondary: "bg-white/[0.05] text-inherit border border-white/10 hover:bg-white/[0.08]",
@@ -41,35 +46,35 @@ export const Button = ({ children, onClick, className, variant = 'primary', disa
         className
       )}
     >
-      <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+      <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 will-change-transform" />
       <span className="relative z-10 flex items-center">{children}</span>
     </motion.button>
   );
-};
+});
 
-export const Input = ({ value, onChange, label, type = "text", placeholder, isDark }) => (
+export const Input = React.memo(({ value, onChange, label, type = "text", placeholder, isDark }) => (
   <div className="flex flex-col space-y-3 w-full">
-    {label && <span className="text-[10px] font-black text-text-dim tracking-[0.4em] uppercase ml-1">{label}</span>}
+    {label && <span className="text-[10px] font-black text-text-dim tracking-[0.4em] uppercase ml-1 opacity-70">{label}</span>}
     <input
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className={cn(
-        "h-16 px-8 rounded-2xl border focus:border-accent/40 focus:outline-none transition-all placeholder:text-text-dim font-bold shadow-inner",
+        "h-16 px-8 rounded-2xl border focus:border-accent/40 focus:outline-none transition-all placeholder:text-text-dim font-bold shadow-inner will-change-[border-color]",
         isDark ? "bg-white/[0.02] border-white/10 text-white focus:bg-white/[0.04]" : "bg-black/[0.02] border-black/10 text-[#1D1D1F] focus:bg-black/[0.04]"
       )}
     />
   </div>
-);
+));
 
-export const StaggeredItem = ({ children, index, className }) => (
+export const StaggeredItem = React.memo(({ children, index, className }) => (
   <motion.div
     initial={{ opacity: 0, y: 30 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: index * 0.05, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-    className={className}
+    className={cn(className, "will-change-[transform,opacity]")}
   >
     {children}
   </motion.div>
-);
+));
