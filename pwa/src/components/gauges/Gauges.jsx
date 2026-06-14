@@ -4,11 +4,10 @@ import { HeartPulse } from 'lucide-react';
 import { cn } from '../../utils/utils';
 
 /**
- * Performance Optimized Gauges
- * Refactored to use 'transform: scaleX' for hardware acceleration.
- * Avoids browser 'Layout/Paint' cycles by staying on the GPU thread.
+ * High-Fidelity Cigarette Gauges
+ * Reverted to width-based logic for specific visual behavior.
+ * Optimized with transition-all for smooth layout-based animations.
  */
-
 export const SmokingProgress = React.memo(({ count, limit, variant, size = 'LARGE' }) => {
   const isL = count >= limit;
   const tobaccoPct = Math.max(0, 1 - (count / limit));
@@ -18,31 +17,25 @@ export const SmokingProgress = React.memo(({ count, limit, variant, size = 'LARG
 
   return (
     <div className={cn(
-      "relative rounded-full overflow-hidden border-2 transition-all duration-1000 flex items-center shadow-2xl will-change-[background-color,border-color]",
+      "relative rounded-full overflow-hidden border-2 transition-all duration-1000 flex items-center shadow-2xl",
       isSmall ? "h-8 w-40" : (isMedium ? "h-9 w-48" : "h-11 w-56"),
       variant === 'KING' && "w-64",
       variant === 'QUEEN' && "w-52",
       isL ? "bg-danger border-danger shadow-[0_0_50px_rgba(255,0,0,0.6)]" : "bg-white/[0.03] border-white/10"
     )}>
       {!isL && (
-        <motion.div
-          initial={false}
-          animate={{ scaleX: tobaccoPct }}
-          transition={{ duration: 1, ease: "easeOut" }}
+        <div
           className={cn(
-            "absolute h-full origin-right transition-colors duration-1000",
+            "absolute h-full transition-all duration-1000 ease-out",
             isJoint ? "bg-gradient-to-r from-white/80 to-white" : "bg-white shadow-[0_0_20px_white]"
           )}
-          style={{ width: '72%', right: '28%' }}
+          style={{ width: `${tobaccoPct * 72}%`, right: '28%' }}
         />
       )}
       {!isL && count > 0 && (
-        <motion.div
-          initial={false}
-          animate={{ x: `-${(1 - tobaccoPct) * 100}%` }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className="absolute h-full w-3 bg-danger shadow-[0_0_25px_red] z-20 will-change-transform"
-          style={{ right: 'calc(28% + 72% - 1.5px)' }}
+        <div
+          className="absolute h-full w-3 bg-danger shadow-[0_0_25px_red] z-20 transition-all duration-1000 ease-out"
+          style={{ right: `calc(28% + ${tobaccoPct * 72}% - 1.5px)` }}
         />
       )}
       <div className={cn(
@@ -53,6 +46,9 @@ export const SmokingProgress = React.memo(({ count, limit, variant, size = 'LARG
   );
 });
 
+/**
+ * Performance Optimized Circular Gauge
+ */
 export const RingProgress = React.memo(({ count, limit, size = 'LARGE' }) => {
   const isL = count >= limit;
   const progress = Math.min(1, count / limit);
@@ -87,6 +83,9 @@ export const RingProgress = React.memo(({ count, limit, size = 'LARGE' }) => {
   );
 });
 
+/**
+ * Performance Optimized Linear Bar
+ */
 export const GenericBarProgress = React.memo(({ count, limit, size = 'LARGE' }) => {
   const isL = count >= limit;
   const progress = Math.min(1, count / limit);
