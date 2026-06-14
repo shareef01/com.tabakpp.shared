@@ -52,17 +52,17 @@ export const Button = React.memo(({ children, onClick, className, variant = 'pri
   );
 });
 
-export const Input = React.memo(({ value, onChange, label, type = "text", placeholder, isDark }) => (
-  <div className="flex flex-col space-y-3 w-full">
-    {label && <span className="text-[10px] font-black text-text-dim tracking-[0.4em] uppercase ml-1 opacity-70">{label}</span>}
+export const Input = React.memo(({ value, onChange, label, type = "text", placeholder, isDark, className }) => (
+  <div className={cn("flex flex-col w-full", className)}>
+    {label && <span className="text-[10px] font-bold text-neutral-500 tracking-[0.3em] uppercase ml-1 mb-2">{label}</span>}
     <input
       type={type}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className={cn(
-        "h-16 px-8 rounded-2xl border focus:border-accent/40 focus:outline-none transition-all placeholder:text-text-dim font-bold shadow-inner will-change-[border-color]",
-        isDark ? "bg-white/[0.02] border-white/10 text-white focus:bg-white/[0.04]" : "bg-black/[0.02] border-black/10 text-[#1D1D1F] focus:bg-black/[0.04]"
+        "h-14 px-6 rounded-xl border focus:ring-1 focus:ring-accent focus:border-accent outline-none transition-all placeholder:text-neutral-600 font-bold shadow-inner will-change-[border-color,background-color]",
+        isDark ? "bg-neutral-900/50 border-neutral-700 text-white focus:bg-neutral-900/80" : "bg-black/[0.02] border-black/10 text-[#1D1D1F] focus:bg-black/[0.04]"
       )}
     />
   </div>
