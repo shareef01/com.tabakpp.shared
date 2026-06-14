@@ -144,7 +144,7 @@ const AppContent = () => {
   const gridClasses = {
     SMALL: "grid-cols-2 lg:grid-cols-6 gap-4",
     MEDIUM: "grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6",
-    LARGE: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8"
+    LARGE: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8"
   };
 
   return (
@@ -152,7 +152,7 @@ const AppContent = () => {
       <TopBanner user={user} onNavigate={setActiveTab} widgetSize={settings.widgetSize} onUpdateSettings={onUpdateSettings} onRequestLogout={() => setShowLogout(true)} />
 
       <main className="flex-1 overflow-y-auto pt-8 pb-[calc(env(safe-area-inset-bottom)+10rem)] w-full transition-all duration-500 overflow-x-hidden font-inter">
-        <div className="max-w-6xl mx-auto w-full px-4 lg:px-8">
+        <div className="max-w-7xl mx-auto w-full px-4 lg:px-8">
           <Suspense fallback={<LoadingView />}>
             <AnimatePresence mode="wait">
               {activeTab === 'track' && (
