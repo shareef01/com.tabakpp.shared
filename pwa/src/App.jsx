@@ -29,7 +29,7 @@ const hexToRgb = (hex) => {
 };
 
 // --- GLOBAL CONSTANTS ---
-const APP_VERSION = "28.6.0-PRODUCTION-OPTIMIZED";
+const APP_VERSION = "29.0.0-GRID-MASTER";
 
 // --- GLOBAL COMPONENTS ---
 
@@ -144,17 +144,19 @@ const AppContent = () => {
     <div className="min-h-screen w-full bg-[#020202] text-white font-inter selection:bg-accent/30 overflow-x-hidden flex flex-col font-inter" style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent) }}>
       <TopBanner user={user} onNavigate={setActiveTab} widgetSize={settings.widgetSize} onUpdateSettings={onUpdateSettings} onRequestLogout={() => setShowLogout(true)} />
 
-      <main className="flex-1 overflow-y-auto pt-10 pb-[calc(env(safe-area-inset-bottom)+12rem)] px-5 max-w-7xl mx-auto w-full transition-all duration-500 overflow-x-hidden font-inter">
+      <main className="flex-1 overflow-y-auto pt-8 pb-[calc(env(safe-area-inset-bottom)+10rem)] w-full transition-all duration-500 overflow-x-hidden font-inter">
         <Suspense fallback={<LoadingView />}>
           <AnimatePresence mode="wait">
             {activeTab === 'track' && (
-              <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-10 font-inter">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+              <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="max-w-7xl mx-auto px-4 lg:px-8 space-y-10 font-inter">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8">
                    {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
                     <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} />
                    ))}
                 </div>
-                <MetricBanner m={metrics} />
+                <div className="w-full">
+                  <MetricBanner m={metrics} />
+                </div>
               </motion.div>
             )}
             {activeTab === 'history' && <HistoryScreen logs={logs} m={metrics} onEdit={setEditTarget} userId={user.uid} today={today} />}
