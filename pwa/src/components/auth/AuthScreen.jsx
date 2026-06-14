@@ -8,43 +8,81 @@ import { Input } from '../Common';
 import { cn } from '../../utils/utils';
 
 /**
- * Optimized BurningCigarette
- * Uses will-change hints for smoke particles and ember dynamics.
+ * QuitControlIcon
+ * A conceptual, high-fidelity digital SVG replacing the literal cigarette.
+ * Features brushed metal filters, pearlescent white bodies, and an
+ * integrated neon-green progress gauge.
  */
-const BurningCigarette = React.memo(() => {
-  const smokeParticles = useMemo(() => [...Array(8)], []);
+const QuitControlIcon = React.memo(() => (
+  <div className="relative flex flex-col items-center justify-center pointer-events-none select-none group">
+    {/* Atmospheric Depth */}
+    <div className="absolute inset-0 bg-accent/5 blur-[120px] rounded-full scale-150 animate-pulse" />
 
-  return (
-    <div className="relative flex flex-col items-center justify-center pointer-events-none select-none">
-       <div className="relative w-[300px] md:w-[480px] h-10 md:h-12 rounded-full border-2 border-white/5 bg-black/20 flex items-center shadow-2xl overflow-hidden backdrop-blur-sm">
-          <div className="absolute h-full bg-gradient-to-r from-zinc-400 via-white to-zinc-100" style={{ width: '72%', right: '28%' }} />
-          <div className="absolute right-0 h-full w-[28%] border-l-2 bg-gradient-to-b from-[#f59e0b] via-[#ea580c] to-[#d97706] border-black/20" />
-          <motion.div
-            animate={{ x: [-1, 1, -1] }}
-            transition={{ duration: 0.2, repeat: Infinity }}
-            className="absolute h-full w-2.5 bg-gradient-to-r from-orange-600 via-red-600 to-orange-500 shadow-[0_0_40px_red] z-20 will-change-transform"
-            style={{ right: 'calc(28% + 72% - 1.5px)' }}
-          />
-       </div>
-       <motion.div
-         animate={{ opacity: [0.2, 0.5, 0.2] }}
-         transition={{ duration: 3, repeat: Infinity }}
-         className="absolute w-[500px] h-[250px] bg-orange-600/10 rounded-full blur-[100px] will-change-opacity"
-       />
-       <div className="absolute -top-[400px] left-0">
-          {smokeParticles.map((_, i) => (
-            <motion.div
-              key={i}
-              initial={{ y: 300, opacity: 0, scale: 0.5 }}
-              animate={{ y: -200, opacity: [0, 0.2, 0], scale: [0.5, 4, 6], x: [0, 50, -50, 20] }}
-              transition={{ duration: 6, repeat: Infinity, delay: i * 0.9 }}
-              className="absolute w-32 h-32 bg-white/[0.03] rounded-full blur-[80px] will-change-[transform,opacity]"
-            />
-          ))}
-       </div>
+    <svg width="400" height="80" viewBox="0 0 400 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+      <defs>
+        {/* Pearlescent White Body Gradient */}
+        <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="100%" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="50%" stopColor="#F8F8F8" />
+          <stop offset="100%" stopColor="#E2E2E2" />
+        </linearGradient>
+        {/* Brushed Metal Filter Gradient */}
+        <linearGradient id="filterGrad" x1="0" y1="0" x2="0" y2="100%" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#4A4A4A" />
+          <stop offset="50%" stopColor="#2D2D2D" />
+          <stop offset="100%" stopColor="#1A1A1B" />
+        </linearGradient>
+        {/* Neon Control Gauge Gradient */}
+        <linearGradient id="gaugeGrad" x1="0" y1="0" x2="100%" y2="0">
+          <stop offset="0%" stopColor="#D4FF32" />
+          <stop offset="100%" stopColor="#A4FF00" />
+        </linearGradient>
+        {/* Glass Overlay Shine */}
+        <linearGradient id="glassShine" x1="0" y1="0" x2="0" y2="100%">
+          <stop offset="0%" stopColor="white" stopOpacity="0.4" />
+          <stop offset="40%" stopColor="white" stopOpacity="0.1" />
+          <stop offset="100%" stopColor="white" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      {/* Main Body - Pearlescent */}
+      <rect x="100" y="20" width="220" height="40" rx="20" fill="url(#bodyGrad)" />
+      <rect x="100" y="20" width="220" height="20" rx="20" fill="url(#glassShine)" />
+
+      {/* Filter Segment - Brushed Metal */}
+      <rect x="300" y="20" width="80" height="40" rx="20" fill="url(#filterGrad)" />
+      <rect x="300" y="20" width="80" height="40" rx="20" fill="white" fillOpacity="0.03" />
+      <path d="M300 20V60" stroke="black" strokeOpacity="0.2" strokeWidth="1" />
+
+      {/* Integrated Control Gauge */}
+      <rect x="120" y="32" width="160" height="16" rx="8" fill="#121212" />
+      <motion.rect
+        initial={{ width: 0 }}
+        animate={{ width: 140 }}
+        transition={{ duration: 2, repeat: Infinity, repeatType: 'reverse', ease: "easeInOut" }}
+        x="125" y="36" height="8" rx="4" fill="url(#gaugeGrad)"
+        className="drop-shadow-[0_0_10px_#D4FF32]"
+      />
+
+      {/* Digital Readout Simulation */}
+      <circle cx="285" cy="40" r="12" fill="#0A0A0C" stroke="#D4FF32" strokeWidth="1" strokeOpacity="0.3" />
+      <rect x="282" y="38" width="6" height="4" rx="1" fill="#D4FF32" fillOpacity="0.8" />
+    </svg>
+
+    {/* Dynamic Particle Flow (Subtle) */}
+    <div className="absolute inset-0 flex items-center justify-center">
+      {[...Array(5)].map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, x: -100, y: 0 }}
+          animate={{ opacity: [0, 0.4, 0], x: -250 - (i * 20), y: [-20, 20, -20] }}
+          transition={{ duration: 4 + i, repeat: Infinity, delay: i * 0.8 }}
+          className="absolute w-20 h-20 bg-accent/5 rounded-full blur-3xl"
+        />
+      ))}
     </div>
-  );
-});
+  </div>
+));
 
 export const AuthScreen = React.memo(({ accent }) => {
   const [mode, setMode] = useState('LOGIN');
@@ -85,8 +123,8 @@ export const AuthScreen = React.memo(({ accent }) => {
       <div className="hidden lg:flex flex-1 flex-col items-center justify-center bg-black relative border-r border-white/[0.03]">
          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
          <div className="flex flex-col items-center justify-center gap-0 w-full h-full">
-            <BurningCigarette />
-            <div className="text-center pt-8">
+            <QuitControlIcon />
+            <div className="text-center pt-4">
                <motion.h2 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-5xl font-[1000] tracking-tighter uppercase leading-tight font-inter">EVERY SECOND <span className="text-accent">COUNTS.</span></motion.h2>
                <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.6em] mt-4 font-inter">RECLAIM CONTROL OF YOUR LIFE.</p>
             </div>
@@ -120,11 +158,19 @@ export const AuthScreen = React.memo(({ accent }) => {
                  {mode !== 'RESET' && <Input label="Password" type="password" value={p} onChange={setP} isDark />}
                </div>
 
+               {/* PREMIUM MULTI-LAYERED BUTTON */}
                <button
-                className="w-full h-18 bg-accent text-zinc-950 font-[1000] uppercase tracking-[0.4em] rounded-2xl active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(212,255,50,0.2)] hover:brightness-110 flex items-center justify-center text-[11px] mt-2 font-inter"
+                className="group relative w-full h-18 bg-accent text-zinc-950 font-[1000] uppercase tracking-[0.4em] rounded-2xl active:scale-[0.98] transition-all overflow-hidden flex items-center justify-center text-[11px] mt-2 shadow-[0_10px_40px_rgba(212,255,50,0.3)]"
                 onClick={handle}
                >
-                 {loading ? <Loader2 className="animate-spin" size={20} /> : (mode === 'LOGIN' ? 'Access Registry' : (mode === 'REGISTER' ? 'Create Account' : 'Reset'))}
+                 {/* Glass Reflection Layer */}
+                 <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                 {/* Tactical Depth Layer */}
+                 <div className="absolute inset-0 border-t border-white/40 rounded-2xl pointer-events-none" />
+
+                 <span className="relative z-10 flex items-center gap-3">
+                   {loading ? <Loader2 className="animate-spin" size={18} /> : (mode === 'LOGIN' ? 'Access Registry' : (mode === 'REGISTER' ? 'Create Account' : 'Reset'))}
+                 </span>
                </button>
 
                <div className="flex flex-col items-center gap-4 mt-2 font-inter">
