@@ -73,22 +73,38 @@ export const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP,
   const [n, setN] = useState(user?.displayName || '');
   const [la, setLa] = useState(settings.accent);
   const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(user?.photoURL || null);
   const fileInputRef = useRef(null);
 
   const handlePfpUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !user) return;
 
+    // 1. Instant Local Preview for tactile feedback
+    const reader = new FileReader();
+    reader.onload = (event) => setPreview(event.target.result);
+    reader.readAsDataURL(file);
+
     setUploading(true);
+    console.log("[PFP] Handshake initiated...");
+
     try {
-      const storageRef = ref(storage, `users/${user.uid}/pfp`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
+      // Use timestamped path to force cache busting
+      const storageRef = ref(storage, `users/${user.uid}/pfp_${Date.now()}`);
+
+      console.log("[PFP] Attempting stream upload...");
+      const snapshot = await uploadBytes(storageRef, file);
+
+      console.log("[PFP] Stream committed. Resolving metadata...");
+      const url = await getDownloadURL(snapshot.ref);
+
       await updateProfile(auth.currentUser, { photoURL: url });
+      console.log("[PFP] Sync Complete.");
       window.location.reload();
     } catch (err) {
-      console.error(err);
-      alert("Failed to upload image.");
+      console.error("[PFP] Sync Failed:", err);
+      setPreview(user?.photoURL || null);
+      alert(`Identity Sync Failure: ${err.message}`);
     } finally {
       setUploading(false);
     }
@@ -123,14 +139,19 @@ export const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP,
                 disabled={uploading}
                 className="w-32 h-32 rounded-[40px] bg-accent/5 border border-accent/20 flex items-center justify-center shadow-2xl relative group overflow-hidden transition-all hover:border-accent/50"
               >
-                {uploading ? (
-                  <Loader2 className="animate-spin text-accent" size={32} />
-                ) : user?.photoURL ? (
-                  <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                {uploading && (
+                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <Loader2 className="animate-spin text-accent" size={32} />
+                  </div>
+                )}
+
+                {preview ? (
+                  <img src={preview} alt="Avatar" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                 ) : (
                   <User size={48} className="text-accent" strokeWidth={2.5} />
                 )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
                   <Camera size={24} className="text-white" />
                 </div>
               </button>
