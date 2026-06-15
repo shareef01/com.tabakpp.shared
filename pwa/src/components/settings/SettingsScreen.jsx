@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { User, Check, Plus, ArrowUp, ArrowDown, Crown, Activity, Zap, Edit2, Trash2 } from 'lucide-react';
+import { User, Check, Plus, ArrowUp, ArrowDown, Crown, Activity, Zap, Edit2, Trash2, Camera, Loader2 } from 'lucide-react';
 import { updateProfile } from 'firebase/auth';
-import { auth } from '../../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, storage } from '../../firebase';
 import { Card, Input } from '../Common';
 import { cn } from '../../utils/utils';
 
@@ -71,6 +72,27 @@ const ProtocolListItem = React.memo(({ config, idx, total, onReo, onEdit, onDel 
 export const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP, onUpd, onDel }) => {
   const [n, setN] = useState(user?.displayName || '');
   const [la, setLa] = useState(settings.accent);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handlePfpUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !user) return;
+
+    setUploading(true);
+    try {
+      const storageRef = ref(storage, `users/${user.uid}/pfp`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      await updateProfile(auth.currentUser, { photoURL: url });
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload image.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -89,10 +111,29 @@ export const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP,
               Display Identity
             </h3>
             <div className="flex flex-col items-center gap-10">
-              <div className="w-32 h-32 rounded-[40px] bg-accent/5 border border-accent/20 flex items-center justify-center shadow-2xl relative group">
-                <User size={48} className="text-accent" strokeWidth={2.5} />
-                <div className="absolute inset-0 bg-accent/5 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePfpUpload}
+                className="hidden"
+                accept="image/*"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-32 h-32 rounded-[40px] bg-accent/5 border border-accent/20 flex items-center justify-center shadow-2xl relative group overflow-hidden transition-all hover:border-accent/50"
+              >
+                {uploading ? (
+                  <Loader2 className="animate-spin text-accent" size={32} />
+                ) : user?.photoURL ? (
+                  <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                ) : (
+                  <User size={48} className="text-accent" strokeWidth={2.5} />
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Camera size={24} className="text-white" />
+                </div>
+              </button>
               <div className="w-full space-y-8">
                 <Input label="Display Name" value={n} onChange={setN} isDark />
                 <button

@@ -68,7 +68,11 @@ export const TopBanner = React.memo(({ user, onNavigate, widgetSize, onUpdateSet
               onClick={() => setIsOpen(!isOpen)}
               className="group relative w-11 h-11 rounded-[18px] bg-accent/5 border border-accent/20 flex items-center justify-center text-accent active:scale-90 transition-all shadow-2xl overflow-hidden"
             >
-              <User size={20} strokeWidth={3} />
+              {user?.photoURL ? (
+                <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
+              ) : (
+                <User size={20} strokeWidth={3} />
+              )}
               <div className="absolute inset-0 bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
 
