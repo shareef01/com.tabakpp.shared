@@ -23,6 +23,8 @@ import { useRegistry } from './hooks/useRegistry';
 import { TopBanner } from './components/layout/TopBanner';
 import { LogoutModal } from './components/modals/Modals';
 import { DashboardSkeleton } from './components/dashboard/DashboardSkeleton';
+import { ProtocolFormOverlay } from './components/modals/ProtocolFormOverlay';
+import { EditOverlay } from './components/modals/EditOverlay';
 
 // --- LAZY LOADED SCREENS (Code Splitting) ---
 const AuthScreen = lazy(() => import('./components/auth/AuthScreen').then(m => ({ default: m.AuthScreen })));
@@ -209,6 +211,31 @@ const AppContent = () => {
                 isOpen={showLogout}
                 onClose={() => setShowLogout(false)}
                 onConfirm={() => { setShowLogout(false); auth.signOut(); }}
+              />
+            )}
+            {showAdd && (
+              <ProtocolFormOverlay
+                isOpen={showAdd}
+                onClose={() => setShowAdd(false)}
+                onApply={handleAddProtocol}
+                title="Create Counter"
+              />
+            )}
+            {editProtocol && (
+              <ProtocolFormOverlay
+                isOpen={!!editProtocol}
+                onClose={() => setEditProtocol(null)}
+                onApply={handleUpdateProtocol}
+                title="Configure Counter"
+                initialData={editProtocol}
+              />
+            )}
+            {editTarget && (
+              <EditOverlay
+                log={editTarget}
+                configs={configs}
+                onClose={() => setEditTarget(null)}
+                user={user}
               />
             )}
           </AnimatePresence>
