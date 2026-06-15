@@ -2,8 +2,8 @@ import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { User, Check, Plus, ArrowUp, ArrowDown, Crown, Activity, Zap, Edit2, Trash2, Camera, Loader2 } from 'lucide-react';
 import { updateProfile } from 'firebase/auth';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { auth, storage } from '../../firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { auth, db } from '../../firebase';
 import { Card, Input } from '../Common';
 import { cn } from '../../utils/utils';
 
@@ -39,12 +39,18 @@ export const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP,
   const [n, setN] = useState(user?.displayName || '');
   const [la, setLa] = useState(settings.accent);
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState(user?.photoURL || null);
+  const [preview, setPreview] = useState(settings.avatar || user?.photoURL || null);
   const fileInputRef = useRef(null);
 
   const handlePfpUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !user) return;
+
+    // Validate size (Firestore limit is 1MB total doc size, we limit image to 400kb)
+    if (file.size > 400 * 1024) {
+      alert("Image too large. Please select a file smaller than 400KB for free cloud sync.");
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = async (event) => {
@@ -52,26 +58,17 @@ export const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP,
       setPreview(base64);
       setUploading(true);
 
-      const timeout = setTimeout(() => {
-        if (uploading) {
-          setUploading(false);
-          alert("Handshake Timeout. Verify Firebase Storage Rules.");
-        }
-      }, 30000);
-
       try {
-        const storageRef = ref(storage, `users/${user.uid}/pfp_${Date.now()}.jpg`);
-        await uploadString(storageRef, base64, 'data_url');
-        const url = await getDownloadURL(storageRef);
-        await updateProfile(auth.currentUser, { photoURL: url });
-        window.location.reload();
+        console.log("[IDENTITY_SYNC] Committing to Firestore...");
+        // Save directly to Firestore settings - bypasses Storage upgrade requirement
+        await updateDoc(doc(db, 'users', user.uid), { avatar: base64 });
+        console.log("[IDENTITY_SYNC] SUCCESS.");
       } catch (err) {
-        console.error(err);
-        setPreview(user?.photoURL || null);
-        alert(`Sync Failed: ${err.message}`);
+        console.error("[IDENTITY_SYNC] FATAL_CRASH:", err);
+        setPreview(settings.avatar || user?.photoURL || null);
+        alert(`Identity Sync Failure: ${err.message}`);
       } finally {
         setUploading(false);
-        clearTimeout(timeout);
       }
     };
     reader.readAsDataURL(file);

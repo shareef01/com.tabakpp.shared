@@ -86,7 +86,8 @@ const AppContent = () => {
   const { user, loading: authLoading } = useAuth();
   const [settings, setSettings] = useState({
     accent: localStorage.getItem('tabak_accent') || '#D4FF32',
-    widgetSize: 'LARGE'
+    widgetSize: 'LARGE',
+    avatar: null
   });
   const [isHydrated, setIsHydrated] = useState(false);
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -119,7 +120,12 @@ const AppContent = () => {
       if (s.exists()) {
         const d = s.data();
         if (d.accent) localStorage.setItem('tabak_accent', d.accent);
-        setSettings(p => ({ ...p, accent: d.accent || '#D4FF32', widgetSize: d.widgetSize || 'LARGE' }));
+        setSettings(p => ({
+          ...p,
+          accent: d.accent || '#D4FF32',
+          widgetSize: d.widgetSize || 'LARGE',
+          avatar: d.avatar || null
+        }));
       }
       setIsHydrated(true);
     });
@@ -158,7 +164,7 @@ const AppContent = () => {
         </Suspense>
       ) : (
         <>
-          <TopBanner user={user} onNavigate={setActiveTab} widgetSize={settings.widgetSize} onUpdateSettings={onUpdateSettings} onRequestLogout={() => setShowLogout(true)} />
+          <TopBanner user={{...user, photoURL: settings.avatar || user.photoURL}} onNavigate={setActiveTab} widgetSize={settings.widgetSize} onUpdateSettings={onUpdateSettings} onRequestLogout={() => setShowLogout(true)} />
 
           <main className="flex-1 overflow-y-auto pt-8 pb-[calc(env(safe-area-inset-bottom)+10rem)] w-full transition-all duration-500 overflow-x-hidden font-inter">
             <div className="max-w-7xl mx-auto w-full px-4 lg:px-8">
