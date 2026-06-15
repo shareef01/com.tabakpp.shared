@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Plus, Minus } from 'lucide-react';
 import { cn } from '../../utils/utils';
 import { SmokingProgress, RingProgress, GenericBarProgress } from '../gauges/Gauges';
+import { UI } from '../Common';
 
 /**
  * Performance Optimized TrackerCard
@@ -20,24 +21,25 @@ export const TrackerCard = React.memo(({ config, count, onInc, onDec, index, glo
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.05, type: 'spring', damping: 20 }}
       className={cn(
-        "bg-neutral-900/40 backdrop-blur-xl border border-white/5 rounded-3xl flex flex-col items-center justify-between transition-all duration-500 group relative overflow-hidden shadow-lg shadow-black/20 font-inter",
+        UI.CARD,
         isLarge ? "p-6 min-h-[380px]" : (isMedium ? "p-5 min-h-[320px]" : "p-4 min-h-[220px]"),
         isL ? "border-danger/30" : "hover:border-white/10"
       )}
     >
-      {/* Limit Label - Higher contrast */}
+      {/* Limit Label */}
       {!isSmall && (
         <span className={cn(
-          "font-[1000] text-neutral-500 uppercase tracking-[0.3em] mb-3",
+          UI.LABEL,
+          "mb-3 text-center w-full",
           isLarge ? "text-[10px]" : "text-[9px]"
         )}>
           Limit: {config.limit}
         </span>
       )}
 
-      <div className="flex-1 w-full flex flex-col items-center justify-center space-y-4">
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 w-full">
         <div className={cn(
-          "w-full flex justify-center items-center",
+          "flex items-center justify-center w-full",
           isLarge ? "h-28" : (isMedium ? "h-20" : "h-14")
         )}>
           {config.type === 'CIGARETTE' && <SmokingProgress count={count} limit={config.limit} variant="CIGARETTE" size={globalSize} />}
@@ -70,16 +72,16 @@ export const TrackerCard = React.memo(({ config, count, onInc, onDec, index, glo
         </div>
       </div>
 
-      {/* Action Controls - Standardized lines */}
+      {/* Action Controls */}
       <div className={cn(
-        "w-full flex justify-between items-center border-t border-white/5",
+        "flex items-center justify-between w-full border-t border-white/5",
         isLarge ? "mt-6 pt-6" : (isMedium ? "mt-4 pt-4" : "mt-3 pt-3")
       )}>
         <button
           onClick={onDec}
           className={cn(
-            "rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-neutral-400 hover:text-white active:scale-90 transition-all",
-            isSmall ? "w-10 h-10" : "w-12 h-12"
+            "rounded-xl border border-white/5 bg-white/5 flex items-center justify-center text-neutral-400 transition-all hover:text-white active:scale-90",
+            isSmall ? "h-10 w-10" : "h-12 w-12"
           )}
         >
           <Minus size={isSmall ? 16 : 20} strokeWidth={3} />
@@ -87,8 +89,8 @@ export const TrackerCard = React.memo(({ config, count, onInc, onDec, index, glo
         <button
           onClick={onInc}
           className={cn(
-            "rounded-xl flex items-center justify-center active:scale-90 transition-all shadow-xl",
-            isSmall ? "w-10 h-10" : "w-12 h-12",
+            "rounded-xl flex items-center justify-center transition-all active:scale-90 shadow-xl",
+            isSmall ? "h-10 w-10" : "h-12 w-12",
             isL ? "bg-danger text-zinc-950" : "bg-accent text-zinc-950"
           )}
         >
