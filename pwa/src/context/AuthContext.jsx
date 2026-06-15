@@ -24,6 +24,10 @@ export const AuthProvider = ({ children }) => {
       }
 
       unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        if (!currentUser) {
+          // SECURE LOGOUT: Clear session-specific local storage
+          localStorage.removeItem('tabak_accent');
+        }
         setUser(currentUser);
         setLoading(false);
       }, (error) => {

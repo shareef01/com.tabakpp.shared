@@ -6,6 +6,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { Card, Input } from '../Common';
 import { cn } from '../../utils/utils';
+import { sanitizeString } from '../../utils/security';
 
 const ACCENTS = [
   { n: 'Cyan', v: '#00d2ff' }, { n: 'Lime', v: '#D4FF32' }, { n: 'Emerald', v: '#4ADE80' },
@@ -74,6 +75,18 @@ export const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP,
     reader.readAsDataURL(file);
   };
 
+  const handleUpdateProfile = async () => {
+    const cleanName = sanitizeString(n);
+    if (!cleanName) return;
+    try {
+      await updateProfile(auth.currentUser, { displayName: cleanName });
+      await updateDoc(doc(db, 'users', user.uid), { name: cleanName });
+      alert("Profile Securely Updated");
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-7xl mx-auto px-4 lg:px-8 font-inter">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -87,7 +100,15 @@ export const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP,
                 {preview ? <img src={preview} alt="Avatar" className="w-full h-full object-cover transition-transform group-hover:scale-110" /> : <User size={48} className="text-accent" strokeWidth={2.5} />}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10"><Camera size={24} className="text-white" /></div>
               </button>
-              <div className="w-full space-y-8"><Input label="Display Name" value={n} onChange={setN} isDark /><button onClick={() => updateProfile(auth.currentUser, { displayName: n })} className="w-full h-16 bg-white text-zinc-950 font-[1000] uppercase tracking-[0.4em] rounded-2xl active:scale-[0.98] transition-all text-[11px] shadow-2xl">Update Profile</button></div>
+              <div className="w-full space-y-8">
+                <Input label="Display Name" value={n} onChange={setN} isDark />
+                <button
+                  onClick={handleUpdateProfile}
+                  className="w-full h-16 bg-white text-zinc-950 font-[1000] uppercase tracking-[0.4em] rounded-2xl active:scale-[0.98] transition-all text-[11px] shadow-2xl"
+                >
+                  Update Profile
+                </button>
+              </div>
             </div>
           </section>
           <section className="bg-neutral-900/40 backdrop-blur-xl border border-white/5 rounded-[32px] p-8 lg:p-10 shadow-xl shadow-black/50">
