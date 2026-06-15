@@ -140,6 +140,13 @@ const AppContent = () => {
 
   if (authLoading) return <LoadingView />;
 
+  // DYNAMIC GRID CONFIGURATION BASED ON WIDGET SIZE
+  const gridClasses = {
+    SMALL: "grid-cols-2 lg:grid-cols-6 gap-4",
+    MEDIUM: "grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6",
+    LARGE: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8"
+  };
+
   return (
     <div className="min-h-screen w-full bg-[#020202] text-white font-inter selection:bg-accent/30 overflow-x-hidden flex flex-col font-inter" style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent) }}>
       {!user ? (
