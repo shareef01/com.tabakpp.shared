@@ -22,6 +22,7 @@ import { useRegistry } from './hooks/useRegistry';
 // --- SHARED COMPONENTS ---
 import { TopBanner } from './components/layout/TopBanner';
 import { LogoutModal } from './components/modals/Modals';
+import { DashboardSkeleton } from './components/dashboard/DashboardSkeleton';
 
 // --- LAZY LOADED SCREENS (Code Splitting) ---
 const AuthScreen = lazy(() => import('./components/auth/AuthScreen').then(m => ({ default: m.AuthScreen })));
@@ -87,6 +88,7 @@ const AppContent = () => {
     accent: localStorage.getItem('tabak_accent') || '#D4FF32',
     widgetSize: 'LARGE'
   });
+  const [isHydrated, setIsHydrated] = useState(false);
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
   const registry = useRegistry(user, today);
 
@@ -119,6 +121,7 @@ const AppContent = () => {
         if (d.accent) localStorage.setItem('tabak_accent', d.accent);
         setSettings(p => ({ ...p, accent: d.accent || '#D4FF32', widgetSize: d.widgetSize || 'LARGE' }));
       }
+      setIsHydrated(true);
     });
   }, [user]);
 
@@ -162,17 +165,23 @@ const AppContent = () => {
               <Suspense fallback={<LoadingView />}>
                 <AnimatePresence mode="wait">
                   {activeTab === 'track' && (
-                    <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-8 font-inter">
-                      <div className={cn("grid transition-all duration-500", gridClasses[settings.widgetSize] || gridClasses.LARGE)}>
-                        {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
-                          <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} />
-                        ))}
-                      </div>
-                      <div className="w-full">
-                        <MetricBanner m={metrics} />
-                      </div>
-                    </motion.div>
-                  )}
+              <motion.div key="track" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8 font-inter min-h-[600px]">
+                {!isHydrated || registryLoading ? (
+                  <DashboardSkeleton widgetSize={settings.widgetSize} />
+                ) : (
+                  <>
+                    <div className={cn("grid transition-all duration-500", gridClasses[settings.widgetSize] || gridClasses.LARGE)}>
+                      {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
+                        <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} />
+                      ))}
+                    </div>
+                    <div className="w-full">
+                      <MetricBanner m={metrics} />
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            )}
                   {activeTab === 'history' && <HistoryScreen logs={logs} m={metrics} onEdit={setEditTarget} userId={user.uid} today={today} />}
                   {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={reorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} onDel={deleteProtocol} />}
                 </AnimatePresence>
