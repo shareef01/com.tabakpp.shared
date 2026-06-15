@@ -83,7 +83,10 @@ class GlobalErrorBoundary extends React.Component {
 
 const AppContent = () => {
   const { user, loading: authLoading } = useAuth();
-  const [settings, setSettings] = useState({ accent: '#D4FF32', widgetSize: 'LARGE' });
+  const [settings, setSettings] = useState({
+    accent: localStorage.getItem('tabak_accent') || '#D4FF32',
+    widgetSize: 'LARGE'
+  });
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
   const registry = useRegistry(user, today);
 
@@ -113,6 +116,7 @@ const AppContent = () => {
     return onSnapshot(doc(db, 'users', user.uid), (s) => {
       if (s.exists()) {
         const d = s.data();
+        if (d.accent) localStorage.setItem('tabak_accent', d.accent);
         setSettings(p => ({ ...p, accent: d.accent || '#D4FF32', widgetSize: d.widgetSize || 'LARGE' }));
       }
     });
@@ -120,7 +124,10 @@ const AppContent = () => {
 
   const onUpdateSettings = useCallback(async (upd) => {
     if (!user) return;
-    try { await updateDoc(doc(db, 'users', user.uid), upd); } catch (e) { console.error(e); }
+    try {
+      await updateDoc(doc(db, 'users', user.uid), upd);
+      if (upd.accent) localStorage.setItem('tabak_accent', upd.accent);
+    } catch (e) { console.error(e); }
   }, [user]);
 
   const handleAddProtocol = async (data) => {
@@ -132,65 +139,59 @@ const AppContent = () => {
   };
 
   if (authLoading) return <LoadingView />;
-  if (!user) return (
-    <Suspense fallback={<LoadingView />}>
-      <AuthScreen accent="#D4FF32" />
-    </Suspense>
-  );
-  if (registryLoading) return <LoadingView />;
-  if (registryError) return <ErrorView msg={registryError} />;
-
-  // DYNAMIC GRID CONFIGURATION BASED ON WIDGET SIZE
-  const gridClasses = {
-    SMALL: "grid-cols-2 lg:grid-cols-6 gap-4",
-    MEDIUM: "grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6",
-    LARGE: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8"
-  };
 
   return (
     <div className="min-h-screen w-full bg-[#020202] text-white font-inter selection:bg-accent/30 overflow-x-hidden flex flex-col font-inter" style={{ '--accent': settings.accent, '--accent-rgb': hexToRgb(settings.accent) }}>
-      <TopBanner user={user} onNavigate={setActiveTab} widgetSize={settings.widgetSize} onUpdateSettings={onUpdateSettings} onRequestLogout={() => setShowLogout(true)} />
+      {!user ? (
+        <Suspense fallback={<LoadingView />}>
+          <AuthScreen accent={settings.accent} />
+        </Suspense>
+      ) : (
+        <>
+          <TopBanner user={user} onNavigate={setActiveTab} widgetSize={settings.widgetSize} onUpdateSettings={onUpdateSettings} onRequestLogout={() => setShowLogout(true)} />
 
-      <main className="flex-1 overflow-y-auto pt-8 pb-[calc(env(safe-area-inset-bottom)+10rem)] w-full transition-all duration-500 overflow-x-hidden font-inter">
-        <div className="max-w-7xl mx-auto w-full px-4 lg:px-8">
-          <Suspense fallback={<LoadingView />}>
-            <AnimatePresence mode="wait">
-              {activeTab === 'track' && (
-                <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-8 font-inter">
-                  <div className={cn("grid transition-all duration-500", gridClasses[settings.widgetSize] || gridClasses.LARGE)}>
-                     {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
-                      <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} />
-                     ))}
-                  </div>
-                  <div className="w-full">
-                    <MetricBanner m={metrics} />
-                  </div>
-                </motion.div>
-              )}
-              {activeTab === 'history' && <HistoryScreen logs={logs} m={metrics} onEdit={setEditTarget} userId={user.uid} today={today} />}
-              {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={reorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} onDel={deleteProtocol} />}
-            </AnimatePresence>
-          </Suspense>
-        </div>
-      </main>
+          <main className="flex-1 overflow-y-auto pt-8 pb-[calc(env(safe-area-inset-bottom)+10rem)] w-full transition-all duration-500 overflow-x-hidden font-inter">
+            <div className="max-w-7xl mx-auto w-full px-4 lg:px-8">
+              <Suspense fallback={<LoadingView />}>
+                <AnimatePresence mode="wait">
+                  {activeTab === 'track' && (
+                    <motion.div key="track" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="space-y-8 font-inter">
+                      <div className={cn("grid transition-all duration-500", gridClasses[settings.widgetSize] || gridClasses.LARGE)}>
+                        {configs.sort((a,b)=>a.order-b.order).map((c, i) => (
+                          <TrackerCard key={c.id} config={c} count={(metrics.todayLog?.counts || {})[c.id] || 0} onInc={() => increment(c.id)} onDec={() => decrement(c.id)} index={i} globalSize={settings.widgetSize} />
+                        ))}
+                      </div>
+                      <div className="w-full">
+                        <MetricBanner m={metrics} />
+                      </div>
+                    </motion.div>
+                  )}
+                  {activeTab === 'history' && <HistoryScreen logs={logs} m={metrics} onEdit={setEditTarget} userId={user.uid} today={today} />}
+                  {activeTab === 'control' && <SettingsScreen configs={configs} user={user} settings={settings} onAdd={() => setShowAdd(true)} onReo={reorder} onEditP={setEditProtocol} onUpd={onUpdateSettings} onDel={deleteProtocol} />}
+                </AnimatePresence>
+              </Suspense>
+            </div>
+          </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6 font-inter">
-        <div className="max-w-xl mx-auto flex items-center justify-around h-20">
-          <NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} />
-          <NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
-          <NavBtn id="control" icon={Settings} label="Settings" active={activeTab === 'control'} onClick={() => setActiveTab('control')} />
-        </div>
-      </nav>
+          <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-[#020202]/80 backdrop-blur-3xl border-t border-white/[0.03] pb-[env(safe-area-inset-bottom)] px-6 font-inter">
+            <div className="max-w-xl mx-auto flex items-center justify-around h-20">
+              <NavBtn id="track" icon={LayoutGrid} label="Track" active={activeTab === 'track'} onClick={() => setActiveTab('track')} />
+              <NavBtn id="history" icon={BarChart3} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+              <NavBtn id="control" icon={Settings} label="Settings" active={activeTab === 'control'} onClick={() => setActiveTab('control')} />
+            </div>
+          </nav>
 
-      <AnimatePresence>
-        {showLogout && (
-          <LogoutModal
-            isOpen={showLogout}
-            onClose={() => setShowLogout(false)}
-            onConfirm={() => { setShowLogout(false); auth.signOut(); }}
-          />
-        )}
-      </AnimatePresence>
+          <AnimatePresence>
+            {showLogout && (
+              <LogoutModal
+                isOpen={showLogout}
+                onClose={() => setShowLogout(false)}
+                onConfirm={() => { setShowLogout(false); auth.signOut(); }}
+              />
+            )}
+          </AnimatePresence>
+        </>
+      )}
     </div>
   );
 };
