@@ -43,13 +43,17 @@ export const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP,
   const [preview, setPreview] = useState(settings.avatar || user?.photoURL || null);
   const fileInputRef = useRef(null);
 
+  // Sync preview with cloud changes
+  React.useEffect(() => {
+    setPreview(settings.avatar || user?.photoURL || null);
+  }, [settings.avatar, user?.photoURL]);
+
   const handlePfpUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !user) return;
 
-    // Validate size (Firestore limit is 1MB total doc size, we limit image to 400kb)
     if (file.size > 400 * 1024) {
-      alert("Image too large. Please select a file smaller than 400KB for free cloud sync.");
+      alert("Image too large. Please select a file smaller than 400KB.");
       return;
     }
 
@@ -60,12 +64,8 @@ export const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP,
       setUploading(true);
 
       try {
-        console.log("[IDENTITY_SYNC] Committing to Firestore...");
-        // Save directly to Firestore settings - bypasses Storage upgrade requirement
         await updateDoc(doc(db, 'users', user.uid), { avatar: base64 });
-        console.log("[IDENTITY_SYNC] SUCCESS.");
       } catch (err) {
-        console.error("[IDENTITY_SYNC] FATAL_CRASH:", err);
         setPreview(settings.avatar || user?.photoURL || null);
         alert(`Identity Sync Failure: ${err.message}`);
       } finally {
@@ -75,13 +75,26 @@ export const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP,
     reader.readAsDataURL(file);
   };
 
+  const handleRemovePfp = async () => {
+    if (!window.confirm("Purge profile image?")) return;
+    setUploading(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { avatar: null });
+      setPreview(null);
+    } catch (err) {
+      alert("Removal Failed.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUpdateProfile = async () => {
     const cleanName = sanitizeString(n);
     if (!cleanName) return;
     try {
       await updateProfile(auth.currentUser, { displayName: cleanName });
       await updateDoc(doc(db, 'users', user.uid), { name: cleanName });
-      alert("Profile Securely Updated");
+      alert("Profile Updated");
     } catch (e) {
       console.error(e);
     }
@@ -93,14 +106,35 @@ export const SettingsScreen = ({ configs, user, settings, onAdd, onReo, onEditP,
         <div className="lg:col-span-5 space-y-8">
           <section className="bg-neutral-900/40 backdrop-blur-xl border border-white/5 rounded-[32px] p-8 lg:p-10 shadow-xl shadow-black/50 relative overflow-hidden">
             <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-neutral-500 mb-8">Display Identity</h3>
-            <div className="flex flex-col items-center gap-10">
+            <div className="flex flex-col items-center gap-8">
               <input type="file" ref={fileInputRef} onChange={handlePfpUpload} className="hidden" accept="image/*" />
-              <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-32 h-32 rounded-[40px] bg-accent/5 border border-accent/20 flex items-center justify-center shadow-2xl relative group overflow-hidden transition-all hover:border-accent/50">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-32 h-32 rounded-[40px] bg-accent/5 border border-accent/20 flex items-center justify-center shadow-2xl relative group overflow-hidden transition-all hover:border-accent/50"
+              >
                 {uploading && ( <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-sm"><Loader2 className="animate-spin text-accent" size={32} /></div> )}
                 {preview ? <img src={preview} alt="Avatar" className="w-full h-full object-cover transition-transform group-hover:scale-110" /> : <User size={48} className="text-accent" strokeWidth={2.5} />}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10"><Camera size={24} className="text-white" /></div>
               </button>
-              <div className="w-full space-y-8">
+
+              <div className="flex gap-4 w-full">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 h-12 bg-white/5 border border-white/10 rounded-xl text-[10px] font-[1000] uppercase tracking-widest hover:bg-white/10 transition-all text-white/60 hover:text-white"
+                >
+                  Update
+                </button>
+                <button
+                  onClick={handleRemovePfp}
+                  disabled={!preview || uploading}
+                  className="flex-1 h-12 bg-rose-500/5 border border-rose-500/10 rounded-xl text-[10px] font-[1000] uppercase tracking-widest hover:bg-rose-500/10 transition-all text-rose-500/60 hover:text-rose-500 disabled:opacity-0"
+                >
+                  Remove
+                </button>
+              </div>
+
+              <div className="w-full space-y-8 pt-4 border-t border-white/5">
                 <Input label="Display Name" value={n} onChange={setN} isDark />
                 <button
                   onClick={handleUpdateProfile}
